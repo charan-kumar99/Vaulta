@@ -1,0 +1,272 @@
+/* ============================================
+   DocVault — Animations & Transitions
+   ============================================ */
+
+/* --- Keyframes --- */
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes fadeOut {
+  from { opacity: 1; }
+  to { opacity: 0; }
+}
+
+@keyframes slideUp {
+  from { opacity: 0; transform: translateY(24px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes slideDown {
+  from { opacity: 0; transform: translateY(-24px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes slideInRight {
+  from { opacity: 0; transform: translateX(24px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+
+@keyframes slideInLeft {
+  from { opacity: 0; transform: translateX(-24px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+
+@keyframes scaleIn {
+  from { opacity: 0; transform: scale(0.9); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+@keyframes scaleOut {
+  from { opacity: 1; transform: scale(1); }
+  to { opacity: 0; transform: scale(0.9); }
+}
+
+@keyframes modalIn {
+  from { opacity: 0; transform: scale(0.95) translateY(10px); }
+  to { opacity: 1; transform: scale(1) translateY(0); }
+}
+
+@keyframes overlayIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-8px); }
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+@keyframes bounceIn {
+  0% { opacity: 0; transform: scale(0.3); }
+  50% { transform: scale(1.05); }
+  70% { transform: scale(0.95); }
+  100% { opacity: 1; transform: scale(1); }
+}
+
+@keyframes slideToastIn {
+  from { opacity: 0; transform: translateX(100%) scale(0.9); }
+  to { opacity: 1; transform: translateX(0) scale(1); }
+}
+
+@keyframes slideToastOut {
+  from { opacity: 1; transform: translateX(0) scale(1); }
+  to { opacity: 0; transform: translateX(100%) scale(0.9); }
+}
+
+@keyframes ripple {
+  0% { transform: scale(0); opacity: 0.5; }
+  100% { transform: scale(4); opacity: 0; }
+}
+
+@keyframes dragPulse {
+  0%, 100% { border-color: var(--color-accent-primary); opacity: 0.7; }
+  50% { border-color: var(--color-accent-secondary); opacity: 1; }
+}
+
+@keyframes progressFill {
+  from { width: 0; }
+  to { width: 100%; }
+}
+
+@keyframes gradientShift {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+@keyframes cardEntrance {
+  from { opacity: 0; transform: translateY(20px) scale(0.97); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+/* --- Animation Utility Classes --- */
+
+.anim-fade-in {
+  animation: fadeIn var(--transition-base) ease-out forwards;
+}
+
+.anim-slide-up {
+  animation: slideUp var(--transition-slow) ease-out forwards;
+}
+
+.anim-slide-down {
+  animation: slideDown var(--transition-slow) ease-out forwards;
+}
+
+.anim-scale-in {
+  animation: scaleIn var(--transition-base) ease-out forwards;
+}
+
+.anim-bounce-in {
+  animation: bounceIn 500ms cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+}
+
+.anim-float {
+  animation: float 3s ease-in-out infinite;
+}
+
+/* Staggered card animations */
+.anim-stagger > * {
+  opacity: 0;
+  animation: cardEntrance 400ms ease-out forwards;
+}
+
+.anim-stagger > *:nth-child(1) { animation-delay: 50ms; }
+.anim-stagger > *:nth-child(2) { animation-delay: 100ms; }
+.anim-stagger > *:nth-child(3) { animation-delay: 150ms; }
+.anim-stagger > *:nth-child(4) { animation-delay: 200ms; }
+.anim-stagger > *:nth-child(5) { animation-delay: 250ms; }
+.anim-stagger > *:nth-child(6) { animation-delay: 300ms; }
+.anim-stagger > *:nth-child(7) { animation-delay: 350ms; }
+.anim-stagger > *:nth-child(8) { animation-delay: 400ms; }
+.anim-stagger > *:nth-child(9) { animation-delay: 450ms; }
+.anim-stagger > *:nth-child(10) { animation-delay: 500ms; }
+.anim-stagger > *:nth-child(11) { animation-delay: 550ms; }
+.anim-stagger > *:nth-child(12) { animation-delay: 600ms; }
+
+/* Skeleton loading */
+.skeleton {
+  background: linear-gradient(
+    90deg,
+    var(--color-bg-tertiary) 25%,
+    var(--color-border) 50%,
+    var(--color-bg-tertiary) 75%
+  );
+  background-size: 400% 100%;
+  animation: shimmer 1.5s ease-in-out infinite;
+  border-radius: var(--radius-md);
+}
+
+/* Spinner */
+.spinner {
+  width: 24px;
+  height: 24px;
+  border: 3px solid var(--color-border);
+  border-top-color: var(--color-accent-primary);
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+}
+
+/* Gradient animated border */
+.gradient-border {
+  position: relative;
+}
+
+.gradient-border::before {
+  content: '';
+  position: absolute;
+  inset: -2px;
+  background: var(--gradient-accent);
+  background-size: 200% 200%;
+  border-radius: inherit;
+  z-index: -1;
+  animation: gradientShift 4s ease infinite;
+}
+
+/* Ripple effect */
+.ripple-container {
+  position: relative;
+  overflow: hidden;
+}
+
+.ripple-effect {
+  position: absolute;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.3);
+  pointer-events: none;
+  animation: ripple 600ms ease-out forwards;
+}
+
+/* Page transitions */
+.page-enter {
+  animation: slideUp 350ms ease-out forwards;
+}
+
+.page-exit {
+  animation: fadeOut 200ms ease-in forwards;
+}
+
+/* Modal transitions */
+.modal-overlay-enter {
+  animation: overlayIn 250ms ease-out forwards;
+}
+
+.modal-content-enter {
+  animation: modalIn 350ms cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+}
+
+.modal-overlay-exit {
+  animation: fadeOut 200ms ease-in forwards;
+}
+
+.modal-content-exit {
+  animation: scaleOut 200ms ease-in forwards;
+}
+
+/* Toast animations */
+.toast-enter {
+  animation: slideToastIn 400ms cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+}
+
+.toast-exit {
+  animation: slideToastOut 300ms ease-in forwards;
+}
+
+/* Drag & drop zone animation */
+.drag-active {
+  animation: dragPulse 1.5s ease-in-out infinite;
+}
+
+/* Progress bar fill */
+.progress-fill {
+  animation: progressFill 1s ease-out forwards;
+}
+
+/* Reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
