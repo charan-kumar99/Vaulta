@@ -398,15 +398,114 @@ const DocDB = (() => {
   }
 
   /**
-   * Clear all documents from database
+   * Export complete Secret Sync Data Package (all documents + folders + categories)
    */
-  async function clearAll() {
-    const store = await getStore('readwrite');
+  async function exportSecretSyncPackage() {
+    const store = await getStore('readonly');
     return new Promise((resolve, reject) => {
-      const request = store.clear();
-      request.onsuccess = () => resolve(true);
-      request.onerror = (event) => reject(event.target.error);
+      const request = store.getAll();
+      request.onsuccess = async () => {
+        const docs = request.result || [];
+        const processedDocs = [];
+
+        for (const doc of docs) {
+          let fileDataBase64 = null;
+          if (doc.fileData) {
+            fileDataBase64 = await new Promise((res) => {
+              const reader = new FileReader();
+              reader.onload = (e) => res(e.target.result);
+              reader.onerror = () => res(null);
+              reader.readAsDataURL(doc.fileData);
+            });
+          }
+
+          processedDocs.push({
+            ...doc,
+            fileData: undefined,
+            fileDataBase64,
+          });
+        }
+
+        const folders = JSON.parse(localStorage.getItem('vaulta_nested_folders_v2') || '[]');
+        const customCategories = JSON.parse(localStorage.getItem('vaulta_custom_categories') || '{"personal":[],"official":[]}');
+
+        const packageObj = {
+          version: 'vaulta_sync_v2',
+          exportedAt: Date.now(),
+          folders,
+          customCategories,
+          documents: processedDocs,
+        };
+
+        resolve(packageObj);
+      };
+      request.onerror = (event) => reject(new Error('Failed to export sync package: ' + event.target.error));
     });
+  }
+
+  /**
+   * Import Secret Sync Data Package (restores documents, folders, and custom categories)
+   */
+  async function importSecretSyncPackage(packageObj) {
+    if (!packageObj || !packageObj.documents) {
+      throw new Error('Invalid Vaulta sync file.');
+    }
+
+    // Restore folders
+    if (Array.isArray(packageObj.folders)) {
+      const currentFolders = JSON.parse(localStorage.getItem('vaulta_nested_folders_v2') || '[]');
+      const folderMap = new Map();
+      currentFolders.forEach((f) => folderMap.set(f.id, f));
+      packageObj.folders.forEach((f) => folderMap.set(f.id, f));
+      localStorage.setItem('vaulta_nested_folders_v2', JSON.stringify(Array.from(folderMap.values())));
+    }
+
+    // Restore custom categories
+    if (packageObj.customCategories) {
+      const currentCats = JSON.parse(localStorage.getItem('vaulta_custom_categories') || '{"personal":[],"official":[]}');
+      const personalCats = Array.from(new Set([...(currentCats.personal || []), ...(packageObj.customCategories.personal || [])]));
+      const officialCats = Array.from(new Set([...(currentCats.official || []), ...(packageObj.customCategories.official || [])]));
+      localStorage.setItem('vaulta_custom_categories', JSON.stringify({ personal: personalCats, official: officialCats }));
+    }
+
+    // Restore documents into IndexedDB
+    const store = await getStore('readwrite');
+    let count = 0;
+
+    for (const doc of packageObj.documents) {
+      let blob = null;
+      if (doc.fileDataBase64) {
+        try {
+          const parts = doc.fileDataBase64.split(',');
+          const mimeMatch = parts[0].match(/:(.*?);/);
+          const mime = mimeMatch ? mimeMatch[1] : doc.fileType || 'application/octet-stream';
+          const bstr = atob(parts[1]);
+          let n = bstr.length;
+          const u8arr = new Uint8Array(n);
+          while (n--) {
+            u8arr[n] = bstr.charCodeAt(n);
+          }
+          blob = new Blob([u8arr], { type: mime });
+        } catch (e) {
+          console.error('Error converting base64 to blob:', e);
+        }
+      }
+
+      const docToStore = {
+        ...doc,
+        fileData: blob || doc.fileData,
+        fileDataBase64: undefined,
+        updatedAt: Date.now(),
+      };
+
+      await new Promise((res, rej) => {
+        const req = store.put(docToStore);
+        req.onsuccess = () => { count++; res(); };
+        req.onerror = (event) => rej(event.target.error);
+      });
+    }
+
+    return { documentCount: count, folderCount: (packageObj.folders || []).length };
   }
 
   // Public API
@@ -426,6 +525,8 @@ const DocDB = (() => {
     getFileUrl,
     getFileBlob,
     exportAll,
+    exportSecretSyncPackage,
+    importSecretSyncPackage,
     generateThumbnail,
   };
 })();

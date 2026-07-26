@@ -187,6 +187,7 @@ const DocApp = (() => {
     bindBackButton();
     bindBulkSelect();
     bindLongPressToSelect();
+    bindSecretSyncEvents();
   }
 
   function bindHomeCategoryChips() {
@@ -1046,6 +1047,131 @@ const DocApp = (() => {
         closeModal();
         await renderCurrentScreen();
         DocUI.showToast(`Folder renamed to "${updated.name}"!`, 'success');
+      }
+    }
+  }
+
+  /* ============================================
+     Secret Vault Sync Modal
+     ============================================ */
+
+  function bindSecretSyncEvents() {
+    const backupBtn = document.getElementById('backupBtn');
+    if (backupBtn) {
+      backupBtn.addEventListener('click', () => openSecretSyncModal());
+    }
+
+    // Secret Triple-Click Gesture on Vaulta Logo
+    let logoClickCount = 0;
+    let logoClickTimer = null;
+    const logoEl = document.querySelector('.app-header .logo');
+    if (logoEl) {
+      logoEl.addEventListener('click', () => {
+        logoClickCount++;
+        clearTimeout(logoClickTimer);
+        if (logoClickCount >= 3) {
+          logoClickCount = 0;
+          DocUI.showToast('🔐 Secret Vault Sync Unlocked!', 'info');
+          openSecretSyncModal();
+        } else {
+          logoClickTimer = setTimeout(() => { logoClickCount = 0; }, 800);
+        }
+      });
+    }
+  }
+
+  function openSecretSyncModal() {
+    const modals = modalsContainer();
+    modals.innerHTML = DocUI.renderSecretSyncModal();
+
+    const modal = document.getElementById('secretSyncModal');
+    const closeBtn = document.getElementById('secretSyncClose');
+    const cancelBtn = document.getElementById('secretSyncCancel');
+    const exportBtn = document.getElementById('secretSyncExportBtn');
+    const dropZone = document.getElementById('secretSyncDropZone');
+    const fileInput = document.getElementById('secretSyncFileInput');
+
+    const closeModal = () => modal.remove();
+
+    if (closeBtn) closeBtn.addEventListener('click', closeModal);
+    if (cancelBtn) cancelBtn.addEventListener('click', closeModal);
+    if (modal) {
+      modal.addEventListener('click', (e) => {
+        if (e.target === modal) closeModal();
+      });
+    }
+
+    // Export Data Package
+    if (exportBtn) {
+      exportBtn.addEventListener('click', async () => {
+        exportBtn.classList.add('loading');
+        exportBtn.disabled = true;
+        try {
+          DocUI.showToast('Packaging all documents & folders...', 'info');
+          const packageObj = await DocDB.exportSecretSyncPackage();
+          const jsonStr = JSON.stringify(packageObj, null, 2);
+          const blob = new Blob([jsonStr], { type: 'application/json' });
+          const url = URL.createObjectURL(blob);
+
+          const dateStr = new Date().toISOString().slice(0, 10);
+          const a = document.createElement('a');
+          a.href = url;
+          a.download = `Vaulta_Data_Sync_${dateStr}.vaulta`;
+          document.body.appendChild(a);
+          a.click();
+          a.remove();
+          URL.revokeObjectURL(url);
+
+          DocUI.showToast('📦 Vault Sync File exported! Transfer it to your phone.', 'success', 5000);
+        } catch (err) {
+          console.error('Sync export failed:', err);
+          DocUI.showToast('Failed to export sync file.', 'error');
+        } finally {
+          exportBtn.classList.remove('loading');
+          exportBtn.disabled = false;
+        }
+      });
+    }
+
+    // Import Data Package (DropZone & File Input)
+    if (dropZone && fileInput) {
+      dropZone.addEventListener('click', () => fileInput.click());
+
+      dropZone.addEventListener('dragover', (e) => {
+        e.preventDefault();
+        dropZone.classList.add('drag-over');
+      });
+
+      dropZone.addEventListener('dragleave', () => {
+        dropZone.classList.remove('drag-over');
+      });
+
+      dropZone.addEventListener('drop', (e) => {
+        e.preventDefault();
+        dropZone.classList.remove('drag-over');
+        const files = e.dataTransfer.files;
+        if (files.length > 0) handleSyncFileImport(files[0]);
+      });
+
+      fileInput.addEventListener('change', (e) => {
+        if (e.target.files.length > 0) handleSyncFileImport(e.target.files[0]);
+      });
+    }
+
+    async function handleSyncFileImport(file) {
+      if (!file) return;
+      try {
+        DocUI.showToast('Importing Vaulta sync file...', 'info');
+        const text = await file.text();
+        const packageObj = JSON.parse(text);
+
+        const result = await DocDB.importSecretSyncPackage(packageObj);
+        closeModal();
+        await renderCurrentScreen();
+        DocUI.showToast(`✅ Successfully restored ${result.documentCount} document(s) & ${result.folderCount} folder(s)!`, 'success', 5000);
+      } catch (err) {
+        console.error('Import failed:', err);
+        DocUI.showToast('Failed to import file. Make sure it is a valid .vaulta backup.', 'error');
       }
     }
   }

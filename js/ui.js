@@ -1058,6 +1058,64 @@ const DocUI = (() => {
   }
 
   /* ============================================
+     Secret Vault Sync Modal
+     ============================================ */
+
+  function renderSecretSyncModal() {
+    return `
+      <div class="modal-overlay active modal-overlay-enter" id="secretSyncModal">
+        <div class="modal-content modal-content-enter" style="max-width: 500px;">
+          <div class="modal-header">
+            <h2 class="modal-title">🔐 Secret Vault Sync & Transfer</h2>
+            <button class="modal-close" id="secretSyncClose" aria-label="Close">✕</button>
+          </div>
+          <div class="modal-body" style="padding: var(--space-6);">
+            <div style="display: flex; flex-direction: column; align-items: center; text-align: center; margin-bottom: var(--space-6);">
+              <div style="font-size: 3.5rem; filter: drop-shadow(0 4px 12px rgba(99, 102, 241, 0.4)); margin-bottom: var(--space-2);">📲</div>
+              <p style="font-size: var(--font-size-sm); color: var(--color-text-secondary); line-height: 1.5;">
+                Transfer all your PC documents, custom folders, and categories to your mobile phone app seamlessly without uploading manually!
+              </p>
+            </div>
+
+            <!-- Steps Instructions -->
+            <div style="background: rgba(99, 102, 241, 0.08); border: 1px dashed rgba(99, 102, 241, 0.3); border-radius: var(--radius-lg); padding: var(--space-4); margin-bottom: var(--space-6); font-size: var(--font-size-xs); color: var(--color-text-secondary);">
+              <div style="font-weight: var(--font-weight-bold); color: var(--color-accent-primary); margin-bottom: 6px;">💡 How to sync PC data to Phone:</div>
+              <ol style="margin: 0; padding-left: 18px; line-height: 1.6;">
+                <li>Click <strong>Export Vault Sync File</strong> below on your PC.</li>
+                <li>Send the downloaded <code>.vaulta</code> file to your Phone (WhatsApp/Email/Drive).</li>
+                <li>Open Vaulta on your Phone, tap <strong>💾 Sync</strong>, and select the <code>.vaulta</code> file!</li>
+              </ol>
+            </div>
+
+            <!-- Action Options -->
+            <div style="display: flex; flex-direction: column; gap: var(--space-4);">
+              <button class="btn btn-primary" id="secretSyncExportBtn" style="padding: var(--space-3) var(--space-4); justify-content: center; font-weight: var(--font-weight-bold);">
+                <span class="btn-text">📦 Export Vault Sync File (.vaulta)</span>
+                <div class="btn-spinner spinner"></div>
+              </button>
+
+              <div style="position: relative; text-align: center; margin: 4px 0;">
+                <span style="background: var(--color-bg-secondary); padding: 0 10px; font-size: var(--font-size-xs); color: var(--color-text-tertiary); position: relative; z-index: 1;">OR RESTORE DATA ON PHONE</span>
+                <div style="position: absolute; top: 50%; left: 0; right: 0; border-top: 1px solid var(--color-border); z-index: 0;"></div>
+              </div>
+
+              <div class="drop-zone" id="secretSyncDropZone" style="padding: var(--space-4); text-align: center; cursor: pointer;">
+                <div style="font-size: 1.8rem; margin-bottom: 4px;">📥</div>
+                <p class="drop-text" style="font-size: var(--font-size-sm); font-weight: var(--font-weight-semibold);">Select or Drag & Drop .vaulta File</p>
+                <p class="drop-subtext" style="font-size: var(--font-size-xs);">To import PC data into this device</p>
+                <input type="file" id="secretSyncFileInput" accept=".vaulta,.json" style="display:none;" />
+              </div>
+            </div>
+          </div>
+          <div class="modal-footer">
+            <button class="btn btn-secondary" id="secretSyncCancel" style="width: 100%;">Close</button>
+          </div>
+        </div>
+      </div>
+    `;
+  }
+
+  /* ============================================
      Toast Notifications
      ============================================ */
 
@@ -1138,6 +1196,7 @@ const DocUI = (() => {
     renderEditModal,
     renderCreateFolderModal,
     renderEditFolderModal,
+    renderSecretSyncModal,
     renderPreview,
     renderDeleteConfirm,
     renderShareAsModal,
