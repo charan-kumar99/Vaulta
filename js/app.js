@@ -1115,7 +1115,7 @@ const DocApp = (() => {
           const packageObj = await DocDB.exportSecretSyncPackage();
           const jsonStr = JSON.stringify(packageObj);
           const dateStr = new Date().toISOString().slice(0, 10);
-          const fileName = `Vaulta_Data_Sync_${dateStr}.vaulta`;
+          const fileName = `Vaulta_Sync_${dateStr}.json`;
           const blob = new Blob([jsonStr], { type: 'application/octet-stream' });
 
           // Try Web Share API with file (works great on Android)
