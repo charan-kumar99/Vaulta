@@ -201,11 +201,7 @@ const DocApp = (() => {
       if (!cat) return;
 
       state.homeActiveCategory = cat;
-
-      chipsContainer.querySelectorAll('.category-chip').forEach((c) => c.classList.remove('active'));
-      chip.classList.add('active');
-
-      await renderHomeScreen(mainContainer());
+      await renderCurrentScreen();
     });
   }
 

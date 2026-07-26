@@ -288,10 +288,10 @@ const DocUI = (() => {
 
     (docs || []).forEach((d) => {
       if (d.category) {
-        const key = d.category.toLowerCase();
+        const key = d.category.trim().toLowerCase();
         if (!map.has(key)) {
           map.set(key, {
-            name: d.category,
+            name: d.category.trim(),
             icon: getCategoryIcon(d.category, d.vault),
           });
         }
@@ -306,7 +306,7 @@ const DocUI = (() => {
    */
   function renderHome(container, { personalCount, officialCount, allDocs = [], filteredDocs = [], favoriteDocs = [], activeCategory = 'all' }) {
     const categories = getUsedCategories(allDocs);
-    const docsToRender = filteredDocs.length > 0 ? filteredDocs : (activeCategory === 'all' ? allDocs : []);
+    const docsToRender = (activeCategory && activeCategory !== 'all') ? filteredDocs : allDocs;
 
     container.innerHTML = `
       <div class="container page-enter">
@@ -382,7 +382,7 @@ const DocUI = (() => {
             ${categories.map((cat) => `
               <button class="category-chip ${(activeCategory.toLowerCase() === cat.name.toLowerCase() || (activeCategory === 'all' && cat.name === 'All')) ? 'active' : ''}"
                       data-category="${cat.name === 'All' ? 'all' : cat.name}">
-                ${cat.icon} ${cat.name}
+                ${cat.icon} ${escapeHtml(cat.name)}
               </button>
             `).join('')}
           </div>
