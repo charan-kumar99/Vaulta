@@ -95,17 +95,18 @@ const DocApp = (() => {
 
   async function renderHomeScreen(container) {
     const counts = await DocDB.getCounts();
-    let allDocs = await DocDB.getAll();
+    const allDocs = await DocDB.getAll();
     const favoriteDocs = await DocDB.getFavorites();
 
-    if (state.homeActiveCategory && state.homeActiveCategory !== 'all') {
-      allDocs = allDocs.filter((d) => d.category === state.homeActiveCategory);
-    }
+    const filteredDocs = (state.homeActiveCategory && state.homeActiveCategory !== 'all')
+      ? allDocs.filter((d) => (d.category || '').toLowerCase() === state.homeActiveCategory.toLowerCase())
+      : allDocs;
 
     DocUI.renderHome(container, {
       personalCount: counts.personal,
       officialCount: counts.official,
       allDocs,
+      filteredDocs,
       favoriteDocs,
       activeCategory: state.homeActiveCategory || 'all',
     });

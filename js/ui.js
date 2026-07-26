@@ -282,23 +282,31 @@ const DocUI = (() => {
      Screen Renderers
      ============================================ */
 
-  function getAllAppCategories() {
-    const personal = getAllCategories('personal');
-    const official = getAllCategories('official');
-    const combined = [...personal];
-    official.forEach((c) => {
-      if (!combined.some((item) => item.name === c.name)) {
-        combined.push(c);
+  function getUsedCategories(docs) {
+    const map = new Map();
+    map.set('all', { name: 'All', icon: '📂' });
+
+    (docs || []).forEach((d) => {
+      if (d.category) {
+        const key = d.category.toLowerCase();
+        if (!map.has(key)) {
+          map.set(key, {
+            name: d.category,
+            icon: getCategoryIcon(d.category, d.vault),
+          });
+        }
       }
     });
-    return combined;
+
+    return Array.from(map.values());
   }
 
   /**
    * Render the Home Screen
    */
-  function renderHome(container, { personalCount, officialCount, allDocs = [], favoriteDocs = [], activeCategory = 'all' }) {
-    const categories = getAllAppCategories();
+  function renderHome(container, { personalCount, officialCount, allDocs = [], filteredDocs = [], favoriteDocs = [], activeCategory = 'all' }) {
+    const categories = getUsedCategories(allDocs);
+    const docsToRender = filteredDocs.length > 0 ? filteredDocs : (activeCategory === 'all' ? allDocs : []);
 
     container.innerHTML = `
       <div class="container page-enter">
@@ -369,19 +377,19 @@ const DocUI = (() => {
             <span style="font-size: var(--font-size-xs); color: var(--color-text-tertiary); font-weight: var(--font-weight-medium);">${allDocs.length} total</span>
           </div>
 
-          <!-- Category Chips Filter -->
+          <!-- Category Chips Filter (shows only categories that have uploaded documents) -->
           <div class="category-chips" id="homeCategoryChips" style="margin-bottom: var(--space-4);">
             ${categories.map((cat) => `
-              <button class="category-chip ${(activeCategory === cat.name || (activeCategory === 'all' && cat.name === 'All')) ? 'active' : ''}"
+              <button class="category-chip ${(activeCategory.toLowerCase() === cat.name.toLowerCase() || (activeCategory === 'all' && cat.name === 'All')) ? 'active' : ''}"
                       data-category="${cat.name === 'All' ? 'all' : cat.name}">
                 ${cat.icon} ${cat.name}
               </button>
             `).join('')}
           </div>
 
-          ${allDocs.length > 0 ? `
+          ${docsToRender.length > 0 ? `
             <div class="documents-grid anim-stagger">
-              ${allDocs.map((doc) => renderDocCard(doc)).join('')}
+              ${docsToRender.map((doc) => renderDocCard(doc)).join('')}
             </div>
           ` : `
             <div class="empty-state">
