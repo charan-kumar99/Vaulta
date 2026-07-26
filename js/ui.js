@@ -272,9 +272,13 @@ const DocUI = (() => {
   /**
    * Get file type icon (for non-image files)
    */
-  function getFileTypeIcon(fileType) {
-    if (fileType && fileType.includes('pdf')) return '📕';
-    if (fileType && fileType.includes('image')) return '🖼️';
+  function getFileTypeIcon(fileType, fileName = '') {
+    const fn = (fileName || '').toLowerCase();
+    const ft = (fileType || '').toLowerCase();
+
+    if (ft.includes('pdf') || fn.endsWith('.pdf')) return '📕';
+    if (ft.includes('image') || fn.endsWith('.jpg') || fn.endsWith('.jpeg') || fn.endsWith('.png') || fn.endsWith('.webp')) return '🖼️';
+    if (ft.includes('excel') || ft.includes('spreadsheet') || ft.includes('csv') || fn.endsWith('.xls') || fn.endsWith('.xlsx') || fn.endsWith('.csv')) return '📊';
     return '📄';
   }
 
@@ -633,8 +637,8 @@ const DocUI = (() => {
               <div class="drop-icon anim-float">📁</div>
               <p class="drop-text">Drag & drop your file here</p>
               <p class="drop-subtext">or <span class="drop-browse">click to browse</span></p>
-              <p class="drop-subtext" style="margin-top: var(--space-2); font-size: var(--font-size-xs);">Supports images (JPG, PNG) and PDF</p>
-              <input type="file" id="fileInput" accept="image/*,.pdf" style="display:none;" />
+              <p class="drop-subtext" style="margin-top: var(--space-2); font-size: var(--font-size-xs);">Supports images (JPG, PNG), PDF, and Excel (XLS, XLSX, CSV)</p>
+              <input type="file" id="fileInput" accept="image/*,.pdf,.xls,.xlsx,.csv,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,text/csv" style="display:none;" />
             </div>
 
             <!-- Upload Preview -->
@@ -801,6 +805,8 @@ const DocUI = (() => {
   function renderPreview(doc, fileUrl) {
     const isImage = doc.fileType && doc.fileType.startsWith('image/');
     const isPdf = doc.fileType && doc.fileType.includes('pdf');
+    const fileName = (doc.fileName || doc.name || '').toLowerCase();
+    const isExcel = (doc.fileType && (doc.fileType.includes('excel') || doc.fileType.includes('spreadsheet') || doc.fileType.includes('csv'))) || fileName.endsWith('.xls') || fileName.endsWith('.xlsx') || fileName.endsWith('.csv');
 
     let viewerContent;
     if (isImage) {
@@ -814,10 +820,21 @@ const DocUI = (() => {
           </div>
         </div>
       `;
+    } else if (isExcel) {
+      viewerContent = `
+        <div class="empty-state" style="padding: var(--space-8);">
+          <div class="empty-icon anim-float" style="font-size: 4rem;">📊</div>
+          <h3 class="empty-title">${escapeHtml(doc.name)}</h3>
+          <p class="empty-desc">Excel / Spreadsheet Document (${escapeHtml(doc.fileName || 'Spreadsheet')})</p>
+          <a class="btn btn-primary" href="${fileUrl}" download="${escapeHtml(doc.fileName || doc.name)}" style="margin-top: var(--space-4);">
+            <span class="btn-text">⬇ Download / Open Excel File</span>
+          </a>
+        </div>
+      `;
     } else {
       viewerContent = `
         <div class="empty-state">
-          <div class="empty-icon">${getFileTypeIcon(doc.fileType)}</div>
+          <div class="empty-icon">${getFileTypeIcon(doc.fileType, doc.fileName || doc.name)}</div>
           <h3 class="empty-title">Preview unavailable</h3>
           <p class="empty-desc">Download the file to view it.</p>
         </div>

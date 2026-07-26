@@ -1114,10 +1114,24 @@ const DocApp = (() => {
   }
 
   function handleFileSelect(file) {
-    // Validate file type
-    const validTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp', 'application/pdf'];
-    if (!validTypes.includes(file.type)) {
-      DocUI.showToast('Unsupported file type. Please use JPG, PNG, or PDF.', 'error');
+    const validTypes = [
+      'image/jpeg', 'image/png', 'image/gif', 'image/webp',
+      'application/pdf',
+      'application/vnd.ms-excel',
+      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+      'text/csv',
+      'application/csv',
+      'text/excel',
+      'application/excel',
+      'application/x-excel',
+      'application/x-msexcel'
+    ];
+
+    const fileName = (file.name || '').toLowerCase();
+    const isExcelFile = fileName.endsWith('.xls') || fileName.endsWith('.xlsx') || fileName.endsWith('.csv') || file.type.includes('excel') || file.type.includes('spreadsheet') || file.type.includes('csv');
+
+    if (!validTypes.includes(file.type) && !isExcelFile) {
+      DocUI.showToast('Unsupported file type. Please use JPG, PNG, PDF, or Excel (XLS, XLSX, CSV).', 'error');
       return;
     }
 
@@ -1153,6 +1167,17 @@ const DocApp = (() => {
       img.src = URL.createObjectURL(file);
       img.alt = 'Preview';
       preview.insertBefore(img, preview.firstChild);
+    } else if (isExcelFile) {
+      const excelDiv = document.createElement('div');
+      excelDiv.className = 'preview-pdf';
+      excelDiv.innerHTML = `
+        <span class="pdf-icon">📊</span>
+        <div>
+          <div style="font-weight: var(--font-weight-semibold);">${DocUI.escapeHtml(file.name)}</div>
+          <div style="font-size: var(--font-size-xs); color: var(--color-text-tertiary);">${formatFileSize(file.size)}</div>
+        </div>
+      `;
+      preview.insertBefore(excelDiv, preview.firstChild);
     } else {
       const pdfDiv = document.createElement('div');
       pdfDiv.className = 'preview-pdf';
