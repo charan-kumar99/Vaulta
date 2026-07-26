@@ -76,9 +76,6 @@
       // Theme toggle
       document.getElementById('themeToggle').addEventListener('click', DocApp.toggleTheme);
 
-      // Backup button
-      document.getElementById('backupBtn').addEventListener('click', DocApp.exportBackup);
-
       // Set initial theme icon
       const theme = document.documentElement.getAttribute('data-theme');
       document.getElementById('themeToggle').textContent = theme === 'dark' ? '☀️' : '🌙';

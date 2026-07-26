@@ -398,6 +398,18 @@ const DocDB = (() => {
   }
 
   /**
+   * Clear all documents from database
+   */
+  async function clearAll() {
+    const store = await getStore('readwrite');
+    return new Promise((resolve, reject) => {
+      const request = store.clear();
+      request.onsuccess = () => resolve(true);
+      request.onerror = (event) => reject(event.target.error);
+    });
+  }
+
+  /**
    * Export complete Secret Sync Data Package (all documents + folders + categories)
    */
   async function exportSecretSyncPackage() {

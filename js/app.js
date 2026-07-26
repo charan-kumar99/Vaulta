@@ -1055,7 +1055,11 @@ const DocApp = (() => {
      Secret Vault Sync Modal
      ============================================ */
 
+  let secretSyncBound = false;
   function bindSecretSyncEvents() {
+    if (secretSyncBound) return;
+    secretSyncBound = true;
+
     const backupBtn = document.getElementById('backupBtn');
     if (backupBtn) {
       backupBtn.addEventListener('click', () => openSecretSyncModal());
