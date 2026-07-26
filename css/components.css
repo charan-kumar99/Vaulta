@@ -950,10 +950,13 @@
 .preview-overlay {
   position: fixed;
   inset: 0;
+  height: 100vh;
+  height: 100dvh;
   background: var(--color-bg-primary);
   z-index: var(--z-modal);
   display: none;
   flex-direction: column;
+  overflow: hidden;
 }
 
 .preview-overlay.active {
@@ -970,6 +973,7 @@
   border-bottom: 1px solid var(--color-border);
   min-height: 60px;
   gap: var(--space-3);
+  flex-shrink: 0;
 }
 
 .preview-header-left {
@@ -999,11 +1003,14 @@
 
 .preview-body {
   flex: 1;
+  min-height: 0;
+  width: 100%;
   display: flex;
+  flex-direction: column;
   align-items: center;
-  justify-content: center;
-  padding: var(--space-4);
-  overflow: auto;
+  justify-content: flex-start;
+  padding: 0;
+  overflow: hidden;
   position: relative;
   background: var(--color-bg-tertiary);
 }
@@ -1012,6 +1019,7 @@
   max-width: 100%;
   max-height: 100%;
   object-fit: contain;
+  margin: auto;
   border-radius: var(--radius-lg);
   box-shadow: var(--shadow-xl);
 }
@@ -1026,6 +1034,7 @@
   backdrop-filter: var(--glass-blur);
   border-top: 1px solid var(--color-border);
   z-index: 10;
+  flex-shrink: 0;
 }
 
 .mobile-action-btn {
@@ -1069,6 +1078,8 @@
 .pdf-viewer-container {
   width: 100%;
   height: 100%;
+  min-height: 0;
+  flex: 1;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -1086,10 +1097,11 @@
   backdrop-filter: var(--glass-blur);
   border-radius: var(--radius-full);
   box-shadow: var(--shadow-lg);
-  margin-bottom: var(--space-3);
+  margin: var(--space-3) 0;
   z-index: 5;
   flex-wrap: wrap;
   border: 1px solid var(--color-border);
+  flex-shrink: 0;
 }
 
 .pdf-tb-btn {
@@ -1132,14 +1144,15 @@
 .pdf-pages-container {
   flex: 1;
   width: 100%;
-  overflow-y: auto;
-  overflow-x: auto;
+  min-height: 0;
+  overflow-y: auto !important;
+  overflow-x: auto !important;
   display: flex;
   flex-direction: column;
-  align-items: center;
   gap: var(--space-4);
-  padding: var(--space-2) var(--space-2) var(--space-6);
+  padding: var(--space-2) var(--space-4) var(--space-8);
   -webkit-overflow-scrolling: touch;
+  touch-action: pan-x pan-y;
 }
 
 .pdf-page-wrapper {
@@ -1148,6 +1161,8 @@
   border-radius: var(--radius-md);
   overflow: hidden;
   max-width: 100%;
+  margin: 0 auto;
+  flex-shrink: 0;
 }
 
 .pdf-canvas {
