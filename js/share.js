@@ -84,18 +84,12 @@ const DocShare = (() => {
   }
 
   /**
-   * Share multiple documents as a ZIP file.
-   * Uses JSZip (loaded from CDN in index.html).
+   * Share multiple documents in their original file format (PDF, JPG, PNG, etc.)
    * @param {string[]} docIds - Array of document IDs
-   * @param {string} zipName - Name for the ZIP file
    */
-  async function shareMultiple(docIds, zipName = 'Vaulta_Documents.zip') {
-    if (typeof JSZip === 'undefined') {
-      // Dynamically load JSZip if not already loaded
-      await loadScript('https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js');
-    }
-
-    const zip = new JSZip();
+  async function shareMultiple(docIds) {
+    const files = [];
+    const docs = [];
 
     for (const id of docIds) {
       const doc = await DocDB.getDocument(id);
@@ -103,34 +97,46 @@ const DocShare = (() => {
         const blob = doc.fileData instanceof Blob
           ? doc.fileData
           : new Blob([doc.fileData], { type: doc.fileType });
-        zip.file(doc.fileName, blob);
+        const fileName = doc.fileName || `${doc.name}.${doc.fileType.includes('pdf') ? 'pdf' : 'jpg'}`;
+        const file = new File([blob], fileName, { type: doc.fileType });
+        files.push(file);
+        docs.push(doc);
       }
     }
 
-    const zipBlob = await zip.generateAsync({ type: 'blob' });
+    if (files.length === 0) {
+      throw new Error('No documents found to share');
+    }
 
-    // Try native share
+    // Try native Web Share API with the array of original files
     if (canNativeShare()) {
-      const file = new File([zipBlob], zipName, { type: 'application/zip' });
-      const shareData = { title: 'My Documents', files: [file] };
+      const shareData = {
+        title: files.length === 1 ? docs[0].name : 'Vaulta Documents',
+        files: files,
+      };
 
-      if (navigator.canShare(shareData)) {
+      if (navigator.canShare && navigator.canShare(shareData)) {
         try {
           await navigator.share(shareData);
-          return { success: true, method: 'native', count: docIds.length };
+          return { success: true, method: 'native', count: files.length };
         } catch (e) {
           if (e.name === 'AbortError') {
             return { success: false, method: 'cancelled' };
           }
+          console.warn('Native share failed, using fallback:', e);
         }
       }
     }
 
-    // Fallback: download
-    return {
-      ...downloadFile(zipBlob, zipName),
-      count: docIds.length,
-    };
+    // Fallback: download each document in its original format
+    for (let i = 0; i < files.length; i++) {
+      downloadFile(files[i], files[i].name);
+      if (files.length > 1) {
+        await new Promise((r) => setTimeout(r, 350));
+      }
+    }
+
+    return { success: true, method: 'download', count: files.length };
   }
 
   /**

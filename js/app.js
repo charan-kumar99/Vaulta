@@ -633,10 +633,10 @@ const DocApp = (() => {
     if (ids.length === 0) return;
 
     try {
-      DocUI.showToast(`Preparing ${ids.length} document(s)...`, 'info');
-      const result = await DocShare.shareMultiple(ids, 'Vaulta_Documents.zip');
-      if (result.success) {
-        DocUI.showToast(`${ids.length} document(s) shared as ZIP!`, 'success');
+      DocUI.showToast(`Preparing ${ids.length} original document(s)...`, 'info');
+      const result = await DocShare.shareMultiple(ids);
+      if (result.success && result.method !== 'cancelled') {
+        DocUI.showToast(`${ids.length} document(s) shared!`, 'success');
         exitSelectMode();
       }
     } catch (error) {
@@ -650,17 +650,14 @@ const DocApp = (() => {
     if (ids.length === 0) return;
 
     try {
-      DocUI.showToast(`Preparing ${ids.length} document(s) for download...`, 'info');
-
-      if (ids.length === 1) {
-        await DocShare.downloadDocument(ids[0]);
-        DocUI.showToast('Document downloaded successfully!', 'success');
-      } else {
-        const vaultTitle = state.currentVault ? state.currentVault.charAt(0).toUpperCase() + state.currentVault.slice(1) : 'Vaulta';
-        const zipName = `${vaultTitle}_Selected_Documents.zip`;
-        await DocShare.shareMultiple(ids, zipName);
-        DocUI.showToast(`${ids.length} documents downloaded as ZIP!`, 'success');
+      DocUI.showToast(`Downloading ${ids.length} document(s) in original format...`, 'info');
+      for (let i = 0; i < ids.length; i++) {
+        await DocShare.downloadDocument(ids[i]);
+        if (ids.length > 1) {
+          await new Promise((r) => setTimeout(r, 350));
+        }
       }
+      DocUI.showToast(`${ids.length} document(s) downloaded!`, 'success');
       exitSelectMode();
     } catch (error) {
       console.error('Bulk download failed:', error);
@@ -673,53 +670,31 @@ const DocApp = (() => {
     if (ids.length === 0) return;
 
     try {
-      // First, download the ZIP so user has the file
-      if (typeof JSZip === 'undefined') {
-        const script = document.createElement('script');
-        script.src = 'https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js';
-        document.head.appendChild(script);
-        await new Promise((resolve) => { script.onload = resolve; });
+      DocUI.showToast(`Preparing ${ids.length} document(s)...`, 'info');
+
+      // 1. Try native Web Share API first with original files (User selects WhatsApp from system sheet)
+      const result = await DocShare.shareMultiple(ids);
+      if (result.success) {
+        if (result.method !== 'cancelled') {
+          DocUI.showToast('Shared successfully!', 'success');
+          exitSelectMode();
+        }
+        return;
       }
 
-      const zip = new JSZip();
+      // 2. Fallback for browsers without native share sheet:
+      // Open WhatsApp chat text and download original files
       const docNames = [];
-
       for (const id of ids) {
         const doc = await DocDB.getDocument(id);
-        if (doc && doc.fileData) {
-          const blob = doc.fileData instanceof Blob
-            ? doc.fileData
-            : new Blob([doc.fileData], { type: doc.fileType });
-          zip.file(doc.fileName, blob);
-          docNames.push(doc.name);
-        }
+        if (doc) docNames.push(`• ${doc.name} (${doc.fileName})`);
       }
 
-      const zipBlob = await zip.generateAsync({ type: 'blob' });
+      const message = `Sharing documents from Vaulta:\n${docNames.join('\n')}`;
+      const waUrl = `https://api.whatsapp.com/send?text=${encodeURIComponent(message)}`;
+      window.open(waUrl, '_blank');
 
-      // Try native share with WhatsApp if on mobile
-      if ('share' in navigator && 'canShare' in navigator) {
-        const file = new File([zipBlob], 'Vaulta_Documents.zip', { type: 'application/zip' });
-        const shareData = { title: 'My Documents', files: [file] };
-
-        if (navigator.canShare(shareData)) {
-          await navigator.share(shareData);
-          DocUI.showToast('Documents shared via WhatsApp!', 'success');
-          exitSelectMode();
-          return;
-        }
-      }
-
-      // Fallback: Download ZIP file
-      const url = URL.createObjectURL(zipBlob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = 'Vaulta_Documents.zip';
-      document.body.appendChild(a);
-      a.click();
-      setTimeout(() => { URL.revokeObjectURL(url); a.remove(); }, 100);
-
-      DocUI.showToast('ZIP file downloaded! Please attach it in your WhatsApp chat.', 'info', 5000);
+      DocUI.showToast('Files downloaded! Attach them in WhatsApp.', 'info', 4000);
       exitSelectMode();
     } catch (error) {
       if (error.name === 'AbortError') return;
