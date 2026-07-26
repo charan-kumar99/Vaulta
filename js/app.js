@@ -8,6 +8,7 @@ const DocApp = (() => {
     currentScreen: 'home', // 'home' | 'vault'
     currentVault: null, // 'personal' | 'official'
     activeCategory: 'all',
+    activeFolder: 'all',
     sortBy: 'date-desc',
     searchQuery: '',
     selectedFile: null,
@@ -49,6 +50,7 @@ const DocApp = (() => {
       state.currentScreen = 'home';
       state.currentVault = null;
       state.activeCategory = 'all';
+      state.activeFolder = 'all';
       state.searchQuery = '';
       renderCurrentScreen();
     } else if (hash.startsWith('#vault/')) {
@@ -57,6 +59,7 @@ const DocApp = (() => {
         state.currentScreen = 'vault';
         state.currentVault = vault;
         state.activeCategory = 'all';
+        state.activeFolder = 'all';
         state.searchQuery = '';
         renderCurrentScreen();
       }
@@ -108,6 +111,7 @@ const DocApp = (() => {
       searchQuery: state.searchQuery,
       filters: {
         category: state.activeCategory,
+        folder: state.activeFolder,
       },
       sortBy: state.sortBy,
     });
@@ -116,6 +120,7 @@ const DocApp = (() => {
       vault: state.currentVault,
       documents: filteredDocs,
       activeCategory: state.activeCategory,
+      activeFolder: state.activeFolder,
       sortBy: state.sortBy,
     });
   }
@@ -137,6 +142,7 @@ const DocApp = (() => {
     bindVaultCards();
     bindSortDropdown();
     bindCategoryChips();
+    bindFolderChips();
     bindBackButton();
     bindBulkSelect();
     bindLongPressToSelect();
@@ -440,6 +446,39 @@ const DocApp = (() => {
     });
   }
 
+  function bindFolderChips() {
+    const chips = document.getElementById('folderChips');
+    const createBtn = document.getElementById('createFolderBtn');
+
+    if (chips) {
+      chips.addEventListener('click', async (e) => {
+        const chip = e.target.closest('[data-folder]');
+        if (!chip) return;
+
+        state.activeFolder = chip.dataset.folder;
+
+        chips.querySelectorAll('.category-chip').forEach((c) => c.classList.remove('active'));
+        chip.classList.add('active');
+
+        await refreshVaultGrid();
+      });
+    }
+
+    if (createBtn) {
+      createBtn.addEventListener('click', () => {
+        const name = prompt('Enter new sub-folder or company name (e.g. Nettech Service, TCS, Agreements):');
+        if (name && name.trim()) {
+          const created = DocUI.addCustomFolder(state.currentVault, name.trim());
+          if (created) {
+            state.activeFolder = created;
+            renderCurrentScreen();
+            DocUI.showToast(`Folder "${created}" created!`, 'success');
+          }
+        }
+      });
+    }
+  }
+
   async function refreshVaultGrid() {
     const grid = document.getElementById('documentsGrid');
     if (!grid) return;
@@ -447,7 +486,10 @@ const DocApp = (() => {
     const allDocs = await DocDB.getAllByVault(state.currentVault);
     const filteredDocs = DocSearch.query(allDocs, {
       searchQuery: state.searchQuery,
-      filters: { category: state.activeCategory },
+      filters: {
+        category: state.activeCategory,
+        folder: state.activeFolder,
+      },
       sortBy: state.sortBy,
     });
 
@@ -774,9 +816,11 @@ const DocApp = (() => {
       });
     }
 
-    // Vault change → update category options
+    // Vault, Category & Folder change handlers
     const catSelect = document.getElementById('docCategory');
     const customGroup = document.getElementById('customCategoryGroup');
+    const folderSelect = document.getElementById('docFolder');
+    const newFolderGroup = document.getElementById('newFolderGroup');
 
     const updateCustomVisibility = () => {
       if (catSelect && catSelect.value === 'Other') {
@@ -787,31 +831,47 @@ const DocApp = (() => {
       }
     };
 
-    if (catSelect) {
-      catSelect.addEventListener('change', updateCustomVisibility);
-    }
+    const updateFolderVisibility = () => {
+      if (folderSelect && folderSelect.value === '__new__') {
+        if (newFolderGroup) newFolderGroup.style.display = 'block';
+        document.getElementById('newFolderName')?.focus();
+      } else {
+        if (newFolderGroup) newFolderGroup.style.display = 'none';
+      }
+    };
+
+    if (catSelect) catSelect.addEventListener('change', updateCustomVisibility);
+    if (folderSelect) folderSelect.addEventListener('change', updateFolderVisibility);
 
     vaultSelect.addEventListener('change', () => {
       const vault = vaultSelect.value;
       const personalGroup = document.getElementById('personalCatGroup');
       const officialGroup = document.getElementById('officialCatGroup');
+      const personalFolders = document.getElementById('personalFolderGroup');
+      const officialFolders = document.getElementById('officialFolderGroup');
 
       if (vault === 'personal') {
-        personalGroup.style.display = '';
-        officialGroup.style.display = 'none';
-        // Select first personal category
-        const firstOption = personalGroup.querySelector('option');
+        if (personalGroup) personalGroup.style.display = '';
+        if (officialGroup) officialGroup.style.display = 'none';
+        if (personalFolders) personalFolders.style.display = '';
+        if (officialFolders) officialFolders.style.display = 'none';
+        const firstOption = personalGroup?.querySelector('option');
         if (firstOption) firstOption.selected = true;
       } else {
-        personalGroup.style.display = 'none';
-        officialGroup.style.display = '';
-        const firstOption = officialGroup.querySelector('option');
+        if (personalGroup) personalGroup.style.display = 'none';
+        if (officialGroup) officialGroup.style.display = '';
+        if (personalFolders) personalFolders.style.display = 'none';
+        if (officialFolders) officialFolders.style.display = '';
+        const firstOption = officialGroup?.querySelector('option');
         if (firstOption) firstOption.selected = true;
       }
+      if (folderSelect) folderSelect.value = '';
       updateCustomVisibility();
+      updateFolderVisibility();
     });
 
     updateCustomVisibility();
+    updateFolderVisibility();
 
     // Submit
     submitBtn.addEventListener('click', handleUpload);
@@ -880,6 +940,7 @@ const DocApp = (() => {
     const name = document.getElementById('docName').value.trim();
     const vault = document.getElementById('docVault').value;
     const selectedCategory = document.getElementById('docCategory').value;
+    const selectedFolder = document.getElementById('docFolder')?.value || '';
     const tagsStr = document.getElementById('docTags').value.trim();
 
     if (!name) {
@@ -895,6 +956,16 @@ const DocApp = (() => {
         return;
       }
       category = DocUI.addCustomCategory(vault, customVal);
+    }
+
+    let folder = selectedFolder;
+    if (selectedFolder === '__new__') {
+      const newFolderVal = document.getElementById('newFolderName')?.value.trim();
+      if (newFolderVal) {
+        folder = DocUI.addCustomFolder(vault, newFolderVal);
+      } else {
+        folder = null;
+      }
     }
 
     const submitBtn = document.getElementById('uploadSubmit');
@@ -915,6 +986,7 @@ const DocApp = (() => {
         vault,
         name,
         category,
+        folder,
         tags,
         fileData: file,
         fileType: file.type,
@@ -1225,9 +1297,11 @@ const DocApp = (() => {
       if (e.target === modal) closeModal();
     });
 
-    // Vault & Category change → toggle custom category input
+    // Vault, Category & Folder change handlers
     const catSelect = document.getElementById('editDocCategory');
     const customGroup = document.getElementById('editCustomCategoryGroup');
+    const folderSelect = document.getElementById('editDocFolder');
+    const newFolderGroup = document.getElementById('editNewFolderGroup');
 
     const updateEditCustomVisibility = () => {
       if (catSelect && catSelect.value === 'Other') {
@@ -1238,34 +1312,49 @@ const DocApp = (() => {
       }
     };
 
-    if (catSelect) {
-      catSelect.addEventListener('change', updateEditCustomVisibility);
-    }
+    const updateEditFolderVisibility = () => {
+      if (folderSelect && folderSelect.value === '__new__') {
+        if (newFolderGroup) newFolderGroup.style.display = 'block';
+        document.getElementById('editNewFolderName')?.focus();
+      } else {
+        if (newFolderGroup) newFolderGroup.style.display = 'none';
+      }
+    };
+
+    if (catSelect) catSelect.addEventListener('change', updateEditCustomVisibility);
+    if (folderSelect) folderSelect.addEventListener('change', updateEditFolderVisibility);
 
     vaultSelect.addEventListener('change', () => {
       const vault = vaultSelect.value;
       const personalGroup = document.getElementById('editPersonalCatGroup');
       const officialGroup = document.getElementById('editOfficialCatGroup');
+      const personalFolders = document.getElementById('editPersonalFolderGroup');
+      const officialFolders = document.getElementById('editOfficialFolderGroup');
 
       if (vault === 'personal') {
-        personalGroup.style.display = '';
-        officialGroup.style.display = 'none';
-        personalGroup.querySelector('option').selected = true;
+        if (personalGroup) personalGroup.style.display = '';
+        if (officialGroup) officialGroup.style.display = 'none';
+        if (personalFolders) personalFolders.style.display = '';
+        if (officialFolders) officialFolders.style.display = 'none';
       } else {
-        personalGroup.style.display = 'none';
-        officialGroup.style.display = '';
-        officialGroup.querySelector('option').selected = true;
+        if (personalGroup) personalGroup.style.display = 'none';
+        if (officialGroup) officialGroup.style.display = '';
+        if (personalFolders) personalFolders.style.display = 'none';
+        if (officialFolders) officialFolders.style.display = '';
       }
       updateEditCustomVisibility();
+      updateEditFolderVisibility();
     });
 
     updateEditCustomVisibility();
+    updateEditFolderVisibility();
 
     // Save
     submitBtn.addEventListener('click', async () => {
       const name = document.getElementById('editDocName').value.trim();
       const vault = document.getElementById('editDocVault').value;
       const selectedCategory = document.getElementById('editDocCategory').value;
+      const selectedFolder = document.getElementById('editDocFolder')?.value || '';
       const tagsStr = document.getElementById('editDocTags').value.trim();
 
       if (!name) {
@@ -1283,12 +1372,22 @@ const DocApp = (() => {
         category = DocUI.addCustomCategory(vault, customVal);
       }
 
+      let folder = selectedFolder;
+      if (selectedFolder === '__new__') {
+        const newFolderVal = document.getElementById('editNewFolderName')?.value.trim();
+        if (newFolderVal) {
+          folder = DocUI.addCustomFolder(vault, newFolderVal);
+        } else {
+          folder = null;
+        }
+      }
+
       const tags = tagsStr
         ? tagsStr.split(',').map((t) => t.trim().toLowerCase()).filter(Boolean)
         : [];
 
       try {
-        await DocDB.updateDocument(doc.id, { name, vault, category, tags });
+        await DocDB.updateDocument(doc.id, { name, vault, category, folder, tags });
         closeModal();
         await renderCurrentScreen();
         DocUI.showToast('Document updated successfully!', 'success');

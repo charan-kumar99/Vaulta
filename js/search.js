@@ -41,6 +41,7 @@ const DocSearch = (() => {
     let score = 0;
     const name = normalize(doc.name);
     const category = normalize(doc.category);
+    const folder = normalize(doc.folder || '');
     const tags = (doc.tags || []).map(normalize);
 
     // Exact name match
@@ -54,6 +55,9 @@ const DocSearch = (() => {
 
     // Category match
     if (category.includes(q)) score += 40;
+
+    // Folder match
+    if (folder.includes(q)) score += 35;
 
     // Tag match
     for (const tag of tags) {
@@ -95,6 +99,7 @@ const DocSearch = (() => {
    * @param {Object} filters
    * @param {string} [filters.vault] - 'personal' or 'official'
    * @param {string} [filters.category] - Category name (or 'all')
+   * @param {string} [filters.folder] - Folder name (or 'all')
    * @param {boolean} [filters.favoritesOnly] - Only show favorites
    * @returns {Object[]} Filtered results
    */
@@ -108,6 +113,12 @@ const DocSearch = (() => {
     if (filters.category && filters.category !== 'all') {
       result = result.filter(
         (doc) => normalize(doc.category) === normalize(filters.category)
+      );
+    }
+
+    if (filters.folder && filters.folder !== 'all') {
+      result = result.filter(
+        (doc) => normalize(doc.folder || '') === normalize(filters.folder)
       );
     }
 

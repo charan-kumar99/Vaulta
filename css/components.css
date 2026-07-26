@@ -513,6 +513,19 @@
   border: 1px solid var(--color-border);
 }
 
+.doc-folder-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  padding: 2px 7px;
+  border-radius: var(--radius-full);
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-medium);
+  background: rgba(14, 165, 233, 0.12);
+  color: var(--color-accent-secondary);
+  border: 1px solid rgba(14, 165, 233, 0.2);
+}
+
 .doc-card .doc-actions {
   position: absolute;
   top: var(--space-3);

@@ -87,6 +87,7 @@ const DocDB = (() => {
       vault: doc.vault,
       name: doc.name,
       category: doc.category,
+      folder: doc.folder || null,
       tags: doc.tags || [],
       fileData: doc.fileData,
       fileType: doc.fileType,
