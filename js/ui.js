@@ -922,6 +922,40 @@ const DocUI = (() => {
   }
 
   /* ============================================
+     Create Folder Modal
+     ============================================ */
+
+  function renderCreateFolderModal() {
+    return `
+      <div class="modal-overlay active modal-overlay-enter" id="createFolderModal">
+        <div class="modal-content modal-content-enter" style="max-width: 440px;">
+          <div class="modal-header">
+            <h2 class="modal-title">📁 Create New Folder</h2>
+            <button class="modal-close" id="createFolderClose" aria-label="Close">✕</button>
+          </div>
+          <div class="modal-body" style="padding: var(--space-6);">
+            <div style="display: flex; flex-direction: column; align-items: center; text-align: center; margin-bottom: var(--space-6);">
+              <div style="font-size: 3.5rem; filter: drop-shadow(0 4px 10px rgba(99, 102, 241, 0.3)); margin-bottom: var(--space-2);">📁</div>
+              <p style="font-size: var(--font-size-sm); color: var(--color-text-secondary);">Organize your documents into custom folders and sub-folders.</p>
+            </div>
+
+            <div class="form-group" style="margin-bottom: 0;">
+              <label class="form-label" for="customFolderName">Folder Name *</label>
+              <input type="text" class="form-input" id="customFolderName" placeholder="e.g. Nettech Service, TCS, Agreements" autocomplete="off" />
+            </div>
+          </div>
+          <div class="modal-footer">
+            <button class="btn btn-secondary" id="createFolderCancel">Cancel</button>
+            <button class="btn btn-primary" id="createFolderSubmit">
+              <span class="btn-text">📁 Create Folder</span>
+            </button>
+          </div>
+        </div>
+      </div>
+    `;
+  }
+
+  /* ============================================
      Toast Notifications
      ============================================ */
 
@@ -999,6 +1033,7 @@ const DocUI = (() => {
     renderFavCard,
     renderUploadModal,
     renderEditModal,
+    renderCreateFolderModal,
     renderPreview,
     renderDeleteConfirm,
     renderShareAsModal,

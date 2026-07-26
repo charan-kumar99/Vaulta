@@ -541,14 +541,7 @@ const DocApp = (() => {
     const createFolderBtns = [document.getElementById('createFolderBtn'), document.getElementById('emptyCreateFolderBtn')].filter(Boolean);
     createFolderBtns.forEach((btn) => {
       btn.addEventListener('click', () => {
-        const name = prompt('Enter new folder name (e.g. Nettech Service, TCS, Agreements):');
-        if (name && name.trim()) {
-          const created = DocUI.createFolder(state.currentVault, name.trim(), state.currentFolderId);
-          if (created) {
-            renderCurrentScreen();
-            DocUI.showToast(`Folder "${created.name}" created!`, 'success');
-          }
-        }
+        openCreateFolderModal();
       });
     });
 
@@ -873,6 +866,57 @@ const DocApp = (() => {
       if (error.name === 'AbortError') return;
       console.error('WhatsApp share failed:', error);
       DocUI.showToast('Failed to share via WhatsApp.', 'error');
+    }
+  }
+
+  /* ============================================
+     Create Folder Modal
+     ============================================ */
+
+  function openCreateFolderModal() {
+    const modals = modalsContainer();
+    modals.innerHTML = DocUI.renderCreateFolderModal();
+
+    const modal = document.getElementById('createFolderModal');
+    const closeBtn = document.getElementById('createFolderClose');
+    const cancelBtn = document.getElementById('createFolderCancel');
+    const submitBtn = document.getElementById('createFolderSubmit');
+    const nameInput = document.getElementById('customFolderName');
+
+    const closeModal = () => modal.remove();
+
+    if (closeBtn) closeBtn.addEventListener('click', closeModal);
+    if (cancelBtn) cancelBtn.addEventListener('click', closeModal);
+    if (modal) {
+      modal.addEventListener('click', (e) => {
+        if (e.target === modal) closeModal();
+      });
+    }
+
+    if (nameInput) {
+      setTimeout(() => nameInput.focus(), 100);
+      nameInput.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') handleCreateFolderSubmit();
+      });
+    }
+
+    if (submitBtn) {
+      submitBtn.addEventListener('click', handleCreateFolderSubmit);
+    }
+
+    function handleCreateFolderSubmit() {
+      const name = nameInput.value.trim();
+      if (!name) {
+        DocUI.showToast('Please enter a folder name.', 'error');
+        return;
+      }
+
+      const created = DocUI.createFolder(state.currentVault || 'personal', name, state.currentFolderId);
+      if (created) {
+        closeModal();
+        renderCurrentScreen();
+        DocUI.showToast(`Folder "${created.name}" created!`, 'success');
+      }
     }
   }
 
