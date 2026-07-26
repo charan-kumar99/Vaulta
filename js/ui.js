@@ -407,7 +407,7 @@ const DocUI = (() => {
       : '';
 
     return `
-      <div class="doc-card ${selectMode ? 'select-mode' : ''}" data-doc-id="${doc.id}" data-vault="${doc.vault}" data-action="${selectMode ? 'toggle-select' : 'preview'}">
+      <div class="doc-card ${selectMode ? 'select-mode' : ''}" draggable="true" data-doc-id="${doc.id}" data-vault="${doc.vault}" data-action="${selectMode ? 'toggle-select' : 'preview'}">
         ${selectCheckbox}
         <div class="doc-thumbnail">${thumbContent}</div>
         <div class="doc-actions">
@@ -437,9 +437,6 @@ const DocUI = (() => {
     `;
   }
 
-  /**
-   * Render the Vault Screen
-   */
   /**
    * Render the Vault Screen
    */
@@ -481,6 +478,9 @@ const DocUI = (() => {
             </div>
           </div>
           <div style="display: flex; align-items: center; gap: var(--space-3); flex-wrap: wrap;">
+            <button class="btn btn-secondary" id="createFolderBtn" style="font-size: var(--font-size-sm); font-weight: var(--font-weight-medium);">
+              📁 + Create Folder
+            </button>
             <button class="btn btn-secondary" id="bulkSelectBtn" style="font-size: var(--font-size-sm); padding: var(--space-2) var(--space-4);">
               ☑ Select & Share
             </button>

@@ -577,6 +577,19 @@
   background: rgba(99, 102, 241, 0.15) !important;
 }
 
+.folder-card.drag-over-folder {
+  border-color: var(--color-accent-primary) !important;
+  transform: scale(1.05) translateY(-4px) !important;
+  box-shadow: 0 0 25px rgba(99, 102, 241, 0.45) !important;
+  background: rgba(99, 102, 241, 0.18) !important;
+}
+
+.doc-card.is-dragging {
+  opacity: 0.4;
+  transform: scale(0.96);
+  border: 2px dashed var(--color-accent-primary) !important;
+}
+
 .doc-card .doc-actions {
   position: absolute;
   top: var(--space-3);

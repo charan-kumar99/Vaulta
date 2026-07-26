@@ -536,6 +536,78 @@ const DocApp = (() => {
         }
       });
     }
+
+    // Create folder button
+    const createFolderBtns = [document.getElementById('createFolderBtn'), document.getElementById('emptyCreateFolderBtn')].filter(Boolean);
+    createFolderBtns.forEach((btn) => {
+      btn.addEventListener('click', () => {
+        const name = prompt('Enter new folder name (e.g. Nettech Service, TCS, Agreements):');
+        if (name && name.trim()) {
+          const created = DocUI.createFolder(state.currentVault, name.trim(), state.currentFolderId);
+          if (created) {
+            renderCurrentScreen();
+            DocUI.showToast(`Folder "${created.name}" created!`, 'success');
+          }
+        }
+      });
+    });
+
+    bindDragAndDropToMove();
+  }
+
+  function bindDragAndDropToMove() {
+    const container = mainContainer();
+    if (!container) return;
+
+    // Document Card Drag Start / End
+    container.querySelectorAll('.doc-card:not(.folder-card)').forEach((card) => {
+      card.addEventListener('dragstart', (e) => {
+        const docId = card.dataset.docId;
+        if (!docId) return;
+
+        card.classList.add('is-dragging');
+        e.dataTransfer.setData('text/plain', docId);
+        e.dataTransfer.effectAllowed = 'move';
+      });
+
+      card.addEventListener('dragend', () => {
+        card.classList.remove('is-dragging');
+        container.querySelectorAll('.folder-card').forEach((fc) => fc.classList.remove('drag-over-folder'));
+      });
+    });
+
+    // Folder Card Drag Over / Drag Leave / Drop
+    container.querySelectorAll('.folder-card').forEach((folderCard) => {
+      folderCard.addEventListener('dragover', (e) => {
+        e.preventDefault();
+        e.dataTransfer.dropEffect = 'move';
+        folderCard.classList.add('drag-over-folder');
+      });
+
+      folderCard.addEventListener('dragleave', () => {
+        folderCard.classList.remove('drag-over-folder');
+      });
+
+      folderCard.addEventListener('drop', async (e) => {
+        e.preventDefault();
+        folderCard.classList.remove('drag-over-folder');
+
+        const docId = e.dataTransfer.getData('text/plain');
+        const targetFolderId = folderCard.dataset.folderId;
+        if (!docId || !targetFolderId) return;
+
+        const folderObj = DocUI.getFolder(targetFolderId);
+        const docObj = await DocDB.getDocument(docId);
+        if (docObj && folderObj) {
+          await DocDB.updateDocument(docId, {
+            folderId: folderObj.id,
+            folder: folderObj.name,
+          });
+          DocUI.showToast(`Moved "${docObj.name}" into "${folderObj.name}"!`, 'success');
+          await renderCurrentScreen();
+        }
+      });
+    });
   }
 
   async function refreshVaultGrid() {
