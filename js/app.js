@@ -93,13 +93,13 @@ const DocApp = (() => {
 
   async function renderHomeScreen(container) {
     const counts = await DocDB.getCounts();
-    const recentDocs = await DocDB.getRecent(6);
+    const allDocs = await DocDB.getAll();
     const favoriteDocs = await DocDB.getFavorites();
 
     DocUI.renderHome(container, {
       personalCount: counts.personal,
       officialCount: counts.official,
-      recentDocs,
+      allDocs,
       favoriteDocs,
     });
   }

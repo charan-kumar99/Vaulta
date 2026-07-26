@@ -285,7 +285,7 @@ const DocUI = (() => {
   /**
    * Render the Home Screen
    */
-  function renderHome(container, { personalCount, officialCount, recentDocs, favoriteDocs }) {
+  function renderHome(container, { personalCount, officialCount, allDocs = [], favoriteDocs = [] }) {
     container.innerHTML = `
       <div class="container page-enter">
         <!-- Search Bar -->
@@ -349,19 +349,20 @@ const DocUI = (() => {
             </div>
           ` : ''}
 
-          <!-- Recent Documents -->
-          ${recentDocs.length > 0 ? `
+          <!-- All Documents Section -->
+          ${allDocs.length > 0 ? `
             <div class="section-header">
-              <h2 class="section-title"><span class="section-icon">🕐</span> Recent Documents</h2>
+              <h2 class="section-title"><span class="section-icon">📄</span> All Documents</h2>
+              <span style="font-size: var(--font-size-xs); color: var(--color-text-tertiary); font-weight: var(--font-weight-medium);">${allDocs.length} total</span>
             </div>
             <div class="documents-grid anim-stagger">
-              ${recentDocs.map((doc) => renderDocCard(doc)).join('')}
+              ${allDocs.map((doc) => renderDocCard(doc)).join('')}
             </div>
           ` : `
             <div class="empty-state">
               <div class="empty-icon anim-float">📂</div>
               <h3 class="empty-title">Welcome to Vaulta!</h3>
-              <p class="empty-desc">Start by uploading your first document. Tap the + button below to get started.</p>
+              <p class="empty-desc">Start by uploading your first document. Tap the + button in the bottom right to get started.</p>
               <button class="btn btn-primary" id="emptyUploadBtn">
                 <span class="btn-text">+ Upload Document</span>
               </button>
@@ -369,7 +370,7 @@ const DocUI = (() => {
           `}
         </div>
 
-        <!-- FAB -->
+        <!-- Floating Action Button -->
         <button class="fab" id="fabUpload" aria-label="Upload document">+</button>
       </div>
     `;
