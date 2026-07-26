@@ -271,7 +271,7 @@ const DocUI = (() => {
       : '';
 
     return `
-      <div class="doc-card ${selectMode ? 'select-mode' : ''}" data-doc-id="${doc.id}" data-action="${selectMode ? 'toggle-select' : 'preview'}">
+      <div class="doc-card ${selectMode ? 'select-mode' : ''}" data-doc-id="${doc.id}" data-vault="${doc.vault}" data-action="${selectMode ? 'toggle-select' : 'preview'}">
         ${selectCheckbox}
         <div class="doc-thumbnail">${thumbContent}</div>
         <div class="doc-actions">
@@ -344,9 +344,12 @@ const DocUI = (() => {
               <button class="btn btn-ghost" id="selectAllBtn">☑ Select All</button>
               <span id="selectedCount" style="font-size: var(--font-size-sm); color: var(--color-text-secondary);">0 selected</span>
             </div>
-            <div style="display: flex; align-items: center; gap: var(--space-3);">
+            <div style="display: flex; align-items: center; gap: var(--space-3); flex-wrap: wrap;">
               <button class="btn btn-primary" id="bulkShareBtn" disabled style="font-size: var(--font-size-sm);">
                 📤 Share Selected
+              </button>
+              <button class="btn btn-secondary" id="bulkDownloadBtn" disabled style="font-size: var(--font-size-sm);">
+                ⬇ Download Selected
               </button>
               <button class="btn btn-secondary" id="bulkWhatsAppBtn" disabled style="font-size: var(--font-size-sm);">
                 💬 WhatsApp

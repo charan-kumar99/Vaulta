@@ -139,6 +139,7 @@ const DocApp = (() => {
     bindCategoryChips();
     bindBackButton();
     bindBulkSelect();
+    bindLongPressToSelect();
   }
 
   function bindBackButton() {
@@ -148,7 +149,92 @@ const DocApp = (() => {
     }
   }
 
+  /* ---- Hold to Select (Long Press) ---- */
+  let longPressTimer = null;
+  let isLongPressTriggered = false;
+  let startX = 0;
+  let startY = 0;
+
+  function bindLongPressToSelect() {
+    const container = mainContainer();
+    if (!container) return;
+
+    container.removeEventListener('pointerdown', handlePointerDown);
+    container.removeEventListener('pointerup', handlePointerUp);
+    container.removeEventListener('pointermove', handlePointerMove);
+    container.removeEventListener('pointercancel', handlePointerUp);
+
+    container.addEventListener('pointerdown', handlePointerDown);
+    container.addEventListener('pointerup', handlePointerUp);
+    container.addEventListener('pointermove', handlePointerMove);
+    container.addEventListener('pointercancel', handlePointerUp);
+  }
+
+  function handlePointerDown(e) {
+    const card = e.target.closest('.doc-card');
+    if (!card) return;
+
+    const docId = card.dataset.docId;
+    const docVault = card.dataset.vault || 'personal';
+    if (!docId) return;
+
+    if (e.target.closest('.doc-action-btn') || e.target.closest('.doc-select-checkbox')) {
+      return;
+    }
+
+    startX = e.clientX;
+    startY = e.clientY;
+    isLongPressTriggered = false;
+
+    clearTimeout(longPressTimer);
+    longPressTimer = setTimeout(async () => {
+      isLongPressTriggered = true;
+
+      if (navigator.vibrate) {
+        try { navigator.vibrate(50); } catch (_) {}
+      }
+
+      if (state.currentScreen !== 'vault' || state.currentVault !== docVault) {
+        state.currentScreen = 'vault';
+        state.currentVault = docVault;
+        window.location.hash = `#vault/${docVault}`;
+        await renderCurrentScreen();
+      }
+
+      if (!state.selectMode) {
+        enterSelectMode();
+      }
+
+      handleToggleSelect(docId);
+      DocUI.showToast('Select mode activated', 'info', 1500);
+    }, 450);
+  }
+
+  function handlePointerMove(e) {
+    if (!longPressTimer) return;
+    const diffX = Math.abs(e.clientX - startX);
+    const diffY = Math.abs(e.clientY - startY);
+    if (diffX > 10 || diffY > 10) {
+      clearTimeout(longPressTimer);
+      longPressTimer = null;
+    }
+  }
+
+  function handlePointerUp() {
+    if (longPressTimer) {
+      clearTimeout(longPressTimer);
+      longPressTimer = null;
+    }
+  }
+
   function handleClick(e) {
+    if (isLongPressTriggered) {
+      isLongPressTriggered = false;
+      e.preventDefault();
+      e.stopPropagation();
+      return;
+    }
+
     const target = e.target.closest('[data-action]');
     if (!target) return;
 
@@ -415,6 +501,7 @@ const DocApp = (() => {
     const selectAllBtn = document.getElementById('selectAllBtn');
     const cancelSelectBtn = document.getElementById('cancelSelectBtn');
     const bulkShareBtn = document.getElementById('bulkShareBtn');
+    const bulkDownloadBtn = document.getElementById('bulkDownloadBtn');
     const bulkWhatsAppBtn = document.getElementById('bulkWhatsAppBtn');
 
     if (bulkSelectBtn) {
@@ -431,6 +518,10 @@ const DocApp = (() => {
 
     if (bulkShareBtn) {
       bulkShareBtn.addEventListener('click', () => bulkShare());
+    }
+
+    if (bulkDownloadBtn) {
+      bulkDownloadBtn.addEventListener('click', () => bulkDownload());
     }
 
     if (bulkWhatsAppBtn) {
@@ -520,11 +611,13 @@ const DocApp = (() => {
     const count = state.selectedDocs.size;
     const countLabel = document.getElementById('selectedCount');
     const shareBtn = document.getElementById('bulkShareBtn');
+    const downloadBtn = document.getElementById('bulkDownloadBtn');
     const whatsAppBtn = document.getElementById('bulkWhatsAppBtn');
     const selectAllBtn = document.getElementById('selectAllBtn');
 
     if (countLabel) countLabel.textContent = `${count} selected`;
     if (shareBtn) shareBtn.disabled = count === 0;
+    if (downloadBtn) downloadBtn.disabled = count === 0;
     if (whatsAppBtn) whatsAppBtn.disabled = count === 0;
 
     // Toggle "Select All" / "Deselect All" text
@@ -549,6 +642,29 @@ const DocApp = (() => {
     } catch (error) {
       console.error('Bulk share failed:', error);
       DocUI.showToast('Failed to share documents.', 'error');
+    }
+  }
+
+  async function bulkDownload() {
+    const ids = Array.from(state.selectedDocs);
+    if (ids.length === 0) return;
+
+    try {
+      DocUI.showToast(`Preparing ${ids.length} document(s) for download...`, 'info');
+
+      if (ids.length === 1) {
+        await DocShare.downloadDocument(ids[0]);
+        DocUI.showToast('Document downloaded successfully!', 'success');
+      } else {
+        const vaultTitle = state.currentVault ? state.currentVault.charAt(0).toUpperCase() + state.currentVault.slice(1) : 'Vaulta';
+        const zipName = `${vaultTitle}_Selected_Documents.zip`;
+        await DocShare.shareMultiple(ids, zipName);
+        DocUI.showToast(`${ids.length} documents downloaded as ZIP!`, 'success');
+      }
+      exitSelectMode();
+    } catch (error) {
+      console.error('Bulk download failed:', error);
+      DocUI.showToast('Failed to download documents.', 'error');
     }
   }
 
