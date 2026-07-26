@@ -584,7 +584,7 @@ const DocApp = (() => {
       // Try native share with WhatsApp if on mobile
       if ('share' in navigator && 'canShare' in navigator) {
         const file = new File([zipBlob], 'Vaulta_Documents.zip', { type: 'application/zip' });
-        const shareData = { title: 'My Documents', text: 'Sharing documents: ' + docNames.join(', '), files: [file] };
+        const shareData = { title: 'My Documents', files: [file] };
 
         if (navigator.canShare(shareData)) {
           await navigator.share(shareData);
@@ -594,7 +594,7 @@ const DocApp = (() => {
         }
       }
 
-      // Fallback: Download ZIP and open WhatsApp with message
+      // Fallback: Download ZIP file
       const url = URL.createObjectURL(zipBlob);
       const a = document.createElement('a');
       a.href = url;
@@ -603,12 +603,7 @@ const DocApp = (() => {
       a.click();
       setTimeout(() => { URL.revokeObjectURL(url); a.remove(); }, 100);
 
-      // Open WhatsApp with a message
-      const message = encodeURIComponent('Hi, sharing my documents from Vaulta:\n' + docNames.map((n) => '📄 ' + n).join('\n') + '\n\nPlease find the attached ZIP file.');
-      const whatsappUrl = `https://wa.me/919380455922?text=${message}`;
-      window.open(whatsappUrl, '_blank');
-
-      DocUI.showToast('ZIP downloaded! Attach it in WhatsApp chat.', 'info', 5000);
+      DocUI.showToast('ZIP file downloaded! Please attach it in your WhatsApp chat.', 'info', 5000);
       exitSelectMode();
     } catch (error) {
       if (error.name === 'AbortError') return;
@@ -844,41 +839,220 @@ const DocApp = (() => {
     modals.innerHTML = DocUI.renderPreview(doc, fileUrl);
 
     bindPreviewEvents(doc);
+
+    const isPdf = doc.fileType && doc.fileType.includes('pdf');
+    if (isPdf) {
+      renderPdfInPreview(fileUrl, doc);
+    }
+  }
+
+  async function renderPdfInPreview(fileUrl, doc) {
+    const container = document.getElementById('pdfViewerContainer');
+    if (!container) return;
+
+    try {
+      if (typeof pdfjsLib === 'undefined') {
+        await new Promise((resolve, reject) => {
+          const script = document.createElement('script');
+          script.src = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js';
+          script.onload = resolve;
+          script.onerror = reject;
+          document.head.appendChild(script);
+        });
+      }
+
+      if (typeof pdfjsLib !== 'undefined') {
+        pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+      } else {
+        throw new Error('PDF.js library is missing');
+      }
+
+      const loadingTask = pdfjsLib.getDocument(fileUrl);
+      const pdf = await loadingTask.promise;
+
+      container.innerHTML = '';
+
+      const toolbar = document.createElement('div');
+      toolbar.className = 'pdf-toolbar';
+      toolbar.innerHTML = `
+        <button class="pdf-tb-btn" id="pdfPrevPage" title="Previous Page">◀</button>
+        <span class="pdf-page-num">Page <span id="pdfCurrentPage">1</span> of ${pdf.numPages}</span>
+        <button class="pdf-tb-btn" id="pdfNextPage" title="Next Page">▶</button>
+        <div class="pdf-tb-divider"></div>
+        <button class="pdf-tb-btn" id="pdfZoomOut" title="Zoom Out">🔍−</button>
+        <span class="pdf-zoom-level" id="pdfZoomLevel">100%</span>
+        <button class="pdf-tb-btn" id="pdfZoomIn" title="Zoom In">🔍+</button>
+        <button class="pdf-tb-btn" id="pdfFitWidth" title="Fit to Screen">↔ Fit</button>
+      `;
+
+      const pagesContainer = document.createElement('div');
+      pagesContainer.className = 'pdf-pages-container';
+
+      container.appendChild(toolbar);
+      container.appendChild(pagesContainer);
+
+      let currentScale = 1.0;
+      let userScaleOverride = false;
+      let currentPage = 1;
+
+      const renderPages = async () => {
+        pagesContainer.innerHTML = '';
+
+        const firstPage = await pdf.getPage(1);
+        const unscaledViewport = firstPage.getViewport({ scale: 1.0 });
+        const containerWidth = pagesContainer.clientWidth > 0 ? pagesContainer.clientWidth - 24 : window.innerWidth - 32;
+
+        if (!userScaleOverride && containerWidth > 0 && unscaledViewport.width > 0) {
+          let fitScale = containerWidth / unscaledViewport.width;
+          if (fitScale < 0.5) fitScale = 0.5;
+          if (fitScale > 2.0) fitScale = 2.0;
+          currentScale = fitScale;
+        }
+
+        const zoomLevelEl = document.getElementById('pdfZoomLevel');
+        if (zoomLevelEl) {
+          zoomLevelEl.textContent = userScaleOverride
+            ? `${Math.round(currentScale * 100)}%`
+            : 'Fit';
+        }
+
+        for (let pageNum = 1; pageNum <= pdf.numPages; pageNum++) {
+          const page = await pdf.getPage(pageNum);
+          const viewport = page.getViewport({ scale: currentScale });
+
+          const pageWrapper = document.createElement('div');
+          pageWrapper.className = 'pdf-page-wrapper';
+          pageWrapper.setAttribute('data-page-number', pageNum);
+
+          const canvas = document.createElement('canvas');
+          canvas.className = 'pdf-canvas';
+
+          const dpr = window.devicePixelRatio || 1;
+          canvas.width = Math.floor(viewport.width * dpr);
+          canvas.height = Math.floor(viewport.height * dpr);
+          canvas.style.width = `${Math.floor(viewport.width)}px`;
+          canvas.style.height = `${Math.floor(viewport.height)}px`;
+
+          const ctx = canvas.getContext('2d');
+          ctx.scale(dpr, dpr);
+
+          pageWrapper.appendChild(canvas);
+          pagesContainer.appendChild(pageWrapper);
+
+          await page.render({
+            canvasContext: ctx,
+            viewport: viewport
+          }).promise;
+        }
+      };
+
+      await renderPages();
+
+      const observer = new IntersectionObserver((entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            const pageNum = parseInt(entry.target.getAttribute('data-page-number'));
+            if (pageNum) {
+              currentPage = pageNum;
+              const curPageEl = document.getElementById('pdfCurrentPage');
+              if (curPageEl) curPageEl.textContent = currentPage;
+            }
+          }
+        });
+      }, { root: pagesContainer, threshold: 0.3 });
+
+      pagesContainer.querySelectorAll('.pdf-page-wrapper').forEach((el) => observer.observe(el));
+
+      document.getElementById('pdfPrevPage')?.addEventListener('click', () => {
+        if (currentPage > 1) {
+          currentPage--;
+          const target = pagesContainer.querySelector(`.pdf-page-wrapper[data-page-number="${currentPage}"]`);
+          if (target) target.scrollIntoView({ behavior: 'smooth' });
+        }
+      });
+
+      document.getElementById('pdfNextPage')?.addEventListener('click', () => {
+        if (currentPage < pdf.numPages) {
+          currentPage++;
+          const target = pagesContainer.querySelector(`.pdf-page-wrapper[data-page-number="${currentPage}"]`);
+          if (target) target.scrollIntoView({ behavior: 'smooth' });
+        }
+      });
+
+      document.getElementById('pdfZoomIn')?.addEventListener('click', async () => {
+        userScaleOverride = true;
+        currentScale = Math.min(currentScale + 0.25, 3.0);
+        await renderPages();
+      });
+
+      document.getElementById('pdfZoomOut')?.addEventListener('click', async () => {
+        userScaleOverride = true;
+        currentScale = Math.max(currentScale - 0.25, 0.4);
+        await renderPages();
+      });
+
+      document.getElementById('pdfFitWidth')?.addEventListener('click', async () => {
+        userScaleOverride = false;
+        await renderPages();
+      });
+
+    } catch (err) {
+      console.error('PDF rendering failed, providing direct fallback:', err);
+      container.innerHTML = `
+        <div class="pdf-fallback-container">
+          <div class="empty-state">
+            <div class="empty-icon">📕</div>
+            <h3 class="empty-title">${escapeHtml(doc.name)}</h3>
+            <p class="empty-desc">PDF document ready. Tap below to view or download.</p>
+            <a href="${fileUrl}" download="${escapeHtml(doc.fileName)}" class="btn btn-primary" style="margin-top: 12px; font-weight: var(--font-weight-semibold);">
+              ⬇ Download / View PDF
+            </a>
+          </div>
+        </div>
+      `;
+    }
   }
 
   function bindPreviewEvents(doc) {
     const closeBtn = document.getElementById('previewClose');
     const favBtn = document.getElementById('previewFavorite');
-    const editBtn = document.getElementById('previewEdit');
-    const shareBtn = document.getElementById('previewShare');
-    const downloadBtn = document.getElementById('previewDownload');
-    const deleteBtn = document.getElementById('previewDelete');
 
-    closeBtn.addEventListener('click', closePreview);
+    const editBtns = [document.getElementById('previewEdit'), document.getElementById('previewMobileEdit')].filter(Boolean);
+    const shareBtns = [document.getElementById('previewShare'), document.getElementById('previewMobileShare')].filter(Boolean);
+    const downloadBtns = [document.getElementById('previewDownload'), document.getElementById('previewMobileDownload')].filter(Boolean);
+    const deleteBtns = [document.getElementById('previewDelete'), document.getElementById('previewMobileDelete')].filter(Boolean);
 
-    favBtn.addEventListener('click', async () => {
-      const updated = await DocDB.toggleFavorite(doc.id);
-      favBtn.classList.toggle('active');
-      favBtn.textContent = updated.isFavorite ? '★' : '☆';
-      DocUI.showToast(
-        updated.isFavorite ? 'Added to favorites' : 'Removed from favorites',
-        'info'
-      );
+    closeBtn?.addEventListener('click', closePreview);
+
+    favBtn?.addEventListener('click', async () => {
+      try {
+        const updated = await DocDB.toggleFavorite(doc.id);
+        doc.isFavorite = updated.isFavorite;
+        favBtn.classList.toggle('active', updated.isFavorite);
+        favBtn.textContent = updated.isFavorite ? '★' : '☆';
+        favBtn.title = updated.isFavorite ? 'Remove from favorites' : 'Add to favorites';
+        DocUI.showToast(
+          updated.isFavorite ? 'Added to favorites ⭐' : 'Removed from favorites',
+          'info'
+        );
+        await renderCurrentScreen();
+      } catch (err) {
+        console.error('Failed to toggle favorite:', err);
+        DocUI.showToast('Could not update favorite status.', 'error');
+      }
     });
 
-    editBtn.addEventListener('click', () => {
-      closePreview();
-      openEditModal(doc.id);
+    editBtns.forEach((btn) => {
+      btn.addEventListener('click', () => {
+        closePreview();
+        openEditModal(doc.id);
+      });
     });
 
-    shareBtn.addEventListener('click', () => shareDoc(doc.id));
-    downloadBtn.addEventListener('click', () => downloadDoc(doc.id));
+    shareBtns.forEach((btn) => btn.addEventListener('click', () => shareDoc(doc.id)));
+    downloadBtns.forEach((btn) => btn.addEventListener('click', () => downloadDoc(doc.id)));
+    deleteBtns.forEach((btn) => btn.addEventListener('click', () => openDeleteConfirm(doc.id, doc.name)));
 
-    deleteBtn.addEventListener('click', () => {
-      openDeleteConfirm(doc.id, doc.name);
-    });
-
-    // Close on Escape
     const escHandler = (e) => {
       if (e.key === 'Escape') {
         closePreview();
@@ -1119,20 +1293,27 @@ const DocApp = (() => {
         try {
           const blob = await DocDB.getFileBlob(doc.id);
           const converted = await DocShare.convertFile(blob, doc.fileType, fmt, doc.name, doc.fileName);
+          const file = new File([converted.blob], converted.fileName, { type: converted.mime });
 
-          // Download file for user to attach
-          DocShare.downloadFile(converted.blob, converted.fileName);
-
-          // Open WhatsApp link to 9380455922
-          const message = encodeURIComponent(`Hi, sharing my document: ${doc.name} (Format: ${fmt.toUpperCase()})\nVault: ${doc.vault.toUpperCase()}\nCategory: ${doc.category}`);
-          const waUrl = `https://wa.me/919380455922?text=${message}`;
-          window.open(waUrl, '_blank');
-
-          closeModal();
-          DocUI.showToast(`File downloaded (${converted.fileName})! Opening WhatsApp...`, 'info', 5000);
+          // Try native file share first (opens native share menu with actual PDF attached for WhatsApp)
+          if (navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
+            await navigator.share({
+              files: [file],
+              title: doc.name,
+            });
+            closeModal();
+            DocUI.showToast(`Shared ${converted.fileName}!`, 'success');
+          } else {
+            // Fallback for browsers without native file share API
+            DocShare.downloadFile(converted.blob, converted.fileName);
+            closeModal();
+            DocUI.showToast(`Downloaded ${converted.fileName}! Please attach this file in WhatsApp.`, 'info', 5000);
+          }
         } catch (err) {
-          console.error('WhatsApp share error:', err);
-          DocUI.showToast('Failed to prepare document for WhatsApp.', 'error');
+          if (err.name !== 'AbortError') {
+            console.error('WhatsApp share error:', err);
+            DocUI.showToast('Failed to share document.', 'error');
+          }
         }
       });
     }

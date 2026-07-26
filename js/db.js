@@ -231,28 +231,39 @@ const DocDB = (() => {
    */
   async function updateDocument(id, updates) {
     const store = await getStore('readwrite');
-    const doc = await getDocument(id);
-
-    if (!doc) throw new Error('Document not found');
-
-    const updated = {
-      ...doc,
-      ...updates,
-      id: doc.id, // prevent ID override
-      fileData: doc.fileData, // preserve file data
-      updatedAt: Date.now(),
-    };
 
     return new Promise((resolve, reject) => {
-      const request = store.put(updated);
+      const getReq = store.get(id);
 
-      request.onsuccess = () => {
-        const { fileData, ...metadata } = updated;
-        resolve(metadata);
+      getReq.onsuccess = () => {
+        const doc = getReq.result;
+        if (!doc) {
+          reject(new Error('Document not found'));
+          return;
+        }
+
+        const updated = {
+          ...doc,
+          ...updates,
+          id: doc.id, // preserve ID
+          fileData: doc.fileData, // preserve file data
+          updatedAt: Date.now(),
+        };
+
+        const putReq = store.put(updated);
+
+        putReq.onsuccess = () => {
+          const { fileData, ...metadata } = updated;
+          resolve(metadata);
+        };
+
+        putReq.onerror = (event) => {
+          reject(new Error('Failed to update document: ' + event.target.error));
+        };
       };
 
-      request.onerror = (event) => {
-        reject(new Error('Failed to update document: ' + event.target.error));
+      getReq.onerror = (event) => {
+        reject(new Error('Failed to get document for update: ' + event.target.error));
       };
     });
   }
@@ -337,38 +348,51 @@ const DocDB = (() => {
    */
   function generateThumbnail(file, maxWidth = 300, maxHeight = 200) {
     return new Promise((resolve) => {
-      if (!file.type.startsWith('image/')) {
-        resolve(null);
-        return;
-      }
-
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        const img = new Image();
-        img.onload = () => {
-          const canvas = document.createElement('canvas');
-          let { width, height } = img;
-
-          // Scale down
-          if (width > maxWidth || height > maxHeight) {
-            const ratio = Math.min(maxWidth / width, maxHeight / height);
-            width *= ratio;
-            height *= ratio;
-          }
-
-          canvas.width = width;
-          canvas.height = height;
-
-          const ctx = canvas.getContext('2d');
-          ctx.drawImage(img, 0, 0, width, height);
-
-          resolve(canvas.toDataURL('image/jpeg', 0.7));
+      if (file.type && file.type.startsWith('image/')) {
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          const img = new Image();
+          img.onload = () => {
+            const canvas = document.createElement('canvas');
+            let { width, height } = img;
+            if (width > maxWidth || height > maxHeight) {
+              const ratio = Math.min(maxWidth / width, maxHeight / height);
+              width *= ratio;
+              height *= ratio;
+            }
+            canvas.width = width;
+            canvas.height = height;
+            const ctx = canvas.getContext('2d');
+            ctx.drawImage(img, 0, 0, width, height);
+            resolve(canvas.toDataURL('image/jpeg', 0.7));
+          };
+          img.onerror = () => resolve(null);
+          img.src = e.target.result;
         };
-        img.onerror = () => resolve(null);
-        img.src = e.target.result;
-      };
-      reader.onerror = () => resolve(null);
-      reader.readAsDataURL(file);
+        reader.onerror = () => resolve(null);
+        reader.readAsDataURL(file);
+      } else if (file.type && file.type.includes('pdf') && typeof pdfjsLib !== 'undefined') {
+        const reader = new FileReader();
+        reader.onload = async (e) => {
+          try {
+            const pdf = await pdfjsLib.getDocument({ data: e.target.result }).promise;
+            const page = await pdf.getPage(1);
+            const viewport = page.getViewport({ scale: 0.4 });
+            const canvas = document.createElement('canvas');
+            canvas.width = viewport.width;
+            canvas.height = viewport.height;
+            const ctx = canvas.getContext('2d');
+            await page.render({ canvasContext: ctx, viewport }).promise;
+            resolve(canvas.toDataURL('image/jpeg', 0.7));
+          } catch (err) {
+            resolve(null);
+          }
+        };
+        reader.onerror = () => resolve(null);
+        reader.readAsArrayBuffer(file);
+      } else {
+        resolve(null);
+      }
     });
   }
 

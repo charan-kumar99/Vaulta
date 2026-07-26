@@ -494,7 +494,14 @@ const DocUI = (() => {
     if (isImage) {
       viewerContent = `<img src="${fileUrl}" alt="${escapeHtml(doc.name)}" />`;
     } else if (isPdf) {
-      viewerContent = `<iframe src="${fileUrl}" title="${escapeHtml(doc.name)}"></iframe>`;
+      viewerContent = `
+        <div class="pdf-viewer-container" id="pdfViewerContainer">
+          <div class="pdf-loading">
+            <div class="spinner"></div>
+            <span>Loading PDF document...</span>
+          </div>
+        </div>
+      `;
     } else {
       viewerContent = `
         <div class="empty-state">
@@ -508,23 +515,41 @@ const DocUI = (() => {
     return `
       <div class="preview-overlay active modal-overlay-enter" id="previewOverlay">
         <div class="preview-header">
-          <div style="display: flex; align-items: center; gap: var(--space-3);">
+          <div class="preview-header-left">
             <button class="back-btn" id="previewClose" aria-label="Close preview">← Back</button>
-            <span class="preview-title">${escapeHtml(doc.name)}</span>
+            <span class="preview-title" title="${escapeHtml(doc.name)}">${escapeHtml(doc.name)}</span>
           </div>
           <div class="preview-actions">
             <button class="header-btn ${doc.isFavorite ? 'active' : ''}" id="previewFavorite"
                     data-doc-id="${doc.id}" title="${doc.isFavorite ? 'Remove from favorites' : 'Add to favorites'}">
               ${doc.isFavorite ? '★' : '☆'}
             </button>
-            <button class="header-btn" id="previewEdit" data-doc-id="${doc.id}" title="Edit details">✏️</button>
-            <button class="header-btn" id="previewShare" data-doc-id="${doc.id}" title="Share">↗</button>
-            <button class="header-btn" id="previewDownload" data-doc-id="${doc.id}" title="Download">⬇</button>
-            <button class="header-btn" id="previewDelete" data-doc-id="${doc.id}" title="Delete" style="color: var(--color-accent-danger);">🗑️</button>
+            <button class="header-btn desktop-only-btn" id="previewEdit" data-doc-id="${doc.id}" title="Edit details">✏️</button>
+            <button class="header-btn desktop-only-btn" id="previewShare" data-doc-id="${doc.id}" title="Share">↗</button>
+            <button class="header-btn desktop-only-btn" id="previewDownload" data-doc-id="${doc.id}" title="Download">⬇</button>
+            <button class="header-btn desktop-only-btn danger" id="previewDelete" data-doc-id="${doc.id}" title="Delete" style="color: var(--color-accent-danger);">🗑️</button>
           </div>
         </div>
         <div class="preview-body modal-content-enter">
           ${viewerContent}
+        </div>
+        <div class="preview-mobile-footer">
+          <button class="mobile-action-btn" id="previewMobileEdit" data-doc-id="${doc.id}">
+            <span class="btn-icon">✏️</span>
+            <span class="btn-label">Edit</span>
+          </button>
+          <button class="mobile-action-btn" id="previewMobileShare" data-doc-id="${doc.id}">
+            <span class="btn-icon">↗</span>
+            <span class="btn-label">Share</span>
+          </button>
+          <button class="mobile-action-btn" id="previewMobileDownload" data-doc-id="${doc.id}">
+            <span class="btn-icon">⬇</span>
+            <span class="btn-label">Download</span>
+          </button>
+          <button class="mobile-action-btn danger" id="previewMobileDelete" data-doc-id="${doc.id}">
+            <span class="btn-icon">🗑️</span>
+            <span class="btn-label">Delete</span>
+          </button>
         </div>
       </div>
     `;

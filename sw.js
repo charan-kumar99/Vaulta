@@ -1,4 +1,4 @@
-const CACHE_NAME = 'vaulta-v1';
+const CACHE_NAME = 'vaulta-v2';
 const ASSETS_TO_CACHE = [
   './',
   './index.html',
@@ -12,7 +12,9 @@ const ASSETS_TO_CACHE = [
   './js/ui.js',
   './js/app.js',
   './icons/icon-192.png',
-  './icons/icon-512.png'
+  './icons/icon-512.png',
+  'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js',
+  'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js'
 ];
 
 // Install Event - Pre-cache core app assets

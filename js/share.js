@@ -28,7 +28,6 @@ const DocShare = (() => {
       if (canNativeShare()) {
         const shareData = {
           title: doc.name,
-          text: `Sharing: ${doc.name}`,
           files: [file],
         };
 
@@ -424,7 +423,6 @@ const DocShare = (() => {
       if (canNativeShare()) {
         const shareData = {
           title: doc.name,
-          text: `Sharing: ${doc.name}`,
           files: [file],
         };
 
