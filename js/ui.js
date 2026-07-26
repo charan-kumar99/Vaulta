@@ -89,9 +89,9 @@ const DocUI = (() => {
   function getCustomFolders() {
     try {
       const data = localStorage.getItem(CUSTOM_FOLDERS_KEY);
-      return data ? JSON.parse(data) : { personal: [], official: ['Nettech Service', 'Agreements', 'Certificates'] };
+      return data ? JSON.parse(data) : { personal: [], official: [] };
     } catch (e) {
-      return { personal: [], official: ['Nettech Service', 'Agreements', 'Certificates'] };
+      return { personal: [], official: [] };
     }
   }
 
@@ -397,24 +397,22 @@ const DocUI = (() => {
         </div>
 
         <!-- Sub-Folders Navigation -->
-        ${folders.length > 0 ? `
-          <div class="folders-container" style="margin-top: var(--space-4); margin-bottom: var(--space-3);">
-            <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: var(--space-2);">
-              <span style="font-size: var(--font-size-xs); font-weight: var(--font-weight-semibold); color: var(--color-text-tertiary); text-transform: uppercase; letter-spacing: 0.05em;">📁 Sub-Folders / Companies</span>
-              <button class="btn btn-ghost" id="createFolderBtn" style="font-size: var(--font-size-xs); padding: 2px 8px;">+ New Folder</button>
-            </div>
-            <div class="category-chips" id="folderChips">
-              <button class="category-chip ${(!activeFolder || activeFolder === 'all') ? 'active' : ''}" data-folder="all">
-                📂 All Folders
-              </button>
-              ${folders.map((f) => `
-                <button class="category-chip ${(activeFolder === f) ? 'active' : ''}" data-folder="${escapeHtml(f)}">
-                  📁 ${escapeHtml(f)}
-                </button>
-              `).join('')}
-            </div>
+        <div class="folders-container" style="margin-top: var(--space-4); margin-bottom: var(--space-3);">
+          <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: var(--space-2);">
+            <span style="font-size: var(--font-size-xs); font-weight: var(--font-weight-semibold); color: var(--color-text-tertiary); text-transform: uppercase; letter-spacing: 0.05em;">📁 Sub-Folders / Companies</span>
+            <button class="btn btn-ghost" id="createFolderBtn" style="font-size: var(--font-size-xs); padding: 2px 8px;">+ New Folder</button>
           </div>
-        ` : ''}
+          <div class="category-chips" id="folderChips">
+            <button class="category-chip ${(!activeFolder || activeFolder === 'all') ? 'active' : ''}" data-folder="all">
+              📂 All Folders
+            </button>
+            ${folders.map((f) => `
+              <button class="category-chip ${(activeFolder === f) ? 'active' : ''}" data-folder="${escapeHtml(f)}">
+                📁 ${escapeHtml(f)}
+              </button>
+            `).join('')}
+          </div>
+        </div>
 
         <!-- Search (vault-specific) -->
         <div class="search-container">
