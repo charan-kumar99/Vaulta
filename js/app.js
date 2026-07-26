@@ -510,12 +510,21 @@ const DocApp = (() => {
     // Folder card click -> open folder
     container.querySelectorAll('.folder-card').forEach((card) => {
       card.addEventListener('click', (e) => {
-        if (e.target.closest('.delete-folder-btn')) return;
+        if (e.target.closest('.delete-folder-btn') || e.target.closest('.edit-folder-btn')) return;
         const folderId = card.dataset.folderId;
         if (folderId) {
           state.currentFolderId = folderId;
           renderCurrentScreen();
         }
+      });
+    });
+
+    // Edit folder button
+    container.querySelectorAll('.edit-folder-btn').forEach((btn) => {
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const folderId = btn.dataset.folderId;
+        if (folderId) openEditFolderModal(folderId);
       });
     });
 
@@ -977,6 +986,66 @@ const DocApp = (() => {
         closeModal();
         renderCurrentScreen();
         DocUI.showToast(`Folder "${created.name}" created!`, 'success');
+      }
+    }
+  }
+
+  function openEditFolderModal(folderId) {
+    const folder = DocUI.getFolder(folderId);
+    if (!folder) return;
+
+    const modals = modalsContainer();
+    modals.innerHTML = DocUI.renderEditFolderModal(folder);
+
+    const modal = document.getElementById('editFolderModal');
+    const closeBtn = document.getElementById('editFolderClose');
+    const cancelBtn = document.getElementById('editFolderCancel');
+    const submitBtn = document.getElementById('editFolderSubmit');
+    const nameInput = document.getElementById('editFolderNameInput');
+
+    const closeModal = () => modal.remove();
+
+    if (closeBtn) closeBtn.addEventListener('click', closeModal);
+    if (cancelBtn) cancelBtn.addEventListener('click', closeModal);
+    if (modal) {
+      modal.addEventListener('click', (e) => {
+        if (e.target === modal) closeModal();
+      });
+    }
+
+    if (nameInput) {
+      setTimeout(() => {
+        nameInput.focus();
+        nameInput.select();
+      }, 100);
+      nameInput.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') handleEditFolderSubmit();
+      });
+    }
+
+    if (submitBtn) {
+      submitBtn.addEventListener('click', handleEditFolderSubmit);
+    }
+
+    async function handleEditFolderSubmit() {
+      const newName = nameInput.value.trim();
+      if (!newName) {
+        DocUI.showToast('Please enter a folder name.', 'error');
+        return;
+      }
+
+      const updated = DocUI.updateFolder(folderId, newName);
+      if (updated) {
+        const allDocs = await DocDB.getAllByVault(folder.vault);
+        for (const d of allDocs) {
+          if (d.folderId === folderId || d.folder === folder.name) {
+            await DocDB.updateDocument(d.id, { folder: updated.name });
+          }
+        }
+
+        closeModal();
+        await renderCurrentScreen();
+        DocUI.showToast(`Folder renamed to "${updated.name}"!`, 'success');
       }
     }
   }

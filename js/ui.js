@@ -188,6 +188,21 @@ const DocUI = (() => {
     return result;
   }
 
+  function updateFolder(folderId, newName) {
+    if (!folderId || !newName || !newName.trim()) return null;
+    const trimmed = newName.trim();
+    const formatted = trimmed.charAt(0).toUpperCase() + trimmed.slice(1);
+
+    const folders = getFolders();
+    const folder = folders.find((f) => f.id === folderId);
+    if (folder) {
+      folder.name = formatted;
+      saveFolders(folders);
+      return folder;
+    }
+    return null;
+  }
+
   /**
    * Render a Folder Card in the documents grid
    */
@@ -198,7 +213,10 @@ const DocUI = (() => {
           <div style="font-size: 3.5rem; filter: drop-shadow(0 4px 6px rgba(0,0,0,0.15));">📁</div>
         </div>
 
-        <div class="doc-actions" style="opacity: 1;">
+        <div class="doc-actions" style="opacity: 1; gap: 4px;">
+          <button class="doc-action-btn edit-folder-btn" data-folder-id="${folder.id}" title="Rename folder" aria-label="Rename folder" style="background: rgba(0,0,0,0.4);">
+            ✏️
+          </button>
           <button class="doc-action-btn delete-folder-btn" data-folder-id="${folder.id}" title="Delete folder" aria-label="Delete folder" style="color: var(--color-accent-danger); background: rgba(0,0,0,0.4);">
             🗑️
           </button>
@@ -1006,6 +1024,40 @@ const DocUI = (() => {
   }
 
   /* ============================================
+     Edit Folder Modal
+     ============================================ */
+
+  function renderEditFolderModal(folder) {
+    return `
+      <div class="modal-overlay active modal-overlay-enter" id="editFolderModal">
+        <div class="modal-content modal-content-enter" style="max-width: 440px;">
+          <div class="modal-header">
+            <h2 class="modal-title">✏️ Rename Folder</h2>
+            <button class="modal-close" id="editFolderClose" aria-label="Close">✕</button>
+          </div>
+          <div class="modal-body" style="padding: var(--space-6);">
+            <div style="display: flex; flex-direction: column; align-items: center; text-align: center; margin-bottom: var(--space-6);">
+              <div style="font-size: 3.5rem; filter: drop-shadow(0 4px 10px rgba(99, 102, 241, 0.3)); margin-bottom: var(--space-2);">📁</div>
+              <p style="font-size: var(--font-size-sm); color: var(--color-text-secondary);">Enter a new name for this folder.</p>
+            </div>
+
+            <div class="form-group" style="margin-bottom: 0;">
+              <label class="form-label" for="editFolderNameInput">Folder Name *</label>
+              <input type="text" class="form-input" id="editFolderNameInput" value="${escapeHtml(folder.name)}" placeholder="e.g. Nettech Service" autocomplete="off" />
+            </div>
+          </div>
+          <div class="modal-footer">
+            <button class="btn btn-secondary" id="editFolderCancel">Cancel</button>
+            <button class="btn btn-primary" id="editFolderSubmit">
+              <span class="btn-text">💾 Save Changes</span>
+            </button>
+          </div>
+        </div>
+      </div>
+    `;
+  }
+
+  /* ============================================
      Toast Notifications
      ============================================ */
 
@@ -1067,6 +1119,7 @@ const DocUI = (() => {
     getAllCategories,
     getFolders,
     createFolder,
+    updateFolder,
     deleteFolder,
     getFolder,
     getChildFolders,
@@ -1084,6 +1137,7 @@ const DocUI = (() => {
     renderUploadModal,
     renderEditModal,
     renderCreateFolderModal,
+    renderEditFolderModal,
     renderPreview,
     renderDeleteConfirm,
     renderShareAsModal,
