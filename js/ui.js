@@ -20,17 +20,75 @@ const DocUI = (() => {
       { name: 'Salary', icon: '💰', color: 'var(--color-cat-salary)' },
       { name: 'Appraisal', icon: '📊', color: 'var(--color-cat-appraisal)' },
       { name: 'Company ID', icon: '🆔', color: 'var(--color-cat-company-id)' },
+      { name: 'Certificate', icon: '📜', color: 'var(--color-cat-certificate)' },
       { name: 'Agreements', icon: '📝', color: 'var(--color-cat-agreements)' },
       { name: 'Other', icon: '📄', color: 'var(--color-cat-other)' },
     ],
   };
 
+  /* ---- Custom Categories Persistence ---- */
+  const CUSTOM_CATS_KEY = 'vaulta_custom_categories';
+
+  function getCustomCategories() {
+    try {
+      const data = localStorage.getItem(CUSTOM_CATS_KEY);
+      return data ? JSON.parse(data) : { personal: [], official: [] };
+    } catch (e) {
+      return { personal: [], official: [] };
+    }
+  }
+
+  function addCustomCategory(vault, categoryName) {
+    if (!categoryName || !categoryName.trim()) return 'Other';
+    const trimmed = categoryName.trim();
+    const formatted = trimmed.charAt(0).toUpperCase() + trimmed.slice(1);
+
+    const targetVault = vault === 'official' ? 'official' : 'personal';
+    const builtIn = CATEGORIES[targetVault] || [];
+
+    const matchBuiltIn = builtIn.find((c) => c.name.toLowerCase() === formatted.toLowerCase());
+    if (matchBuiltIn) return matchBuiltIn.name;
+
+    const custom = getCustomCategories();
+    if (!custom[targetVault]) custom[targetVault] = [];
+
+    const existingCustom = custom[targetVault].find((c) => c.toLowerCase() === formatted.toLowerCase());
+    if (!existingCustom) {
+      custom[targetVault].push(formatted);
+      localStorage.setItem(CUSTOM_CATS_KEY, JSON.stringify(custom));
+      return formatted;
+    }
+
+    return existingCustom;
+  }
+
+  function getAllCategories(vault) {
+    const targetVault = vault === 'official' ? 'official' : 'personal';
+    const builtIn = CATEGORIES[targetVault] || [];
+    const customNames = getCustomCategories()[targetVault] || [];
+
+    const customObjs = customNames.map((name) => ({
+      name,
+      icon: '🏷️',
+      color: 'var(--color-accent-secondary)',
+      isCustom: true,
+    }));
+
+    const otherIdx = builtIn.findIndex((c) => c.name === 'Other');
+    if (otherIdx !== -1) {
+      const list = [...builtIn];
+      list.splice(otherIdx, 0, ...customObjs);
+      return list;
+    }
+    return [...builtIn, ...customObjs];
+  }
+
   /**
    * Get category icon by name and vault
    */
   function getCategoryIcon(category, vault) {
-    const cats = CATEGORIES[vault] || CATEGORIES.personal;
-    const cat = cats.find((c) => c.name === category);
+    const cats = getAllCategories(vault || 'personal');
+    const cat = cats.find((c) => c.name.toLowerCase() === (category || '').toLowerCase());
     return cat ? cat.icon : '📄';
   }
 
@@ -48,10 +106,11 @@ const DocUI = (() => {
       'Salary': 'var(--color-cat-salary)',
       'Appraisal': 'var(--color-cat-appraisal)',
       'Company ID': 'var(--color-cat-company-id)',
+      'Certificate': 'var(--color-cat-certificate)',
       'Agreements': 'var(--color-cat-agreements)',
       'Other': 'var(--color-cat-other)',
     };
-    return map[category] || map['Other'];
+    return map[category] || 'var(--color-accent-secondary)';
   }
 
   /**
@@ -229,9 +288,12 @@ const DocUI = (() => {
         </div>
         <div class="doc-info">
           <div class="doc-name" title="${escapeHtml(doc.name)}">${escapeHtml(doc.name)}</div>
-          <span class="doc-category-badge" style="background: ${getCategoryColor(doc.category)}15; color: ${getCategoryColor(doc.category)};">
-            ${getCategoryIcon(doc.category, doc.vault)} ${escapeHtml(doc.category)}
-          </span>
+          <div style="display: flex; flex-wrap: wrap; gap: 4px; align-items: center; margin-bottom: var(--space-2);">
+            <span class="doc-category-badge" style="background: ${getCategoryColor(doc.category)}15; color: ${getCategoryColor(doc.category)};">
+              ${getCategoryIcon(doc.category, doc.vault)} ${escapeHtml(doc.category)}
+            </span>
+            ${(doc.tags || []).slice(0, 3).map((tag) => `<span class="doc-tag-badge">#${escapeHtml(tag)}</span>`).join('')}
+          </div>
           <div class="doc-date">${formatDate(doc.createdAt)}</div>
         </div>
       </div>
@@ -243,7 +305,7 @@ const DocUI = (() => {
    */
   function renderVault(container, { vault, documents, activeCategory, sortBy }) {
     const isPersonal = vault === 'personal';
-    const categories = CATEGORIES[vault];
+    const categories = getAllCategories(vault);
     const title = isPersonal ? 'Personal Vault' : 'Official Vault';
     const icon = isPersonal ? '🔐' : '💼';
 
@@ -355,8 +417,8 @@ const DocUI = (() => {
    * Render the Upload Modal
    */
   function renderUploadModal(defaultVault = 'personal') {
-    const personalCats = CATEGORIES.personal.filter((c) => c.name !== 'All');
-    const officialCats = CATEGORIES.official.filter((c) => c.name !== 'All');
+    const personalCats = getAllCategories('personal').filter((c) => c.name !== 'All');
+    const officialCats = getAllCategories('official').filter((c) => c.name !== 'All');
 
     return `
       <div class="modal-overlay active modal-overlay-enter" id="uploadModal">
@@ -407,6 +469,11 @@ const DocUI = (() => {
               </div>
             </div>
 
+            <div class="form-group" id="customCategoryGroup" style="display: none;">
+              <label class="form-label" for="customCategory">Custom Category Name *</label>
+              <input type="text" class="form-input" id="customCategory" placeholder="e.g. Medical, Tax Receipts, Vehicle" />
+            </div>
+
             <div class="form-group">
               <label class="form-label" for="docTags">Tags (comma separated)</label>
               <input type="text" class="form-input" id="docTags" placeholder="e.g. identity, government, front" />
@@ -429,8 +496,8 @@ const DocUI = (() => {
      ============================================ */
 
   function renderEditModal(doc) {
-    const personalCats = CATEGORIES.personal.filter((c) => c.name !== 'All');
-    const officialCats = CATEGORIES.official.filter((c) => c.name !== 'All');
+    const personalCats = getAllCategories('personal').filter((c) => c.name !== 'All');
+    const officialCats = getAllCategories('official').filter((c) => c.name !== 'All');
 
     return `
       <div class="modal-overlay active modal-overlay-enter" id="editModal">
@@ -464,6 +531,11 @@ const DocUI = (() => {
                   </optgroup>
                 </select>
               </div>
+            </div>
+
+            <div class="form-group" id="editCustomCategoryGroup" style="display: none;">
+              <label class="form-label" for="editCustomCategory">Custom Category Name *</label>
+              <input type="text" class="form-input" id="editCustomCategory" placeholder="e.g. Medical, Tax Receipts, Vehicle" />
             </div>
 
             <div class="form-group">
@@ -532,6 +604,21 @@ const DocUI = (() => {
         </div>
         <div class="preview-body modal-content-enter">
           ${viewerContent}
+          <div class="preview-meta-bar" style="padding: var(--space-3) var(--space-4); background: var(--color-bg-secondary); border-top: 1px solid var(--color-border); display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: var(--space-2);">
+            <div style="display: flex; align-items: center; gap: var(--space-2); flex-wrap: wrap;">
+              <span class="doc-category-badge" style="background: ${getCategoryColor(doc.category)}15; color: ${getCategoryColor(doc.category)};">
+                ${getCategoryIcon(doc.category, doc.vault)} ${escapeHtml(doc.category)}
+              </span>
+              ${(doc.tags || []).length > 0 ? `
+                <div style="display: flex; gap: 4px; flex-wrap: wrap; align-items: center;">
+                  ${doc.tags.map((t) => `<span class="doc-tag-badge">#${escapeHtml(t)}</span>`).join('')}
+                </div>
+              ` : '<span style="font-size: var(--font-size-xs); color: var(--color-text-tertiary);">No tags</span>'}
+            </div>
+            <div style="font-size: var(--font-size-xs); color: var(--color-text-tertiary);">
+              Added ${formatDate(doc.createdAt)}
+            </div>
+          </div>
         </div>
         <div class="preview-mobile-footer">
           <button class="mobile-action-btn" id="previewMobileEdit" data-doc-id="${doc.id}">
@@ -684,6 +771,9 @@ const DocUI = (() => {
   // Public API
   return {
     CATEGORIES,
+    getCustomCategories,
+    addCustomCategory,
+    getAllCategories,
     getCategoryIcon,
     getCategoryColor,
     formatDate,

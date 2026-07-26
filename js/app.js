@@ -684,6 +684,22 @@ const DocApp = (() => {
     }
 
     // Vault change → update category options
+    const catSelect = document.getElementById('docCategory');
+    const customGroup = document.getElementById('customCategoryGroup');
+
+    const updateCustomVisibility = () => {
+      if (catSelect && catSelect.value === 'Other') {
+        if (customGroup) customGroup.style.display = 'block';
+        document.getElementById('customCategory')?.focus();
+      } else {
+        if (customGroup) customGroup.style.display = 'none';
+      }
+    };
+
+    if (catSelect) {
+      catSelect.addEventListener('change', updateCustomVisibility);
+    }
+
     vaultSelect.addEventListener('change', () => {
       const vault = vaultSelect.value;
       const personalGroup = document.getElementById('personalCatGroup');
@@ -701,7 +717,10 @@ const DocApp = (() => {
         const firstOption = officialGroup.querySelector('option');
         if (firstOption) firstOption.selected = true;
       }
+      updateCustomVisibility();
     });
+
+    updateCustomVisibility();
 
     // Submit
     submitBtn.addEventListener('click', handleUpload);
@@ -769,12 +788,22 @@ const DocApp = (() => {
 
     const name = document.getElementById('docName').value.trim();
     const vault = document.getElementById('docVault').value;
-    const category = document.getElementById('docCategory').value;
+    const selectedCategory = document.getElementById('docCategory').value;
     const tagsStr = document.getElementById('docTags').value.trim();
 
     if (!name) {
       DocUI.showToast('Please enter a document name.', 'error');
       return;
+    }
+
+    let category = selectedCategory;
+    if (selectedCategory === 'Other') {
+      const customVal = document.getElementById('customCategory')?.value.trim();
+      if (!customVal) {
+        DocUI.showToast('Please specify a custom category name.', 'error');
+        return;
+      }
+      category = DocUI.addCustomCategory(vault, customVal);
     }
 
     const submitBtn = document.getElementById('uploadSubmit');
@@ -1105,7 +1134,23 @@ const DocApp = (() => {
       if (e.target === modal) closeModal();
     });
 
-    // Vault change → toggle category groups
+    // Vault & Category change → toggle custom category input
+    const catSelect = document.getElementById('editDocCategory');
+    const customGroup = document.getElementById('editCustomCategoryGroup');
+
+    const updateEditCustomVisibility = () => {
+      if (catSelect && catSelect.value === 'Other') {
+        if (customGroup) customGroup.style.display = 'block';
+        document.getElementById('editCustomCategory')?.focus();
+      } else {
+        if (customGroup) customGroup.style.display = 'none';
+      }
+    };
+
+    if (catSelect) {
+      catSelect.addEventListener('change', updateEditCustomVisibility);
+    }
+
     vaultSelect.addEventListener('change', () => {
       const vault = vaultSelect.value;
       const personalGroup = document.getElementById('editPersonalCatGroup');
@@ -1120,18 +1165,31 @@ const DocApp = (() => {
         officialGroup.style.display = '';
         officialGroup.querySelector('option').selected = true;
       }
+      updateEditCustomVisibility();
     });
+
+    updateEditCustomVisibility();
 
     // Save
     submitBtn.addEventListener('click', async () => {
       const name = document.getElementById('editDocName').value.trim();
       const vault = document.getElementById('editDocVault').value;
-      const category = document.getElementById('editDocCategory').value;
+      const selectedCategory = document.getElementById('editDocCategory').value;
       const tagsStr = document.getElementById('editDocTags').value.trim();
 
       if (!name) {
         DocUI.showToast('Please enter a document name.', 'error');
         return;
+      }
+
+      let category = selectedCategory;
+      if (selectedCategory === 'Other') {
+        const customVal = document.getElementById('editCustomCategory')?.value.trim();
+        if (!customVal) {
+          DocUI.showToast('Please specify a custom category name.', 'error');
+          return;
+        }
+        category = DocUI.addCustomCategory(vault, customVal);
       }
 
       const tags = tagsStr
