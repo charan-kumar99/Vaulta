@@ -83,39 +83,140 @@ const DocUI = (() => {
     return [...builtIn, ...customObjs];
   }
 
-  /* ---- Custom Sub-Folders Persistence ---- */
-  const CUSTOM_FOLDERS_KEY = 'vaulta_custom_folders';
+  /* ---- Nested Sub-Folders System ---- */
+  const FOLDERS_STORAGE_KEY = 'vaulta_nested_folders_v2';
 
-  function getCustomFolders() {
+  function getFolders() {
     try {
-      const data = localStorage.getItem(CUSTOM_FOLDERS_KEY);
-      return data ? JSON.parse(data) : { personal: [], official: [] };
+      const data = localStorage.getItem(FOLDERS_STORAGE_KEY);
+      return data ? JSON.parse(data) : [];
     } catch (e) {
-      return { personal: [], official: [] };
+      return [];
     }
   }
 
-  function addCustomFolder(vault, folderName) {
-    if (!folderName || !folderName.trim()) return null;
-    const trimmed = folderName.trim();
+  function saveFolders(folders) {
+    localStorage.setItem(FOLDERS_STORAGE_KEY, JSON.stringify(folders));
+  }
+
+  function createFolder(vault, name, parentId = null) {
+    if (!name || !name.trim()) return null;
+    const trimmed = name.trim();
     const formatted = trimmed.charAt(0).toUpperCase() + trimmed.slice(1);
 
+    const folders = getFolders();
     const targetVault = vault === 'official' ? 'official' : 'personal';
-    const custom = getCustomFolders();
-    if (!custom[targetVault]) custom[targetVault] = [];
 
-    const existing = custom[targetVault].find((f) => f.toLowerCase() === formatted.toLowerCase());
-    if (!existing) {
-      custom[targetVault].push(formatted);
-      localStorage.setItem(CUSTOM_FOLDERS_KEY, JSON.stringify(custom));
-      return formatted;
-    }
-    return existing;
+    // Check if folder already exists in the same parentId & vault
+    const existing = folders.find(
+      (f) => f.vault === targetVault && (f.parentId || null) === (parentId || null) && f.name.toLowerCase() === formatted.toLowerCase()
+    );
+    if (existing) return existing;
+
+    const newFolder = {
+      id: 'f_' + Date.now() + '_' + Math.random().toString(36).substr(2, 4),
+      vault: targetVault,
+      name: formatted,
+      parentId: parentId || null,
+      createdAt: Date.now(),
+    };
+
+    folders.push(newFolder);
+    saveFolders(folders);
+    return newFolder;
   }
 
-  function getAllFolders(vault) {
+  function deleteFolder(folderId) {
+    let folders = getFolders();
+    const idsToDelete = new Set([folderId]);
+    let added = true;
+    while (added) {
+      added = false;
+      folders.forEach((f) => {
+        if (f.parentId && idsToDelete.has(f.parentId) && !idsToDelete.has(f.id)) {
+          idsToDelete.add(f.id);
+          added = true;
+        }
+      });
+    }
+
+    folders = folders.filter((f) => !idsToDelete.has(f.id));
+    saveFolders(folders);
+    return Array.from(idsToDelete);
+  }
+
+  function getFolder(folderId) {
+    if (!folderId) return null;
+    const folders = getFolders();
+    return folders.find((f) => f.id === folderId) || null;
+  }
+
+  function getChildFolders(vault, parentId = null) {
     const targetVault = vault === 'official' ? 'official' : 'personal';
-    return getCustomFolders()[targetVault] || [];
+    const folders = getFolders();
+    return folders.filter(
+      (f) => f.vault === targetVault && (f.parentId || null) === (parentId || null)
+    );
+  }
+
+  function getFolderPath(folderId) {
+    const path = [];
+    let current = getFolder(folderId);
+    while (current) {
+      path.unshift(current);
+      current = getFolder(current.parentId);
+    }
+    return path;
+  }
+
+  function getAllFoldersFlat(vault) {
+    const targetVault = vault === 'official' ? 'official' : 'personal';
+    const folders = getFolders().filter((f) => f.vault === targetVault);
+
+    const result = [];
+    function traverse(parentId, depth = 0) {
+      const children = folders.filter((f) => (f.parentId || null) === parentId);
+      children.forEach((child) => {
+        result.push({
+          ...child,
+          displayName: '— '.repeat(depth) + child.name,
+        });
+        traverse(child.id, depth + 1);
+      });
+    }
+    traverse(null, 0);
+    return result;
+  }
+
+  /**
+   * Render a Folder Card in the documents grid
+   */
+  function renderFolderCard(folder, itemCount = 0) {
+    return `
+      <div class="doc-card folder-card" data-folder-id="${folder.id}">
+        <div class="doc-thumbnail folder-thumbnail" style="background: rgba(99, 102, 241, 0.08); display: flex; align-items: center; justify-content: center; flex-direction: column; gap: 8px;">
+          <div style="font-size: 3.5rem; filter: drop-shadow(0 4px 6px rgba(0,0,0,0.15));">📁</div>
+        </div>
+
+        <div class="doc-actions" style="opacity: 1;">
+          <button class="doc-action-btn delete-folder-btn" data-folder-id="${folder.id}" title="Delete folder" aria-label="Delete folder" style="color: var(--color-accent-danger); background: rgba(0,0,0,0.4);">
+            🗑️
+          </button>
+        </div>
+
+        <div class="doc-info">
+          <div class="doc-name" title="${escapeHtml(folder.name)}" style="font-weight: var(--font-weight-semibold);">${escapeHtml(folder.name)}</div>
+          <div style="display: flex; align-items: center; justify-content: space-between; margin-top: var(--space-2);">
+            <span class="doc-folder-badge" style="background: rgba(99, 102, 241, 0.12); color: var(--color-accent-primary); border-color: rgba(99, 102, 241, 0.2);">
+              📁 Folder
+            </span>
+            <span style="font-size: var(--font-size-xs); color: var(--color-text-tertiary); font-weight: var(--font-weight-medium);">
+              ${itemCount} ${itemCount === 1 ? 'item' : 'items'}
+            </span>
+          </div>
+        </div>
+      </div>
+    `;
   }
 
   /**
@@ -339,25 +440,47 @@ const DocUI = (() => {
   /**
    * Render the Vault Screen
    */
-  function renderVault(container, { vault, documents, activeCategory, activeFolder, sortBy }) {
+  /**
+   * Render the Vault Screen
+   */
+  function renderVault(container, { vault, currentFolder, folderPath = [], subFolders = [], subFolderCounts = {}, documents, activeCategory, sortBy }) {
     const isPersonal = vault === 'personal';
     const categories = getAllCategories(vault);
-    const folders = getAllFolders(vault);
     const title = isPersonal ? 'Personal Vault' : 'Official Vault';
     const icon = isPersonal ? '🔐' : '💼';
 
+    // Build breadcrumb HTML
+    let breadcrumbHtml = `
+      <span class="breadcrumb-item ${!currentFolder ? 'active' : ''}" data-nav-folder="root">
+        ${icon} ${title}
+      </span>
+    `;
+
+    folderPath.forEach((f, idx) => {
+      const isLast = idx === folderPath.length - 1;
+      breadcrumbHtml += `
+        <span class="breadcrumb-separator">/</span>
+        <span class="breadcrumb-item ${isLast ? 'active' : ''}" data-nav-folder="${f.id}">
+          📁 ${escapeHtml(f.name)}
+        </span>
+      `;
+    });
+
+    const folderCardsHtml = subFolders.map((f) => renderFolderCard(f, subFolderCounts[f.id] || 0)).join('');
+    const docCardsHtml = documents.map((doc) => renderDocCard(doc)).join('');
+    const totalItems = subFolders.length + documents.length;
+
     container.innerHTML = `
       <div class="container page-enter">
-        <!-- Page Title Bar -->
+        <!-- Page Title Bar & Breadcrumbs -->
         <div class="page-title-bar" style="margin-top: var(--space-6);">
-          <div style="display: flex; align-items: center; gap: var(--space-4);">
-            <button class="back-btn" id="backToHome" aria-label="Back to home">← Back</button>
-            <h1 class="page-title">
-              <span class="vault-badge ${vault}">${icon}</span>
-              ${title}
-            </h1>
+          <div style="display: flex; align-items: center; gap: var(--space-3); flex-wrap: wrap;">
+            <button class="back-btn" id="vaultBackBtn" aria-label="Back">← Back</button>
+            <div class="vault-breadcrumbs" style="display: flex; align-items: center; gap: var(--space-2); font-size: var(--font-size-lg); font-weight: var(--font-weight-bold); color: var(--color-text-primary);">
+              ${breadcrumbHtml}
+            </div>
           </div>
-          <div style="display: flex; align-items: center; gap: var(--space-3);">
+          <div style="display: flex; align-items: center; gap: var(--space-3); flex-wrap: wrap;">
             <button class="btn btn-secondary" id="bulkSelectBtn" style="font-size: var(--font-size-sm); padding: var(--space-2) var(--space-4);">
               ☑ Select & Share
             </button>
@@ -396,24 +519,6 @@ const DocUI = (() => {
           </div>
         </div>
 
-        <!-- Sub-Folders Navigation -->
-        <div class="folders-container" style="margin-top: var(--space-4); margin-bottom: var(--space-3);">
-          <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: var(--space-2);">
-            <span style="font-size: var(--font-size-xs); font-weight: var(--font-weight-semibold); color: var(--color-text-tertiary); text-transform: uppercase; letter-spacing: 0.05em;">📁 Sub-Folders / Companies</span>
-            <button class="btn btn-ghost" id="createFolderBtn" style="font-size: var(--font-size-xs); padding: 2px 8px;">+ New Folder</button>
-          </div>
-          <div class="category-chips" id="folderChips">
-            <button class="category-chip ${(!activeFolder || activeFolder === 'all') ? 'active' : ''}" data-folder="all">
-              📂 All Folders
-            </button>
-            ${folders.map((f) => `
-              <button class="category-chip ${(activeFolder === f) ? 'active' : ''}" data-folder="${escapeHtml(f)}">
-                📁 ${escapeHtml(f)}
-              </button>
-            `).join('')}
-          </div>
-        </div>
-
         <!-- Search (vault-specific) -->
         <div class="search-container">
           <input type="text" class="search-bar" id="vaultSearch" placeholder="Search in ${title.toLowerCase()}..." autocomplete="off" />
@@ -431,17 +536,18 @@ const DocUI = (() => {
           `).join('')}
         </div>
 
-        <!-- Documents Grid -->
+        <!-- Documents & Folders Grid -->
         <div class="documents-grid anim-stagger" id="documentsGrid">
-          ${documents.map((doc) => renderDocCard(doc)).join('')}
+          ${folderCardsHtml}
+          ${docCardsHtml}
         </div>
 
-        ${documents.length === 0 ? `
+        ${totalItems === 0 ? `
           <div class="empty-state">
-            <div class="empty-icon anim-float">📭</div>
-            <h3 class="empty-title">No documents found</h3>
-            <p class="empty-desc">Upload a document or select a different folder/category.</p>
-            <button class="btn btn-primary" id="emptyUploadBtn">
+            <div class="empty-icon anim-float">📁</div>
+            <h3 class="empty-title">This folder is empty</h3>
+            <p class="empty-desc">Upload a document to get started. You can create a new folder when uploading!</p>
+            <button class="btn btn-primary" id="emptyUploadBtn" style="margin-top: var(--space-3);">
               <span class="btn-text">+ Upload Document</span>
             </button>
           </div>
@@ -474,11 +580,11 @@ const DocUI = (() => {
   /**
    * Render the Upload Modal
    */
-  function renderUploadModal(defaultVault = 'personal') {
+  function renderUploadModal(defaultVault = 'personal', selectedFolderId = null) {
     const personalCats = getAllCategories('personal').filter((c) => c.name !== 'All');
     const officialCats = getAllCategories('official').filter((c) => c.name !== 'All');
-    const personalFolders = getAllFolders('personal');
-    const officialFolders = getAllFolders('official');
+    const personalFolders = getAllFoldersFlat('personal');
+    const officialFolders = getAllFoldersFlat('official');
 
     return `
       <div class="modal-overlay active modal-overlay-enter" id="uploadModal">
@@ -535,21 +641,21 @@ const DocUI = (() => {
             </div>
 
             <div class="form-group">
-              <label class="form-label" for="docFolder">Folder / Company (Optional)</label>
+              <label class="form-label" for="docFolder">Folder / Location</label>
               <select class="form-select" id="docFolder">
-                <option value="">📁 No Folder (Root)</option>
+                <option value="">📁 Root (Main Vault)</option>
                 <optgroup label="Personal Folders" id="personalFolderGroup" ${defaultVault !== 'personal' ? 'style="display:none;"' : ''}>
-                  ${personalFolders.map((f) => `<option value="${escapeHtml(f)}">📁 ${escapeHtml(f)}</option>`).join('')}
+                  ${personalFolders.map((f) => `<option value="${f.id}" ${selectedFolderId === f.id ? 'selected' : ''}>📁 ${escapeHtml(f.displayName)}</option>`).join('')}
                 </optgroup>
                 <optgroup label="Official Folders" id="officialFolderGroup" ${defaultVault !== 'official' ? 'style="display:none;"' : ''}>
-                  ${officialFolders.map((f) => `<option value="${escapeHtml(f)}">📁 ${escapeHtml(f)}</option>`).join('')}
+                  ${officialFolders.map((f) => `<option value="${f.id}" ${selectedFolderId === f.id ? 'selected' : ''}>📁 ${escapeHtml(f.displayName)}</option>`).join('')}
                 </optgroup>
-                <option value="__new__">➕ Create New Sub-Folder...</option>
+                <option value="__new__">➕ Create New Folder...</option>
               </select>
             </div>
 
             <div class="form-group" id="newFolderGroup" style="display: none;">
-              <label class="form-label" for="newFolderName">New Folder Name (e.g. Nettech Service) *</label>
+              <label class="form-label" for="newFolderName">New Folder Name *</label>
               <input type="text" class="form-input" id="newFolderName" placeholder="e.g. Nettech Service, TCS, Agreements" />
             </div>
 
@@ -577,8 +683,8 @@ const DocUI = (() => {
   function renderEditModal(doc) {
     const personalCats = getAllCategories('personal').filter((c) => c.name !== 'All');
     const officialCats = getAllCategories('official').filter((c) => c.name !== 'All');
-    const personalFolders = getAllFolders('personal');
-    const officialFolders = getAllFolders('official');
+    const personalFolders = getAllFoldersFlat('personal');
+    const officialFolders = getAllFoldersFlat('official');
 
     return `
       <div class="modal-overlay active modal-overlay-enter" id="editModal">
@@ -620,16 +726,16 @@ const DocUI = (() => {
             </div>
 
             <div class="form-group">
-              <label class="form-label" for="editDocFolder">Folder / Company (Optional)</label>
+              <label class="form-label" for="editDocFolder">Folder / Location</label>
               <select class="form-select" id="editDocFolder">
-                <option value="">📁 No Folder (Root)</option>
+                <option value="">📁 Root (Main Vault)</option>
                 <optgroup label="Personal Folders" id="editPersonalFolderGroup" ${doc.vault !== 'personal' ? 'style="display:none;"' : ''}>
-                  ${personalFolders.map((f) => `<option value="${escapeHtml(f)}" ${doc.folder === f && doc.vault === 'personal' ? 'selected' : ''}>📁 ${escapeHtml(f)}</option>`).join('')}
+                  ${personalFolders.map((f) => `<option value="${f.id}" ${doc.folderId === f.id ? 'selected' : ''}>📁 ${escapeHtml(f.displayName)}</option>`).join('')}
                 </optgroup>
                 <optgroup label="Official Folders" id="editOfficialFolderGroup" ${doc.vault !== 'official' ? 'style="display:none;"' : ''}>
-                  ${officialFolders.map((f) => `<option value="${escapeHtml(f)}" ${doc.folder === f && doc.vault === 'official' ? 'selected' : ''}>📁 ${escapeHtml(f)}</option>`).join('')}
+                  ${officialFolders.map((f) => `<option value="${f.id}" ${doc.folderId === f.id ? 'selected' : ''}>📁 ${escapeHtml(f.displayName)}</option>`).join('')}
                 </optgroup>
-                <option value="__new__">➕ Create New Sub-Folder...</option>
+                <option value="__new__">➕ Create New Folder...</option>
               </select>
             </div>
 
@@ -874,9 +980,14 @@ const DocUI = (() => {
     getCustomCategories,
     addCustomCategory,
     getAllCategories,
-    getCustomFolders,
-    addCustomFolder,
-    getAllFolders,
+    getFolders,
+    createFolder,
+    deleteFolder,
+    getFolder,
+    getChildFolders,
+    getFolderPath,
+    getAllFoldersFlat,
+    renderFolderCard,
     getCategoryIcon,
     getCategoryColor,
     formatDate,

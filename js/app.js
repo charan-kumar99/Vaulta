@@ -7,8 +7,8 @@ const DocApp = (() => {
   const state = {
     currentScreen: 'home', // 'home' | 'vault'
     currentVault: null, // 'personal' | 'official'
+    currentFolderId: null, // Folder ID or null (root)
     activeCategory: 'all',
-    activeFolder: 'all',
     sortBy: 'date-desc',
     searchQuery: '',
     selectedFile: null,
@@ -49,8 +49,8 @@ const DocApp = (() => {
     if (hash === '#home' || hash === '#') {
       state.currentScreen = 'home';
       state.currentVault = null;
+      state.currentFolderId = null;
       state.activeCategory = 'all';
-      state.activeFolder = 'all';
       state.searchQuery = '';
       renderCurrentScreen();
     } else if (hash.startsWith('#vault/')) {
@@ -58,8 +58,8 @@ const DocApp = (() => {
       if (vault === 'personal' || vault === 'official') {
         state.currentScreen = 'vault';
         state.currentVault = vault;
+        state.currentFolderId = null;
         state.activeCategory = 'all';
-        state.activeFolder = 'all';
         state.searchQuery = '';
         renderCurrentScreen();
       }
@@ -107,20 +107,52 @@ const DocApp = (() => {
   async function renderVaultScreen(container) {
     const allDocs = await DocDB.getAllByVault(state.currentVault);
 
-    const filteredDocs = DocSearch.query(allDocs, {
-      searchQuery: state.searchQuery,
-      filters: {
-        category: state.activeCategory,
-        folder: state.activeFolder,
-      },
-      sortBy: state.sortBy,
+    // Sub-folders for current folder level
+    const subFolders = DocUI.getChildFolders(state.currentVault, state.currentFolderId);
+    const currentFolder = DocUI.getFolder(state.currentFolderId);
+    const folderPath = DocUI.getFolderPath(state.currentFolderId);
+
+    // Item count for each sub-folder
+    const subFolderCounts = {};
+    subFolders.forEach((sf) => {
+      const sfChildren = DocUI.getChildFolders(state.currentVault, sf.id).length;
+      const sfDocs = allDocs.filter((d) => d.folderId === sf.id || d.folder === sf.name).length;
+      subFolderCounts[sf.id] = sfChildren + sfDocs;
     });
+
+    let filteredDocs = [];
+    let displaySubFolders = subFolders;
+
+    if (state.searchQuery) {
+      filteredDocs = DocSearch.query(allDocs, {
+        searchQuery: state.searchQuery,
+        filters: { category: state.activeCategory },
+        sortBy: state.sortBy,
+      });
+      displaySubFolders = [];
+    } else {
+      const directDocs = allDocs.filter((d) => {
+        if (state.currentFolderId) {
+          return d.folderId === state.currentFolderId || d.folder === (currentFolder ? currentFolder.name : '');
+        } else {
+          return !d.folderId && !d.folder;
+        }
+      });
+
+      filteredDocs = DocSearch.query(directDocs, {
+        filters: { category: state.activeCategory },
+        sortBy: state.sortBy,
+      });
+    }
 
     DocUI.renderVault(container, {
       vault: state.currentVault,
+      currentFolder,
+      folderPath,
+      subFolders: displaySubFolders,
+      subFolderCounts,
       documents: filteredDocs,
       activeCategory: state.activeCategory,
-      activeFolder: state.activeFolder,
       sortBy: state.sortBy,
     });
   }
@@ -142,7 +174,7 @@ const DocApp = (() => {
     bindVaultCards();
     bindSortDropdown();
     bindCategoryChips();
-    bindFolderChips();
+    bindFolderCardEvents();
     bindBackButton();
     bindBulkSelect();
     bindLongPressToSelect();
@@ -446,34 +478,61 @@ const DocApp = (() => {
     });
   }
 
-  function bindFolderChips() {
-    const chips = document.getElementById('folderChips');
-    const createBtn = document.getElementById('createFolderBtn');
+  function bindFolderCardEvents() {
+    const container = mainContainer();
+    if (!container) return;
 
-    if (chips) {
-      chips.addEventListener('click', async (e) => {
-        const chip = e.target.closest('[data-folder]');
-        if (!chip) return;
-
-        state.activeFolder = chip.dataset.folder;
-
-        chips.querySelectorAll('.category-chip').forEach((c) => c.classList.remove('active'));
-        chip.classList.add('active');
-
-        await refreshVaultGrid();
+    // Folder card click -> open folder
+    container.querySelectorAll('.folder-card').forEach((card) => {
+      card.addEventListener('click', (e) => {
+        if (e.target.closest('.delete-folder-btn')) return;
+        const folderId = card.dataset.folderId;
+        if (folderId) {
+          state.currentFolderId = folderId;
+          renderCurrentScreen();
+        }
       });
-    }
+    });
 
-    if (createBtn) {
-      createBtn.addEventListener('click', () => {
-        const name = prompt('Enter new sub-folder or company name (e.g. Nettech Service, TCS, Agreements):');
-        if (name && name.trim()) {
-          const created = DocUI.addCustomFolder(state.currentVault, name.trim());
-          if (created) {
-            state.activeFolder = created;
-            renderCurrentScreen();
-            DocUI.showToast(`Folder "${created}" created!`, 'success');
-          }
+    // Delete folder button
+    container.querySelectorAll('.delete-folder-btn').forEach((btn) => {
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const folderId = btn.dataset.folderId;
+        if (!folderId) return;
+
+        const folder = DocUI.getFolder(folderId);
+        if (confirm(`Delete folder "${folder ? folder.name : 'Folder'}"?`)) {
+          DocUI.deleteFolder(folderId);
+          renderCurrentScreen();
+          DocUI.showToast('Folder deleted', 'info');
+        }
+      });
+    });
+
+    // Breadcrumbs navigation
+    container.querySelectorAll('.breadcrumb-item').forEach((item) => {
+      item.addEventListener('click', () => {
+        const target = item.dataset.navFolder;
+        if (target === 'root') {
+          state.currentFolderId = null;
+        } else if (target) {
+          state.currentFolderId = target;
+        }
+        renderCurrentScreen();
+      });
+    });
+
+    // Vault back button
+    const vaultBackBtn = document.getElementById('vaultBackBtn');
+    if (vaultBackBtn) {
+      vaultBackBtn.addEventListener('click', () => {
+        if (state.currentFolderId) {
+          const current = DocUI.getFolder(state.currentFolderId);
+          state.currentFolderId = current ? current.parentId : null;
+          renderCurrentScreen();
+        } else {
+          navigate('home');
         }
       });
     }
@@ -958,14 +1017,23 @@ const DocApp = (() => {
       category = DocUI.addCustomCategory(vault, customVal);
     }
 
-    let folder = selectedFolder;
+    let folderId = selectedFolder;
+    let folderName = null;
+
     if (selectedFolder === '__new__') {
       const newFolderVal = document.getElementById('newFolderName')?.value.trim();
       if (newFolderVal) {
-        folder = DocUI.addCustomFolder(vault, newFolderVal);
+        const newFolderObj = DocUI.createFolder(vault, newFolderVal, state.currentFolderId);
+        if (newFolderObj) {
+          folderId = newFolderObj.id;
+          folderName = newFolderObj.name;
+        }
       } else {
-        folder = null;
+        folderId = null;
       }
+    } else if (selectedFolder) {
+      const fObj = DocUI.getFolder(selectedFolder);
+      if (fObj) folderName = fObj.name;
     }
 
     const submitBtn = document.getElementById('uploadSubmit');
@@ -986,7 +1054,8 @@ const DocApp = (() => {
         vault,
         name,
         category,
-        folder,
+        folderId,
+        folder: folderName,
         tags,
         fileData: file,
         fileType: file.type,
@@ -1372,14 +1441,23 @@ const DocApp = (() => {
         category = DocUI.addCustomCategory(vault, customVal);
       }
 
-      let folder = selectedFolder;
+      let folderId = selectedFolder;
+      let folderName = null;
+
       if (selectedFolder === '__new__') {
         const newFolderVal = document.getElementById('editNewFolderName')?.value.trim();
         if (newFolderVal) {
-          folder = DocUI.addCustomFolder(vault, newFolderVal);
+          const newFolderObj = DocUI.createFolder(vault, newFolderVal, state.currentFolderId);
+          if (newFolderObj) {
+            folderId = newFolderObj.id;
+            folderName = newFolderObj.name;
+          }
         } else {
-          folder = null;
+          folderId = null;
         }
+      } else if (selectedFolder) {
+        const fObj = DocUI.getFolder(selectedFolder);
+        if (fObj) folderName = fObj.name;
       }
 
       const tags = tagsStr
@@ -1387,7 +1465,7 @@ const DocApp = (() => {
         : [];
 
       try {
-        await DocDB.updateDocument(doc.id, { name, vault, category, folder, tags });
+        await DocDB.updateDocument(doc.id, { name, vault, category, folderId, folder: folderName, tags });
         closeModal();
         await renderCurrentScreen();
         DocUI.showToast('Document updated successfully!', 'success');

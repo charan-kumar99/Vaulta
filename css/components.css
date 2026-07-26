@@ -526,6 +526,57 @@
   border: 1px solid rgba(14, 165, 233, 0.2);
 }
 
+/* Breadcrumbs & Folder Cards */
+.vault-breadcrumbs {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  flex-wrap: wrap;
+}
+
+.vault-breadcrumbs .breadcrumb-item {
+  cursor: pointer;
+  transition: color var(--transition-fast);
+  color: var(--color-text-secondary);
+}
+
+.vault-breadcrumbs .breadcrumb-item:hover {
+  color: var(--color-accent-primary);
+  text-decoration: underline;
+}
+
+.vault-breadcrumbs .breadcrumb-item.active {
+  color: var(--color-text-primary);
+  cursor: default;
+  text-decoration: none;
+}
+
+.vault-breadcrumbs .breadcrumb-separator {
+  color: var(--color-text-tertiary);
+  font-size: var(--font-size-sm);
+  user-select: none;
+}
+
+.folder-card {
+  cursor: pointer;
+  border: 1px solid var(--color-border);
+  transition: transform var(--transition-medium), box-shadow var(--transition-medium), border-color var(--transition-medium);
+}
+
+.folder-card:hover {
+  transform: translateY(-4px);
+  border-color: var(--color-accent-primary);
+  box-shadow: var(--shadow-lg);
+}
+
+.folder-card .folder-thumbnail {
+  transition: background var(--transition-medium);
+}
+
+.folder-card:hover .folder-thumbnail {
+  background: rgba(99, 102, 241, 0.15) !important;
+}
+
 .doc-card .doc-actions {
   position: absolute;
   top: var(--space-3);
