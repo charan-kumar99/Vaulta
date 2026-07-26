@@ -282,10 +282,24 @@ const DocUI = (() => {
      Screen Renderers
      ============================================ */
 
+  function getAllAppCategories() {
+    const personal = getAllCategories('personal');
+    const official = getAllCategories('official');
+    const combined = [...personal];
+    official.forEach((c) => {
+      if (!combined.some((item) => item.name === c.name)) {
+        combined.push(c);
+      }
+    });
+    return combined;
+  }
+
   /**
    * Render the Home Screen
    */
-  function renderHome(container, { personalCount, officialCount, allDocs = [], favoriteDocs = [] }) {
+  function renderHome(container, { personalCount, officialCount, allDocs = [], favoriteDocs = [], activeCategory = 'all' }) {
+    const categories = getAllAppCategories();
+
     container.innerHTML = `
       <div class="container page-enter">
         <!-- Search Bar -->
@@ -350,19 +364,30 @@ const DocUI = (() => {
           ` : ''}
 
           <!-- All Documents Section -->
+          <div class="section-header">
+            <h2 class="section-title"><span class="section-icon">📄</span> All Documents</h2>
+            <span style="font-size: var(--font-size-xs); color: var(--color-text-tertiary); font-weight: var(--font-weight-medium);">${allDocs.length} total</span>
+          </div>
+
+          <!-- Category Chips Filter -->
+          <div class="category-chips" id="homeCategoryChips" style="margin-bottom: var(--space-4);">
+            ${categories.map((cat) => `
+              <button class="category-chip ${(activeCategory === cat.name || (activeCategory === 'all' && cat.name === 'All')) ? 'active' : ''}"
+                      data-category="${cat.name === 'All' ? 'all' : cat.name}">
+                ${cat.icon} ${cat.name}
+              </button>
+            `).join('')}
+          </div>
+
           ${allDocs.length > 0 ? `
-            <div class="section-header">
-              <h2 class="section-title"><span class="section-icon">📄</span> All Documents</h2>
-              <span style="font-size: var(--font-size-xs); color: var(--color-text-tertiary); font-weight: var(--font-weight-medium);">${allDocs.length} total</span>
-            </div>
             <div class="documents-grid anim-stagger">
               ${allDocs.map((doc) => renderDocCard(doc)).join('')}
             </div>
           ` : `
             <div class="empty-state">
               <div class="empty-icon anim-float">📂</div>
-              <h3 class="empty-title">Welcome to Vaulta!</h3>
-              <p class="empty-desc">Start by uploading your first document. Tap the + button in the bottom right to get started.</p>
+              <h3 class="empty-title">${activeCategory !== 'all' ? 'No documents in this category' : 'Welcome to Vaulta!'}</h3>
+              <p class="empty-desc">${activeCategory !== 'all' ? 'Try selecting a different category filter.' : 'Start by uploading your first document. Tap the + button in the bottom right to get started.'}</p>
               <button class="btn btn-primary" id="emptyUploadBtn">
                 <span class="btn-text">+ Upload Document</span>
               </button>

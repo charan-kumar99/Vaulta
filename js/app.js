@@ -9,6 +9,7 @@ const DocApp = (() => {
     currentVault: null, // 'personal' | 'official'
     currentFolderId: null, // Folder ID or null (root)
     activeCategory: 'all',
+    homeActiveCategory: 'all',
     sortBy: 'date-desc',
     searchQuery: '',
     selectedFile: null,
@@ -51,6 +52,7 @@ const DocApp = (() => {
       state.currentVault = null;
       state.currentFolderId = null;
       state.activeCategory = 'all';
+      state.homeActiveCategory = 'all';
       state.searchQuery = '';
       renderCurrentScreen();
     } else if (hash.startsWith('#vault/')) {
@@ -93,14 +95,19 @@ const DocApp = (() => {
 
   async function renderHomeScreen(container) {
     const counts = await DocDB.getCounts();
-    const allDocs = await DocDB.getAll();
+    let allDocs = await DocDB.getAll();
     const favoriteDocs = await DocDB.getFavorites();
+
+    if (state.homeActiveCategory && state.homeActiveCategory !== 'all') {
+      allDocs = allDocs.filter((d) => d.category === state.homeActiveCategory);
+    }
 
     DocUI.renderHome(container, {
       personalCount: counts.personal,
       officialCount: counts.official,
       allDocs,
       favoriteDocs,
+      activeCategory: state.homeActiveCategory || 'all',
     });
   }
 
@@ -174,10 +181,31 @@ const DocApp = (() => {
     bindVaultCards();
     bindSortDropdown();
     bindCategoryChips();
+    bindHomeCategoryChips();
     bindFolderCardEvents();
     bindBackButton();
     bindBulkSelect();
     bindLongPressToSelect();
+  }
+
+  function bindHomeCategoryChips() {
+    const chipsContainer = document.getElementById('homeCategoryChips');
+    if (!chipsContainer) return;
+
+    chipsContainer.addEventListener('click', async (e) => {
+      const chip = e.target.closest('.category-chip');
+      if (!chip) return;
+
+      const cat = chip.dataset.category;
+      if (!cat) return;
+
+      state.homeActiveCategory = cat;
+
+      chipsContainer.querySelectorAll('.category-chip').forEach((c) => c.classList.remove('active'));
+      chip.classList.add('active');
+
+      await renderHomeScreen(mainContainer());
+    });
   }
 
   function bindBackButton() {
@@ -496,16 +524,52 @@ const DocApp = (() => {
 
     // Delete folder button
     container.querySelectorAll('.delete-folder-btn').forEach((btn) => {
-      btn.addEventListener('click', (e) => {
+      btn.addEventListener('click', async (e) => {
         e.stopPropagation();
         const folderId = btn.dataset.folderId;
         if (!folderId) return;
 
         const folder = DocUI.getFolder(folderId);
-        if (confirm(`Delete folder "${folder ? folder.name : 'Folder'}"?`)) {
+        if (!folder) return;
+
+        // Get all descendant folder IDs that will be deleted
+        const allVaultDocs = await DocDB.getAllByVault(state.currentVault);
+        const idsToDelete = new Set([folderId]);
+        let added = true;
+        const allFolders = DocUI.getFolders();
+        while (added) {
+          added = false;
+          allFolders.forEach((f) => {
+            if (f.parentId && idsToDelete.has(f.parentId) && !idsToDelete.has(f.id)) {
+              idsToDelete.add(f.id);
+              added = true;
+            }
+          });
+        }
+        const descendantIds = Array.from(idsToDelete);
+
+        // Find documents inside this folder or any of its subfolders
+        const docsInFolder = allVaultDocs.filter(
+          (d) => (d.folderId && idsToDelete.has(d.folderId)) || d.folder === folder.name
+        );
+
+        let warningMsg = `Delete folder "${folder.name}"?`;
+        if (docsInFolder.length > 0 || descendantIds.length > 1) {
+          const docCountStr = `${docsInFolder.length} document(s)`;
+          const subfolderCountStr = `${descendantIds.length - 1} sub-folder(s)`;
+          warningMsg = `⚠️ WARNING: Folder "${folder.name}" contains ${docCountStr}${descendantIds.length > 1 ? ' and ' + subfolderCountStr : ''}.\n\nDeleting this folder will PERMANENTLY DELETE all files and sub-folders inside it!\n\nDo you want to proceed?`;
+        }
+
+        if (confirm(warningMsg)) {
+          // Delete all documents inside
+          for (const doc of docsInFolder) {
+            await DocDB.deleteDocument(doc.id);
+          }
+
+          // Delete folder and child folders
           DocUI.deleteFolder(folderId);
-          renderCurrentScreen();
-          DocUI.showToast('Folder deleted', 'info');
+          await renderCurrentScreen();
+          DocUI.showToast(`Deleted folder "${folder.name}" and ${docsInFolder.length} file(s).`, 'info');
         }
       });
     });

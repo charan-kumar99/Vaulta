@@ -45,9 +45,14 @@
 }
 
 .app-header .logo-text {
-  font-size: var(--font-size-xl);
-  font-weight: var(--font-weight-bold);
-  letter-spacing: -0.02em;
+  font-family: 'Outfit', 'Inter', system-ui, -apple-system, sans-serif;
+  font-size: 26px;
+  font-weight: 900;
+  letter-spacing: 0.02em;
+  background: linear-gradient(135deg, var(--color-text-primary) 30%, var(--color-accent-primary) 70%, var(--color-accent-secondary) 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  filter: drop-shadow(0 2px 8px rgba(99, 102, 241, 0.25));
 }
 
 .app-header .header-actions {
