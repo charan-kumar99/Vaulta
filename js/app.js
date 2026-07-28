@@ -1118,46 +1118,13 @@ const DocApp = (() => {
           const fileName = `Vaulta_Sync_${dateStr}.json`;
           const blob = new Blob([jsonStr], { type: 'application/json' });
 
-          let sharedSuccessfully = false;
-          // Try Web Share API with file (works on Android/iOS when supported)
-          if (navigator.share && navigator.canShare) {
-            try {
-              const file = new File([blob], fileName, { type: 'application/json' });
-              const shareData = { files: [file], title: 'Vaulta Sync Data', text: 'Vaulta vault sync backup file' };
+          // Trigger direct file download to Downloads folder
+          DocShare.downloadFile(blob, fileName);
 
-              if (navigator.canShare(shareData)) {
-                await navigator.share(shareData);
-                DocUI.showToast('📦 Vault Sync File shared! Save it or send to your other device.', 'success', 5000);
-                sharedSuccessfully = true;
-              }
-            } catch (shareErr) {
-              if (shareErr.name === 'AbortError') return; // User cancelled share sheet
-              console.warn('Web share API failed or cancelled, falling back to download:', shareErr);
-            }
-          }
-
-          if (!sharedSuccessfully) {
-            // Fallback: download via anchor tag (works reliably on desktop & mobile browsers)
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = fileName;
-            a.style.display = 'none';
-            document.body.appendChild(a);
-            a.click();
-
-            // Delay cleanup so the download starts
-            setTimeout(() => {
-              a.remove();
-              URL.revokeObjectURL(url);
-            }, 3000);
-
-            DocUI.showToast('📦 Vault Sync File downloaded! Check your Downloads folder.', 'success', 5000);
-          }
+          DocUI.showToast('📦 Vault Sync File downloaded! Check your Downloads folder.', 'success', 5000);
         } catch (err) {
-          if (err.name === 'AbortError') return; // User cancelled share sheet
           console.error('Sync export failed:', err);
-          DocUI.showToast('Failed to export sync file.', 'error');
+          DocUI.showToast('Failed to export sync file: ' + (err.message || 'Unknown error'), 'error', 5000);
         } finally {
           exportBtn.classList.remove('loading');
           exportBtn.disabled = false;
