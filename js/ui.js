@@ -1082,15 +1082,15 @@ const DocUI = (() => {
               <div style="font-weight: var(--font-weight-bold); color: var(--color-accent-primary); margin-bottom: 6px;">💡 How to sync PC data to Phone:</div>
               <ol style="margin: 0; padding-left: 18px; line-height: 1.6;">
                 <li>Click <strong>Export Vault Sync File</strong> below on your PC.</li>
-                <li>Send the downloaded <code>.vaulta</code> file to your Phone (WhatsApp/Email/Drive).</li>
-                <li>Open Vaulta on your Phone, tap <strong>💾 Sync</strong>, and select the <code>.vaulta</code> file!</li>
+                <li>Send the downloaded <code>.json</code> or <code>.vaulta</code> file to your Phone (WhatsApp/Email/Drive/Files).</li>
+                <li>Open Vaulta on your Phone, tap <strong>💾 Sync</strong>, and select the file!</li>
               </ol>
             </div>
 
             <!-- Action Options -->
             <div style="display: flex; flex-direction: column; gap: var(--space-4);">
               <button class="btn btn-primary" id="secretSyncExportBtn" style="padding: var(--space-3) var(--space-4); justify-content: center; font-weight: var(--font-weight-bold);">
-                <span class="btn-text">📦 Export Vault Sync File (.vaulta)</span>
+                <span class="btn-text">📦 Export Vault Sync File (.json)</span>
                 <div class="btn-spinner spinner"></div>
               </button>
 
@@ -1101,9 +1101,9 @@ const DocUI = (() => {
 
               <div class="drop-zone" id="secretSyncDropZone" style="padding: var(--space-4); text-align: center; cursor: pointer;">
                 <div style="font-size: 1.8rem; margin-bottom: 4px;">📥</div>
-                <p class="drop-text" style="font-size: var(--font-size-sm); font-weight: var(--font-weight-semibold);">Select or Drag & Drop .vaulta File</p>
+                <p class="drop-text" style="font-size: var(--font-size-sm); font-weight: var(--font-weight-semibold);">Select or Drag & Drop Sync File (.json / .vaulta)</p>
                 <p class="drop-subtext" style="font-size: var(--font-size-xs);">To import PC data into this device</p>
-                <input type="file" id="secretSyncFileInput" accept=".vaulta,.json" style="display:none;" />
+                <input type="file" id="secretSyncFileInput" accept=".json,.vaulta,.vault,.vaulta.json,.txt,application/json,text/plain,*/*" style="display:none;" />
               </div>
             </div>
           </div>

@@ -1116,11 +1116,11 @@ const DocApp = (() => {
           const jsonStr = JSON.stringify(packageObj);
           const dateStr = new Date().toISOString().slice(0, 10);
           const fileName = `Vaulta_Sync_${dateStr}.json`;
-          const blob = new Blob([jsonStr], { type: 'application/octet-stream' });
+          const blob = new Blob([jsonStr], { type: 'application/json' });
 
-          // Try Web Share API with file (works great on Android)
+          // Try Web Share API with file (works great on Android/iOS)
           if (navigator.share && navigator.canShare) {
-            const file = new File([blob], fileName, { type: 'application/octet-stream' });
+            const file = new File([blob], fileName, { type: 'application/json' });
             const shareData = { files: [file], title: 'Vaulta Sync Data', text: 'Vaulta vault sync backup file' };
 
             if (navigator.canShare(shareData)) {
@@ -1195,7 +1195,7 @@ const DocApp = (() => {
         DocUI.showToast(`✅ Successfully restored ${result.documentCount} document(s) & ${result.folderCount} folder(s)!`, 'success', 5000);
       } catch (err) {
         console.error('Import failed:', err);
-        DocUI.showToast('Failed to import file. Make sure it is a valid .vaulta backup.', 'error');
+        DocUI.showToast('Failed to import file. Make sure it is a valid Vaulta backup (.json or .vaulta).', 'error');
       }
     }
   }
