@@ -417,39 +417,62 @@ const DocDB = (() => {
     return new Promise((resolve, reject) => {
       const request = store.getAll();
       request.onsuccess = async () => {
-        const docs = request.result || [];
-        const processedDocs = [];
+        try {
+          const docs = request.result || [];
+          const processedDocs = [];
 
-        for (const doc of docs) {
-          let fileDataBase64 = null;
-          if (doc.fileData) {
-            fileDataBase64 = await new Promise((res) => {
-              const reader = new FileReader();
-              reader.onload = (e) => res(e.target.result);
-              reader.onerror = () => res(null);
-              reader.readAsDataURL(doc.fileData);
+          for (const doc of docs) {
+            let fileDataBase64 = null;
+            if (doc.fileData) {
+              try {
+                const blob = doc.fileData instanceof Blob
+                  ? doc.fileData
+                  : new Blob([doc.fileData], { type: doc.fileType || 'application/octet-stream' });
+
+                fileDataBase64 = await new Promise((res) => {
+                  const reader = new FileReader();
+                  reader.onload = (e) => res(e.target.result);
+                  reader.onerror = () => res(null);
+                  reader.readAsDataURL(blob);
+                });
+              } catch (err) {
+                console.error('Failed to convert fileData to Base64:', err);
+              }
+            }
+
+            processedDocs.push({
+              ...doc,
+              fileData: undefined,
+              fileDataBase64,
             });
           }
 
-          processedDocs.push({
-            ...doc,
-            fileData: undefined,
-            fileDataBase64,
-          });
+          let folders = [];
+          try {
+            folders = JSON.parse(localStorage.getItem('vaulta_nested_folders_v2') || '[]');
+          } catch (e) {
+            folders = [];
+          }
+
+          let customCategories = { personal: [], official: [] };
+          try {
+            customCategories = JSON.parse(localStorage.getItem('vaulta_custom_categories') || '{"personal":[],"official":[]}');
+          } catch (e) {
+            customCategories = { personal: [], official: [] };
+          }
+
+          const packageObj = {
+            version: 'vaulta_sync_v2',
+            exportedAt: Date.now(),
+            folders,
+            customCategories,
+            documents: processedDocs,
+          };
+
+          resolve(packageObj);
+        } catch (err) {
+          reject(new Error('Failed to package export data: ' + err.message));
         }
-
-        const folders = JSON.parse(localStorage.getItem('vaulta_nested_folders_v2') || '[]');
-        const customCategories = JSON.parse(localStorage.getItem('vaulta_custom_categories') || '{"personal":[],"official":[]}');
-
-        const packageObj = {
-          version: 'vaulta_sync_v2',
-          exportedAt: Date.now(),
-          folders,
-          customCategories,
-          documents: processedDocs,
-        };
-
-        resolve(packageObj);
       };
       request.onerror = (event) => reject(new Error('Failed to export sync package: ' + event.target.error));
     });
