@@ -404,6 +404,47 @@
           this.triggerBiometricUnlock();
         });
       }
+
+      this.bindKeyboardEvents();
+    },
+
+    /**
+     * Bind physical keyboard event listeners (for laptop & desktop keyboard typing)
+     */
+    bindKeyboardEvents() {
+      if (this._keyListenerBound) return;
+      this._keyListenerBound = true;
+
+      window.addEventListener('keydown', (e) => {
+        if (!this.isLocked()) return;
+
+        // Digits 0-9 (main numbers or Numpad)
+        if (/^[0-9]$/.test(e.key)) {
+          e.preventDefault();
+          this.handlePinInput(e.key);
+
+          // Visual button flash on screen
+          const btn = document.querySelector(`.keypad-btn[data-key="${e.key}"]`);
+          if (btn) {
+            btn.style.transform = 'scale(0.92)';
+            btn.style.background = 'var(--color-bg-glass-hover)';
+            setTimeout(() => {
+              btn.style.transform = '';
+              btn.style.background = '';
+            }, 120);
+          }
+        } else if (e.key === 'Backspace' || e.key === 'Delete') {
+          e.preventDefault();
+          if (_currentPinInput.length > 0) {
+            _currentPinInput = _currentPinInput.slice(0, -1);
+            this.updatePinDisplay();
+          }
+        } else if (e.key === 'Escape' || e.key.toLowerCase() === 'c') {
+          e.preventDefault();
+          _currentPinInput = '';
+          this.updatePinDisplay();
+        }
+      });
     },
 
     /**
