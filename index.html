@@ -39,6 +39,7 @@
       </div>
       <div class="header-actions">
         <button class="header-btn" id="installPwaBtn" title="Install App on Phone" aria-label="Install App" style="display: none;">📲 Install App</button>
+        <button class="header-btn" id="securityLockBtn" onclick="DocUI.renderSecurityModal()" title="Security & App Lock" aria-label="Security settings">🔒</button>
         <button class="header-btn" id="backupBtn" title="Export Backup" aria-label="Export backup">💾</button>
         <button class="header-btn" id="themeToggle" title="Toggle theme" aria-label="Toggle dark/light theme">☀️</button>
       </div>
@@ -66,12 +67,47 @@
   <script src="js/search.js"></script>
   <script src="js/share.js"></script>
   <script src="js/ui.js"></script>
+  <script src="js/security.js"></script>
   <script src="js/app.js"></script>
 
   <script>
-    // Initialize the app & PWA Service Worker
+    // Initialize the app, Security lock & PWA Service Worker
     document.addEventListener('DOMContentLoaded', () => {
       DocApp.init();
+
+      // Initialize Security & App Lock Screen
+      if (window.SecurityModule) {
+        window.SecurityModule.init();
+      }
+
+      // Security Settings Modal Button
+      const secBtn = document.getElementById('securityLockBtn');
+      if (secBtn) {
+        secBtn.addEventListener('click', () => {
+          if (window.DocUI && typeof window.DocUI.renderSecurityModal === 'function') {
+            window.DocUI.renderSecurityModal();
+          }
+        });
+      }
+
+      // Auto-lock on tab hide / app resume
+      document.addEventListener('visibilitychange', () => {
+        if (document.hidden && window.SecurityModule && window.SecurityModule.isSecurityEnabled()) {
+          window.SecurityModule.lockApp();
+        }
+      });
+
+      // Backup Button
+      const backupBtn = document.getElementById('backupBtn');
+      if (backupBtn) {
+        backupBtn.addEventListener('click', () => {
+          if (window.DocShare && typeof window.DocShare.exportDataPackage === 'function') {
+            window.DocShare.exportDataPackage();
+          } else {
+            DocUI.showToast('Backup feature initialized', 'info');
+          }
+        });
+      }
 
       // Theme toggle
       document.getElementById('themeToggle').addEventListener('click', DocApp.toggleTheme);

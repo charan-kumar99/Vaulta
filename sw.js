@@ -1,4 +1,4 @@
-const CACHE_NAME = 'vaulta-v8';
+const CACHE_NAME = 'vaulta-v12';
 const ASSETS_TO_CACHE = [
   './',
   './index.html',
@@ -10,6 +10,7 @@ const ASSETS_TO_CACHE = [
   './js/search.js',
   './js/share.js',
   './js/ui.js',
+  './js/security.js',
   './js/app.js',
   './icons/icon-192.png',
   './icons/icon-512.png',

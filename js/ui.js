@@ -1159,6 +1159,170 @@ const DocUI = (() => {
     setTimeout(() => toast.remove(), 300);
   }
 
+  async function renderSecurityModal() {
+    const modalsContainer = document.getElementById('modals');
+    if (!modalsContainer) return;
+
+    const isSecEnabled = window.SecurityModule ? window.SecurityModule.isSecurityEnabled() : false;
+    const hasPin = window.SecurityModule ? window.SecurityModule.hasPasscode() : false;
+    const isBioEnabled = window.SecurityModule ? window.SecurityModule.isBiometricsEnabled() : false;
+    
+    let isBioSupported = false;
+    try {
+      if (window.SecurityModule && typeof window.SecurityModule.isBiometricsSupported === 'function') {
+        isBioSupported = await Promise.race([
+          window.SecurityModule.isBiometricsSupported(),
+          new Promise((resolve) => setTimeout(() => resolve(false), 500))
+        ]);
+      }
+    } catch (e) {
+      console.warn('[Security] Biometrics check error:', e);
+      isBioSupported = false;
+    }
+
+    modalsContainer.innerHTML = `
+      <div class="modal-overlay active modal-overlay-enter" id="securityModalOverlay">
+        <div class="modal-content modal-content-enter" style="max-width: 440px;" role="dialog" aria-modal="true" aria-labelledby="securityModalTitle">
+          <div class="modal-header">
+            <h2 class="modal-title" id="securityModalTitle">🔐 Security & App Lock</h2>
+            <button class="modal-close" id="closeSecurityModalBtn" aria-label="Close modal">✕</button>
+          </div>
+          <div class="modal-body">
+            <div class="setting-item" style="display: flex; align-items: center; justify-content: space-between; padding: 14px 0; border-bottom: 1px solid var(--color-border);">
+              <div>
+                <strong style="display: block; font-size: 0.95rem; color: var(--color-text-primary);">App Lock Protection</strong>
+                <span style="font-size: 0.78rem; color: var(--color-text-secondary);">${isSecEnabled ? '🔒 Protection is ACTIVE' : '🔓 Protection is OFF'}</span>
+              </div>
+              <button type="button" class="btn ${isSecEnabled ? 'btn-danger' : 'btn-primary'} btn-sm" id="toggleAppLockBtn">
+                ${isSecEnabled ? 'Disable Lock' : 'Enable Lock'}
+              </button>
+            </div>
+
+            <div class="setting-item" style="padding: 14px 0; border-bottom: 1px solid var(--color-border);">
+              <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px;">
+                <div>
+                  <strong style="display: block; font-size: 0.95rem; color: var(--color-text-primary);">Passcode PIN</strong>
+                  <span style="font-size: 0.78rem; color: var(--color-text-secondary);">${hasPin ? '🔑 PIN configured' : '⚠️ No PIN configured'}</span>
+                </div>
+                <button type="button" class="btn btn-secondary btn-sm" id="setPinBtn">
+                  ${hasPin ? 'Change PIN' : 'Set PIN'}
+                </button>
+              </div>
+              <div id="pinInputGroup" style="display: none; margin-top: 12px; background: var(--color-bg-tertiary); padding: 12px; border-radius: var(--radius-lg); border: 1px solid var(--color-border);">
+                <input type="password" id="newPinInput" maxlength="6" pattern="[0-9]*" inputmode="numeric" placeholder="Enter 4 to 6 digit PIN" class="form-input" style="margin-bottom: 8px; width: 100%;">
+                <button type="button" class="btn btn-primary btn-sm" id="savePinBtn" style="width: 100%;">Save Passcode PIN</button>
+              </div>
+            </div>
+
+            <div class="setting-item" style="display: flex; align-items: center; justify-content: space-between; padding: 14px 0; border-bottom: 1px solid var(--color-border);">
+              <div>
+                <strong style="display: block; font-size: 0.95rem; color: var(--color-text-primary);">Fingerprint / Face ID / Windows Hello</strong>
+                <span style="font-size: 0.78rem; color: var(--color-text-secondary);">
+                  ${isBioSupported ? (isBioEnabled ? '🖐️ Biometrics enabled' : 'Device supported') : 'Not supported on this browser'}
+                </span>
+              </div>
+              <button type="button" class="btn btn-secondary btn-sm" id="toggleBioBtn" ${(!isBioSupported || !isSecEnabled) ? 'disabled' : ''}>
+                ${isBioEnabled ? 'Disable' : 'Enable'}
+              </button>
+            </div>
+
+            ${isSecEnabled ? `
+              <div style="margin-top: 20px;">
+                <button type="button" class="btn btn-primary" id="lockNowBtn" style="width: 100%; display: flex; align-items: center; justify-content: center; gap: 8px; background: var(--gradient-accent);">
+                  🔒 Lock App Now
+                </button>
+              </div>
+            ` : ''}
+          </div>
+        </div>
+      </div>
+    `;
+
+    // Event listeners
+    const closeBtn = document.getElementById('closeSecurityModalBtn');
+    const backdrop = document.getElementById('securityModalOverlay');
+    const closeModal = () => { modalsContainer.innerHTML = ''; };
+
+    if (closeBtn) closeBtn.addEventListener('click', closeModal);
+    if (backdrop) backdrop.addEventListener('click', (e) => { if (e.target === backdrop) closeModal(); });
+
+    // Toggle App Lock Button
+    const toggleLockBtn = document.getElementById('toggleAppLockBtn');
+    if (toggleLockBtn) {
+      toggleLockBtn.addEventListener('click', async () => {
+        if (!isSecEnabled) {
+          if (!window.SecurityModule.hasPasscode()) {
+            showToast('Please set a Passcode PIN first', 'warning');
+            const pinGrp = document.getElementById('pinInputGroup');
+            if (pinGrp) pinGrp.style.display = 'block';
+            return;
+          }
+          window.SecurityModule.setSecurityEnabled(true);
+          showToast('🔒 App Lock Enabled', 'success');
+        } else {
+          window.SecurityModule.setSecurityEnabled(false);
+          showToast('🔓 App Lock Disabled', 'info');
+        }
+        renderSecurityModal();
+      });
+    }
+
+    // Set PIN button
+    const setPinBtn = document.getElementById('setPinBtn');
+    const pinGroup = document.getElementById('pinInputGroup');
+    if (setPinBtn && pinGroup) {
+      setPinBtn.addEventListener('click', () => {
+        pinGroup.style.display = pinGroup.style.display === 'none' ? 'block' : 'none';
+      });
+    }
+
+    // Save PIN button
+    const savePinBtn = document.getElementById('savePinBtn');
+    const newPinInput = document.getElementById('newPinInput');
+    if (savePinBtn && newPinInput) {
+      savePinBtn.addEventListener('click', async () => {
+        const pin = newPinInput.value.trim();
+        if (pin.length < 4) {
+          showToast('PIN must be at least 4 digits', 'warning');
+          return;
+        }
+        await window.SecurityModule.setPasscode(pin);
+        showToast('🔑 Passcode PIN saved successfully!', 'success');
+        renderSecurityModal();
+      });
+    }
+
+    // Toggle Biometrics button
+    const toggleBioBtn = document.getElementById('toggleBioBtn');
+    if (toggleBioBtn) {
+      toggleBioBtn.addEventListener('click', async () => {
+        if (isBioEnabled) {
+          window.SecurityModule.disableBiometric();
+          showToast('Biometric unlock disabled', 'info');
+          renderSecurityModal();
+        } else {
+          try {
+            showToast('Scanning fingerprint / biometrics...', 'info');
+            await window.SecurityModule.registerBiometric();
+            showToast('🖐️ Biometric authentication enabled!', 'success');
+            renderSecurityModal();
+          } catch (err) {
+            showToast(err.message || 'Biometric setup failed', 'error');
+          }
+        }
+      });
+    }
+
+    // Lock Now button
+    const lockNowBtn = document.getElementById('lockNowBtn');
+    if (lockNowBtn) {
+      lockNowBtn.addEventListener('click', () => {
+        closeModal();
+        window.SecurityModule.lockApp();
+      });
+    }
+  }
+
   /* ============================================
      Helpers
      ============================================ */
@@ -1200,6 +1364,7 @@ const DocUI = (() => {
     renderPreview,
     renderDeleteConfirm,
     renderShareAsModal,
+    renderSecurityModal,
     showToast,
     escapeHtml,
   };
