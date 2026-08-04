@@ -1,7 +1,3 @@
-/**
- * Vaulta — Security & Biometric Lock Module
- * Supports SHA-256 Passcode/PIN and WebAuthn Biometrics (Fingerprint / Face ID / Windows Hello)
- */
 
 (function (window) {
   'use strict';
@@ -18,9 +14,6 @@
   let _isLocked = false;
   let _currentPinInput = '';
 
-  /**
-   * Compute SHA-256 hash of a string using Web Crypto API
-   */
   async function hashString(str) {
     const encoder = new TextEncoder();
     const data = encoder.encode(str);
@@ -29,9 +22,6 @@
     return hashArray.map((b) => b.toString(16).padStart(2, '0')).join('');
   }
 
-  /**
-   * Derive AES-256 key from PIN and salt via PBKDF2
-   */
   async function deriveKey(pin, salt) {
     const encoder = new TextEncoder();
     const keyMaterial = await crypto.subtle.importKey(
@@ -56,30 +46,19 @@
   }
 
   const SecurityModule = {
-    /**
-     * Check if security lock is enabled by user
-     */
+    
     isSecurityEnabled() {
       return localStorage.getItem(STORAGE_KEYS.ENABLED) === 'true';
     },
 
-    /**
-     * Check if a passcode/PIN has been set
-     */
     hasPasscode() {
       return !!localStorage.getItem(STORAGE_KEYS.PIN_HASH);
     },
 
-    /**
-     * Check if biometric unlock is enabled
-     */
     isBiometricsEnabled() {
       return localStorage.getItem(STORAGE_KEYS.BIOMETRIC_ENABLED) === 'true' && !!localStorage.getItem(STORAGE_KEYS.BIOMETRIC_CRED_ID);
     },
 
-    /**
-     * Check if device supports platform biometrics (Fingerprint / Windows Hello / Face ID)
-     */
     async isBiometricsSupported() {
       if (window.PublicKeyCredential && typeof PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable === 'function') {
         try {
@@ -92,16 +71,11 @@
       return false;
     },
 
-    /**
-     * Get target length of configured PIN passcode (default 4)
-     */
     getPinLength() {
       const len = parseInt(localStorage.getItem(STORAGE_KEYS.PIN_LEN) || '4', 10);
       return (isNaN(len) || len < 4) ? 4 : len;
     },
-    /**
-     * Check if Zero-Knowledge File Encryption is enabled
-     */
+    
     isEncryptionEnabled() {
       return localStorage.getItem(STORAGE_KEYS.ENCRYPTION_ENABLED) === 'true';
     },
@@ -110,9 +84,6 @@
       localStorage.setItem(STORAGE_KEYS.ENCRYPTION_ENABLED, enabled ? 'true' : 'false');
     },
 
-    /**
-     * Encrypt a file Blob using AES-256-GCM with PIN
-     */
     async encryptBlob(blob, pin) {
       if (!blob || !pin) return blob;
       const arrayBuffer = await blob.arrayBuffer();
@@ -121,7 +92,6 @@
       const key = await deriveKey(pin, salt);
       const encrypted = await crypto.subtle.encrypt({ name: 'AES-GCM', iv }, key, arrayBuffer);
 
-      // Package salt (16 bytes) + iv (12 bytes) + encryptedData
       const packed = new Uint8Array(salt.length + iv.length + encrypted.byteLength);
       packed.set(salt, 0);
       packed.set(iv, salt.length);
@@ -130,9 +100,6 @@
       return new Blob([packed], { type: 'application/octet-stream' });
     },
 
-    /**
-     * Decrypt an encrypted Blob back to raw Blob
-     */
     async decryptBlob(blob, pin, originalMimeType = 'application/octet-stream') {
       if (!blob || !pin) return blob;
       try {
@@ -151,9 +118,6 @@
       }
     },
 
-    /**
-     * Set a new PIN passcode
-     */
     async setPasscode(pin) {
       if (!pin || pin.length < 4) {
         throw new Error('PIN must be at least 4 digits');
@@ -165,9 +129,6 @@
       return true;
     },
 
-    /**
-     * Verify entered PIN against stored hash
-     */
     async verifyPasscode(pin) {
       const storedHash = localStorage.getItem(STORAGE_KEYS.PIN_HASH);
       if (!storedHash) return false;
@@ -175,9 +136,6 @@
       return storedHash === enteredHash;
     },
 
-    /**
-     * Enable or disable security lock
-     */
     setSecurityEnabled(enabled) {
       if (enabled && !this.hasPasscode()) {
         throw new Error('Please set a passcode first');
@@ -188,9 +146,6 @@
       }
     },
 
-    /**
-     * Register Biometric Credential via WebAuthn
-     */
     async registerBiometric() {
       const supported = await this.isBiometricsSupported();
       if (!supported) {
@@ -242,9 +197,6 @@
       return false;
     },
 
-    /**
-     * Authenticate via Biometric Fingerprint / Windows Hello
-     */
     async authenticateBiometric() {
       if (!this.isBiometricsEnabled()) {
         return false;
@@ -283,26 +235,17 @@
       }
     },
 
-    /**
-     * Disable biometric authentication
-     */
     disableBiometric() {
       localStorage.setItem(STORAGE_KEYS.BIOMETRIC_ENABLED, 'false');
       localStorage.removeItem(STORAGE_KEYS.BIOMETRIC_CRED_ID);
     },
 
-    /**
-     * Lock the app UI
-     */
     lockApp() {
       if (!this.isSecurityEnabled()) return;
       _isLocked = true;
       this.showLockOverlay();
     },
 
-    /**
-     * Unlock the app UI
-     */
     unlockApp() {
       _isLocked = false;
       this.hideLockOverlay();
@@ -315,9 +258,6 @@
       return _isLocked;
     },
 
-    /**
-     * Render / Display Lock Screen Overlay
-     */
     showLockOverlay() {
       let overlay = document.getElementById('appLockOverlay');
       if (!overlay) {
@@ -487,9 +427,6 @@
       this.bindKeyboardEvents();
     },
 
-    /**
-     * Bind physical keyboard event listeners (for laptop & desktop keyboard typing)
-     */
     bindKeyboardEvents() {
       if (this._keyListenerBound) return;
       this._keyListenerBound = true;
@@ -497,12 +434,10 @@
       window.addEventListener('keydown', (e) => {
         if (!this.isLocked()) return;
 
-        // Digits 0-9 (main numbers or Numpad)
         if (/^[0-9]$/.test(e.key)) {
           e.preventDefault();
           this.handlePinInput(e.key);
 
-          // Visual button flash on screen
           const btn = document.querySelector(`.keypad-btn[data-key="${e.key}"]`);
           if (btn) {
             btn.style.transform = 'scale(0.92)';
@@ -526,9 +461,6 @@
       });
     },
 
-    /**
-     * Initialize Security Module on app startup
-     */
     async init() {
       if (this.isSecurityEnabled()) {
         this.lockApp();

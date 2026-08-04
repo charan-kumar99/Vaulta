@@ -1,4 +1,4 @@
-const CACHE_NAME = 'vaulta-v15';
+const CACHE_NAME = 'vaulta-v37';
 const ASSETS_TO_CACHE = [
   './',
   './index.html',
@@ -13,67 +13,107 @@ const ASSETS_TO_CACHE = [
   './js/security.js',
   './js/app.js',
   './icons/icon-192.png',
-  './icons/icon-512.png',
-  'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js',
-  'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js'
+  './icons/icon-512.png'
 ];
 
-// Install Event - Pre-cache core app assets
 self.addEventListener('install', (event) => {
+  self.skipWaiting();
   event.waitUntil(
     caches.open(CACHE_NAME).then((cache) => {
-      console.log('[Service Worker] Pre-caching offline assets');
       return cache.addAll(ASSETS_TO_CACHE);
-    }).then(() => self.skipWaiting())
+    })
   );
 });
 
-// Activate Event - Clean up stale caches
 self.addEventListener('activate', (event) => {
   event.waitUntil(
     caches.keys().then((cacheNames) => {
       return Promise.all(
         cacheNames.map((cache) => {
-          if (cache !== CACHE_NAME) {
-            console.log('[Service Worker] Removing old cache:', cache);
-            return caches.delete(cache);
-          }
+          return caches.delete(cache);
         })
       );
     }).then(() => self.clients.claim())
   );
 });
 
-// Fetch Event - Serve from cache, fallback to network
 self.addEventListener('fetch', (event) => {
-  // Only handle GET requests
   if (event.request.method !== 'GET') return;
 
   event.respondWith(
-    caches.match(event.request).then((cachedResponse) => {
-      if (cachedResponse) {
-        // Fetch background update for cache freshness
-        fetch(event.request).then((networkResponse) => {
-          if (networkResponse && networkResponse.status === 200) {
-            caches.open(CACHE_NAME).then((cache) => cache.put(event.request, networkResponse));
-          }
-        }).catch(() => {/* Ignore network errors offline */});
-
-        return cachedResponse;
-      }
-
-      return fetch(event.request).then((networkResponse) => {
-        if (!networkResponse || networkResponse.status !== 200 || networkResponse.type !== 'basic') {
-          return networkResponse;
+    fetch(event.request)
+      .then((networkResponse) => {
+        if (networkResponse && networkResponse.status === 200) {
+          const responseToCache = networkResponse.clone();
+          caches.open(CACHE_NAME).then((cache) => cache.put(event.request, responseToCache));
         }
-
-        const responseToCache = networkResponse.clone();
-        caches.open(CACHE_NAME).then((cache) => {
-          cache.put(event.request, responseToCache);
-        });
-
         return networkResponse;
-      });
+      })
+      .catch(() => {
+        return caches.match(event.request);
+      })
+  );
+});
+
+self.addEventListener('notificationclick', (event) => {
+  event.notification.close();
+  event.waitUntil(
+    clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clientList) => {
+      for (const client of clientList) {
+        if (client.url.includes(self.registration.scope) && 'focus' in client) {
+          return client.focus();
+        }
+      }
+      if (clients.openWindow) {
+        return clients.openWindow('./');
+      }
     })
   );
 });
+
+self.addEventListener('periodicsync', (event) => {
+  if (event.tag === 'vaulta-check-expiries') {
+    event.waitUntil(checkExpiriesInBackground());
+  }
+});
+
+async function checkExpiriesInBackground() {
+  try {
+    const db = await openDBPromise();
+    if (!db) return;
+    const tx = db.transaction('documents', 'readonly');
+    const store = tx.objectStore('documents');
+    const req = store.getAll();
+    req.onsuccess = () => {
+      const docs = req.result || [];
+      const now = new Date();
+      now.setHours(0, 0, 0, 0);
+
+      docs.forEach((doc) => {
+        if (doc.expiryDate) {
+          const exp = new Date(doc.expiryDate);
+          exp.setHours(0, 0, 0, 0);
+          const daysLeft = Math.ceil((exp.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+          if (daysLeft === 30 || daysLeft === 7 || daysLeft === 1 || daysLeft <= 0) {
+            self.registration.showNotification('Vaulta Document Expiry Alert', {
+              body: daysLeft <= 0 ? `🔴 "${doc.name}" has EXPIRED!` : `🟡 "${doc.name}" expires in ${daysLeft} days!`,
+              icon: './icons/icon-192.png',
+              badge: './icons/icon-192.png',
+              tag: `doc-${doc.id}`
+            });
+          }
+        }
+      });
+    };
+  } catch (err) {
+    console.error('Background check failed:', err);
+  }
+}
+
+function openDBPromise() {
+  return new Promise((resolve) => {
+    const req = indexedDB.open('docvault_db', 1);
+    req.onsuccess = () => resolve(req.result);
+    req.onerror = () => resolve(null);
+  });
+}

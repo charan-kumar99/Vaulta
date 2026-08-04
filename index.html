@@ -8,29 +8,24 @@
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
 
-  <!-- Open Graph -->
   <meta property="og:title" content="Vaulta — Personal Document Manager" />
   <meta property="og:description" content="Organize, search, and share your personal & official documents privately." />
   <meta property="og:type" content="website" />
 
   <title>Vaulta — Personal Document Manager</title>
 
-  <!-- Web App Manifest & PWA -->
   <link rel="manifest" href="manifest.json" />
   <link rel="apple-touch-icon" href="icons/icon-192.png" />
   <meta name="mobile-web-app-capable" content="yes" />
 
-  <!-- Favicon (inline SVG data URI) -->
   <link rel="icon" href="icons/icon-192.png" />
 
-  <!-- Stylesheets -->
   <link rel="stylesheet" href="css/index.css" />
   <link rel="stylesheet" href="css/animations.css" />
   <link rel="stylesheet" href="css/components.css" />
 </head>
 <body>
 
-  <!-- App Header -->
   <header class="app-header">
     <div class="header-inner">
       <div class="logo">
@@ -39,7 +34,7 @@
       </div>
       <div class="header-actions">
         <button class="header-btn" id="installPwaBtn" title="Install App on Phone" aria-label="Install App" style="display: none;">📲 Install App</button>
-        <button class="header-btn" id="storageAnalyticsBtn" onclick="DocUI.renderStorageAnalyticsModal()" title="Storage Analytics & Category Breakdown" aria-label="Storage analytics">📊</button>
+        <button class="header-btn" id="notifyBtn" onclick="DocApp.requestNotificationPermission()" title="Enable Desktop Notifications" aria-label="Desktop Notifications">🔔</button>
         <button class="header-btn" id="securityLockBtn" onclick="DocUI.renderSecurityModal()" title="Security & App Lock" aria-label="Security settings">🔒</button>
         <button class="header-btn" id="backupBtn" title="Export Backup" aria-label="Export backup">💾</button>
         <button class="header-btn" id="themeToggle" title="Toggle theme" aria-label="Toggle dark/light theme">☀️</button>
@@ -47,20 +42,12 @@
     </div>
   </header>
 
-  <!-- Main Application Container -->
-  <main id="app" role="main">
-    <!-- Screens are rendered here dynamically -->
-  </main>
+  <main id="app" role="main"></main>
 
-  <!-- Modals Container -->
-  <div id="modals" aria-live="polite">
-    <!-- Modals (upload, preview, edit, delete) are injected here -->
-  </div>
+  <div id="modals" aria-live="polite"></div>
 
-  <!-- Toast Container -->
   <div id="toastContainer" class="toast-container" aria-live="assertive"></div>
 
-  <!-- Scripts (order matters: db → search → share → ui → app) -->
   <script src="js/db.js"></script>
   <script src="js/search.js"></script>
   <script src="js/share.js"></script>
@@ -69,16 +56,13 @@
   <script src="js/app.js"></script>
 
   <script>
-    // Initialize the app, Security lock & PWA Service Worker
     document.addEventListener('DOMContentLoaded', () => {
       DocApp.init();
 
-      // Initialize Security & App Lock Screen
       if (window.SecurityModule) {
         window.SecurityModule.init();
       }
 
-      // Security Settings Modal Button
       const secBtn = document.getElementById('securityLockBtn');
       if (secBtn) {
         secBtn.addEventListener('click', () => {
@@ -88,14 +72,12 @@
         });
       }
 
-      // Auto-lock on tab hide / app resume
       document.addEventListener('visibilitychange', () => {
         if (document.hidden && window.SecurityModule && window.SecurityModule.isSecurityEnabled()) {
           window.SecurityModule.lockApp();
         }
       });
 
-      // Backup Button
       const backupBtn = document.getElementById('backupBtn');
       if (backupBtn) {
         backupBtn.addEventListener('click', () => {
@@ -107,21 +89,16 @@
         });
       }
 
-      // Theme toggle
       document.getElementById('themeToggle').addEventListener('click', DocApp.toggleTheme);
 
-      // Set initial theme icon
       const theme = document.documentElement.getAttribute('data-theme');
       document.getElementById('themeToggle').textContent = theme === 'dark' ? '☀️' : '🌙';
 
-      // Register Service Worker for PWA
       if ('serviceWorker' in navigator) {
         navigator.serviceWorker.register('sw.js')
-          .then((reg) => console.log('[PWA] Service Worker registered successfully:', reg.scope))
-          .catch((err) => console.error('[PWA] Service Worker registration failed:', err));
+          .catch((err) => console.error(err));
       }
 
-      // Handle Install Prompt Banner for Android/Chrome
       let deferredPrompt = null;
       const installBtn = document.getElementById('installPwaBtn');
 
@@ -135,8 +112,7 @@
         installBtn.addEventListener('click', async () => {
           if (!deferredPrompt) return;
           deferredPrompt.prompt();
-          const { outcome } = await deferredPrompt.userChoice;
-          console.log('[PWA] Install prompt outcome:', outcome);
+          await deferredPrompt.userChoice;
           deferredPrompt = null;
           installBtn.style.display = 'none';
         });

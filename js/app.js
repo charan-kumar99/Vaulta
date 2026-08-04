@@ -1,13 +1,10 @@
-/* ============================================
-   DocVault — Main App Controller
-   ============================================ */
 
 const DocApp = (() => {
-  /* ---- App State ---- */
+  
   const state = {
-    currentScreen: 'home', // 'home' | 'vault'
-    currentVault: null, // 'personal' | 'official'
-    currentFolderId: null, // Folder ID or null (root)
+    currentScreen: 'home', 
+    currentVault: null, 
+    currentFolderId: null, 
     activeCategory: 'all',
     homeActiveCategory: 'all',
     sortBy: 'date-desc',
@@ -21,28 +18,144 @@ const DocApp = (() => {
   const mainContainer = () => document.getElementById('app');
   const modalsContainer = () => document.getElementById('modals');
 
-  /* ============================================
-     Initialization
-     ============================================ */
-
   async function init() {
-    // Initialize database
+    
     await DocDB.open();
 
-    // Load theme from localStorage
     const savedTheme = localStorage.getItem('docvault_theme') || 'dark';
     document.documentElement.setAttribute('data-theme', savedTheme);
 
-    // Handle hash routing
     window.addEventListener('hashchange', handleRoute);
 
-    // Initial route
     handleRoute();
+
+    checkExpiryNotifications();
   }
 
-  /* ============================================
-     Routing
-     ============================================ */
+  function parseStandardDate(str) {
+    if (!str) return null;
+    str = String(str).trim();
+    if (!str) return null;
+
+    if (/^\d{4}-\d{2}-\d{2}$/.test(str)) return str;
+
+    const ddmmyyyy = str.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})$/);
+    if (ddmmyyyy) {
+      const day = ddmmyyyy[1].padStart(2, '0');
+      const month = ddmmyyyy[2].padStart(2, '0');
+      const year = ddmmyyyy[3];
+      return `${year}-${month}-${day}`;
+    }
+
+    const parsed = new Date(str);
+    if (!isNaN(parsed.getTime())) {
+      return parsed.toISOString().split('T')[0];
+    }
+    return str;
+  }
+
+  async function checkExpiryNotifications(force = false) {
+    if (!force && sessionStorage.getItem('vaulta_expiry_notified') === 'true') return;
+    sessionStorage.setItem('vaulta_expiry_notified', 'true');
+
+    try {
+      const dbObj = window.DocDB || (typeof DocDB !== 'undefined' ? DocDB : null);
+      if (!dbObj) return;
+
+      const allDocs = await dbObj.getAll();
+      const expiredDocs = [];
+      const expiringSoonDocs = [];
+
+      allDocs.forEach((doc) => {
+        if (doc.expiryDate && typeof dbObj.getExpiryStatus === 'function') {
+          const exp = dbObj.getExpiryStatus(doc.expiryDate);
+          if (exp.status === 'expired') {
+            expiredDocs.push(doc);
+          } else if (exp.status === 'expiring-soon') {
+            expiringSoonDocs.push({ doc, daysLeft: exp.daysLeft });
+          }
+        }
+      });
+
+      if (expiredDocs.length > 0) {
+        const msg = expiredDocs.length === 1
+          ? `🔴 Expiry Alert: "${expiredDocs[0].name}" has EXPIRED!`
+          : `🔴 Expiry Alert: ${expiredDocs.length} documents have EXPIRED!`;
+        DocUI.showToast(msg, 'error', 7000);
+        triggerNativeNotification('Vaulta Document Expiry Alert', msg);
+      }
+
+      if (expiringSoonDocs.length > 0) {
+        setTimeout(() => {
+          const first = expiringSoonDocs[0];
+          const msg = expiringSoonDocs.length === 1
+            ? `🟡 Renewal Warning: "${first.doc.name}" expires in ${first.daysLeft} days!`
+            : `🟡 Renewal Warning: ${expiringSoonDocs.length} documents are expiring soon!`;
+          DocUI.showToast(msg, 'warning', 7000);
+          triggerNativeNotification('Vaulta Document Renewal Alert', msg);
+        }, 1200);
+      }
+    } catch (e) {
+      console.error('Expiry notification check failed:', e);
+    }
+  }
+
+  async function requestNotificationPermission() {
+    if (!('Notification' in window)) {
+      DocUI.showToast('Desktop Notifications are not supported by this browser.', 'error');
+      return;
+    }
+
+    const permission = await Notification.requestPermission();
+    if (permission === 'granted') {
+      DocUI.showToast('🔔 Universal System Notifications enabled!', 'success');
+      triggerNativeNotification('Vaulta Notifications Enabled', 'You will now receive universal alerts in your phone & laptop notification bar even when the app is closed!');
+
+      if ('serviceWorker' in navigator && 'periodicSync' in ServiceWorkerRegistration.prototype) {
+        try {
+          const reg = await navigator.serviceWorker.ready;
+          await reg.periodicSync.register('vaulta-check-expiries', {
+            minInterval: 12 * 60 * 60 * 1000
+          });
+        } catch (e) {
+          console.log('Periodic sync registration info:', e);
+        }
+      }
+    } else {
+      DocUI.showToast('Notification permission denied in browser settings.', 'error');
+    }
+  }
+
+  function triggerNativeNotification(title, body) {
+    if (!('Notification' in window)) return;
+
+    const options = {
+      body,
+      icon: './icons/icon-192.png',
+      badge: './icons/icon-192.png',
+      requireInteraction: true
+    };
+
+    if (Notification.permission === 'granted') {
+      try {
+        new Notification(title, options);
+      } catch (e) {
+        console.warn('Native notification fallback:', e);
+      }
+
+      if ('serviceWorker' in navigator && navigator.serviceWorker.controller) {
+        navigator.serviceWorker.ready.then((reg) => {
+          reg.showNotification(title, options);
+        }).catch(() => {});
+      }
+    } else if (Notification.permission !== 'denied') {
+      Notification.requestPermission().then((perm) => {
+        if (perm === 'granted') {
+          triggerNativeNotification(title, body);
+        }
+      });
+    }
+  }
 
   function handleRoute() {
     const hash = window.location.hash || '#home';
@@ -76,10 +189,6 @@ const DocApp = (() => {
     }
   }
 
-  /* ============================================
-     Screen Rendering
-     ============================================ */
-
   async function renderCurrentScreen() {
     const container = mainContainer();
 
@@ -89,7 +198,6 @@ const DocApp = (() => {
       await renderVaultScreen(container);
     }
 
-    // Re-bind events after render
     bindEvents();
   }
 
@@ -115,12 +223,10 @@ const DocApp = (() => {
   async function renderVaultScreen(container) {
     const allDocs = await DocDB.getAllByVault(state.currentVault);
 
-    // Sub-folders for current folder level
     const subFolders = DocUI.getChildFolders(state.currentVault, state.currentFolderId);
     const currentFolder = DocUI.getFolder(state.currentFolderId);
     const folderPath = DocUI.getFolderPath(state.currentFolderId);
 
-    // Item count for each sub-folder
     const subFolderCounts = {};
     subFolders.forEach((sf) => {
       const sfChildren = DocUI.getChildFolders(state.currentVault, sf.id).length;
@@ -165,18 +271,12 @@ const DocApp = (() => {
     });
   }
 
-  /* ============================================
-     Event Binding
-     ============================================ */
-
   function bindEvents() {
     const container = mainContainer();
 
-    // Use event delegation on the main container
     container.removeEventListener('click', handleClick);
     container.addEventListener('click', handleClick);
 
-    // Bind specific inputs
     bindSearchEvents();
     bindFAB();
     bindVaultCards();
@@ -213,7 +313,6 @@ const DocApp = (() => {
     }
   }
 
-  /* ---- Hold to Select (Long Press) ---- */
   let longPressTimer = null;
   let isLongPressTriggered = false;
   let startX = 0;
@@ -351,7 +450,7 @@ const DocApp = (() => {
   }
 
   function bindSearchEvents() {
-    // Home screen global search
+    
     const globalSearch = document.getElementById('globalSearch');
     const searchClear = document.getElementById('searchClear');
     const clearSearchBtn = document.getElementById('clearSearch');
@@ -393,7 +492,6 @@ const DocApp = (() => {
       });
     }
 
-    // Vault screen search
     const vaultSearch = document.getElementById('vaultSearch');
     const vaultSearchClear = document.getElementById('vaultSearchClear');
 
@@ -479,7 +577,6 @@ const DocApp = (() => {
         await refreshVaultGrid();
       });
 
-      // Close on click outside
       document.addEventListener('click', () => {
         sortMenu.classList.remove('active');
       });
@@ -496,7 +593,6 @@ const DocApp = (() => {
 
       state.activeCategory = chip.dataset.category;
 
-      // Update active state visually
       chips.querySelectorAll('.category-chip').forEach((c) => c.classList.remove('active'));
       chip.classList.add('active');
 
@@ -508,7 +604,6 @@ const DocApp = (() => {
     const container = mainContainer();
     if (!container) return;
 
-    // Folder card click -> open folder
     container.querySelectorAll('.folder-card').forEach((card) => {
       card.addEventListener('click', (e) => {
         if (e.target.closest('.delete-folder-btn') || e.target.closest('.edit-folder-btn')) return;
@@ -520,7 +615,6 @@ const DocApp = (() => {
       });
     });
 
-    // Edit folder button
     container.querySelectorAll('.edit-folder-btn').forEach((btn) => {
       btn.addEventListener('click', (e) => {
         e.stopPropagation();
@@ -529,7 +623,6 @@ const DocApp = (() => {
       });
     });
 
-    // Delete folder button
     container.querySelectorAll('.delete-folder-btn').forEach((btn) => {
       btn.addEventListener('click', async (e) => {
         e.stopPropagation();
@@ -539,7 +632,6 @@ const DocApp = (() => {
         const folder = DocUI.getFolder(folderId);
         if (!folder) return;
 
-        // Get all descendant folder IDs that will be deleted
         const allVaultDocs = await DocDB.getAllByVault(state.currentVault);
         const idsToDelete = new Set([folderId]);
         let added = true;
@@ -555,7 +647,6 @@ const DocApp = (() => {
         }
         const descendantIds = Array.from(idsToDelete);
 
-        // Find documents inside this folder or any of its subfolders
         const docsInFolder = allVaultDocs.filter(
           (d) => (d.folderId && idsToDelete.has(d.folderId)) || d.folder === folder.name
         );
@@ -568,12 +659,11 @@ const DocApp = (() => {
         }
 
         if (confirm(warningMsg)) {
-          // Delete all documents inside
+          
           for (const doc of docsInFolder) {
             await DocDB.deleteDocument(doc.id);
           }
 
-          // Delete folder and child folders
           DocUI.deleteFolder(folderId);
           await renderCurrentScreen();
           DocUI.showToast(`Deleted folder "${folder.name}" and ${docsInFolder.length} file(s).`, 'info');
@@ -581,7 +671,6 @@ const DocApp = (() => {
       });
     });
 
-    // Breadcrumbs navigation
     container.querySelectorAll('.breadcrumb-item').forEach((item) => {
       item.addEventListener('click', () => {
         const target = item.dataset.navFolder;
@@ -594,7 +683,6 @@ const DocApp = (() => {
       });
     });
 
-    // Vault back button
     const vaultBackBtn = document.getElementById('vaultBackBtn');
     if (vaultBackBtn) {
       vaultBackBtn.addEventListener('click', () => {
@@ -608,7 +696,6 @@ const DocApp = (() => {
       });
     }
 
-    // Create folder button
     const createFolderBtns = [document.getElementById('createFolderBtn'), document.getElementById('emptyCreateFolderBtn')].filter(Boolean);
     createFolderBtns.forEach((btn) => {
       btn.addEventListener('click', () => {
@@ -623,7 +710,6 @@ const DocApp = (() => {
     const container = mainContainer();
     if (!container) return;
 
-    // Document Card Drag Start / End
     container.querySelectorAll('.doc-card:not(.folder-card)').forEach((card) => {
       card.addEventListener('dragstart', (e) => {
         const docId = card.dataset.docId;
@@ -640,7 +726,6 @@ const DocApp = (() => {
       });
     });
 
-    // Folder Card Drag Over / Drag Leave / Drop
     container.querySelectorAll('.folder-card').forEach((folderCard) => {
       folderCard.addEventListener('dragover', (e) => {
         e.preventDefault();
@@ -688,7 +773,6 @@ const DocApp = (() => {
       sortBy: state.sortBy,
     });
 
-    // Update sort button label
     const sortToggle = document.getElementById('sortToggle');
     if (sortToggle) {
       const labels = { 'date-desc': 'Newest', 'date-asc': 'Oldest', 'name-asc': 'A-Z', 'name-desc': 'Z-A', 'category': 'Category' };
@@ -697,7 +781,7 @@ const DocApp = (() => {
 
     if (filteredDocs.length === 0) {
       grid.innerHTML = '';
-      // Check if we already have an empty state, if not add one
+      
       const existingEmpty = grid.parentElement.querySelector('.empty-state');
       if (!existingEmpty) {
         grid.insertAdjacentHTML('afterend', `
@@ -709,13 +793,12 @@ const DocApp = (() => {
         `);
       }
     } else {
-      // Remove temp empty state
+      
       const tempEmpty = grid.parentElement.querySelector('.temp-empty');
       if (tempEmpty) tempEmpty.remove();
 
       grid.innerHTML = filteredDocs.map((doc) => DocUI.renderDocCard(doc, state.selectMode)).join('');
 
-      // Re-apply selected state if in select mode
       if (state.selectMode) {
         state.selectedDocs.forEach((id) => {
           const card = grid.querySelector(`.doc-card[data-doc-id="${id}"]`);
@@ -728,10 +811,6 @@ const DocApp = (() => {
       }
     }
   }
-
-  /* ============================================
-     Bulk Select & Share
-     ============================================ */
 
   function bindBulkSelect() {
     const bulkSelectBtn = document.getElementById('bulkSelectBtn');
@@ -770,13 +849,11 @@ const DocApp = (() => {
     state.selectMode = true;
     state.selectedDocs.clear();
 
-    // Show bulk action bar, hide sort/select button
     const bulkBar = document.getElementById('bulkActionBar');
     const bulkSelectBtn = document.getElementById('bulkSelectBtn');
     if (bulkBar) bulkBar.style.display = 'flex';
     if (bulkSelectBtn) bulkSelectBtn.style.display = 'none';
 
-    // Re-render grid with checkboxes
     refreshVaultGrid();
     updateBulkUI();
   }
@@ -785,13 +862,11 @@ const DocApp = (() => {
     state.selectMode = false;
     state.selectedDocs.clear();
 
-    // Hide bulk action bar, show select button
     const bulkBar = document.getElementById('bulkActionBar');
     const bulkSelectBtn = document.getElementById('bulkSelectBtn');
     if (bulkBar) bulkBar.style.display = 'none';
     if (bulkSelectBtn) bulkSelectBtn.style.display = '';
 
-    // Re-render grid without checkboxes
     refreshVaultGrid();
   }
 
@@ -804,7 +879,6 @@ const DocApp = (() => {
       state.selectedDocs.add(docId);
     }
 
-    // Update card visual
     const card = document.querySelector(`.doc-card[data-doc-id="${docId}"]`);
     if (card) {
       card.classList.toggle('selected', state.selectedDocs.has(docId));
@@ -826,14 +900,13 @@ const DocApp = (() => {
     const allSelected = filteredDocs.length > 0 && filteredDocs.every((d) => state.selectedDocs.has(d.id));
 
     if (allSelected) {
-      // Deselect all
+      
       state.selectedDocs.clear();
     } else {
-      // Select all
+      
       filteredDocs.forEach((d) => state.selectedDocs.add(d.id));
     }
 
-    // Update all cards visually
     document.querySelectorAll('.doc-card.select-mode').forEach((card) => {
       const id = card.dataset.docId;
       card.classList.toggle('selected', state.selectedDocs.has(id));
@@ -857,7 +930,6 @@ const DocApp = (() => {
     if (downloadBtn) downloadBtn.disabled = count === 0;
     if (whatsAppBtn) whatsAppBtn.disabled = count === 0;
 
-    // Toggle "Select All" / "Deselect All" text
     if (selectAllBtn) {
       const grid = document.getElementById('documentsGrid');
       const totalCards = grid ? grid.querySelectorAll('.doc-card').length : 0;
@@ -909,7 +981,6 @@ const DocApp = (() => {
     try {
       DocUI.showToast(`Preparing ${ids.length} document(s)...`, 'info');
 
-      // 1. Try native Web Share API first with original files (User selects WhatsApp from system sheet)
       const result = await DocShare.shareMultiple(ids);
       if (result.success) {
         if (result.method !== 'cancelled') {
@@ -919,8 +990,6 @@ const DocApp = (() => {
         return;
       }
 
-      // 2. Fallback for browsers without native share sheet:
-      // Open WhatsApp chat text and download original files
       const docNames = [];
       for (const id of ids) {
         const doc = await DocDB.getDocument(id);
@@ -939,10 +1008,6 @@ const DocApp = (() => {
       DocUI.showToast('Failed to share via WhatsApp.', 'error');
     }
   }
-
-  /* ============================================
-     Create Folder Modal
-     ============================================ */
 
   function openCreateFolderModal() {
     const modals = modalsContainer();
@@ -1051,10 +1116,6 @@ const DocApp = (() => {
     }
   }
 
-  /* ============================================
-     Secret Vault Sync Modal
-     ============================================ */
-
   let secretSyncBound = false;
   function bindSecretSyncEvents() {
     if (secretSyncBound) return;
@@ -1065,7 +1126,6 @@ const DocApp = (() => {
       backupBtn.addEventListener('click', () => openSecretSyncModal());
     }
 
-    // Secret Triple-Click Gesture on Vaulta Logo
     let logoClickCount = 0;
     let logoClickTimer = null;
     const logoEl = document.querySelector('.app-header .logo');
@@ -1105,7 +1165,6 @@ const DocApp = (() => {
       });
     }
 
-    // Export Data Package
     if (exportBtn) {
       exportBtn.addEventListener('click', async () => {
         exportBtn.classList.add('loading');
@@ -1118,7 +1177,6 @@ const DocApp = (() => {
           const fileName = `Vaulta_Sync_${dateStr}.json`;
           const blob = new Blob([jsonStr], { type: 'application/json' });
 
-          // Trigger direct file download to Downloads folder
           DocShare.downloadFile(blob, fileName);
 
           DocUI.showToast('📦 Vault Sync File downloaded! Check your Downloads folder.', 'success', 5000);
@@ -1132,7 +1190,6 @@ const DocApp = (() => {
       });
     }
 
-    // Import Data Package (DropZone & File Input)
     if (dropZone && fileInput) {
       dropZone.addEventListener('click', () => fileInput.click());
 
@@ -1175,10 +1232,6 @@ const DocApp = (() => {
     }
   }
 
-  /* ============================================
-     Upload Modal
-     ============================================ */
-
   function openUploadModal() {
     const modals = modalsContainer();
     const defaultVault = state.currentVault || 'personal';
@@ -1197,7 +1250,8 @@ const DocApp = (() => {
     const vaultSelect = document.getElementById('docVault');
     const previewRemove = document.getElementById('previewRemove');
 
-    // Close handlers
+    DocUI.initVaultaDatePicker('docExpiry_container', 'docExpiry', '');
+
     const closeModal = () => {
       state.selectedFile = null;
       modal.remove();
@@ -1209,7 +1263,6 @@ const DocApp = (() => {
       if (e.target === modal) closeModal();
     });
 
-    // Drop zone
     dropZone.addEventListener('click', () => fileInput.click());
 
     dropZone.addEventListener('dragover', (e) => {
@@ -1233,7 +1286,6 @@ const DocApp = (() => {
       if (e.target.files.length > 0) handleFileSelect(e.target.files[0]);
     });
 
-    // Remove preview
     if (previewRemove) {
       previewRemove.addEventListener('click', (e) => {
         e.stopPropagation();
@@ -1246,7 +1298,6 @@ const DocApp = (() => {
       });
     }
 
-    // Vault, Category & Folder change handlers
     const catSelect = document.getElementById('docCategory');
     const customGroup = document.getElementById('customCategoryGroup');
     const folderSelect = document.getElementById('docFolder');
@@ -1303,7 +1354,6 @@ const DocApp = (() => {
     updateCustomVisibility();
     updateFolderVisibility();
 
-    // Submit
     submitBtn.addEventListener('click', handleUpload);
   }
 
@@ -1329,7 +1379,6 @@ const DocApp = (() => {
       return;
     }
 
-    // Max 20MB
     if (file.size > 20 * 1024 * 1024) {
       DocUI.showToast('File is too large. Maximum 20MB allowed.', 'error');
       return;
@@ -1342,17 +1391,14 @@ const DocApp = (() => {
     const submitBtn = document.getElementById('uploadSubmit');
     const nameInput = document.getElementById('docName');
 
-    // Auto-fill name if empty
     if (nameInput && !nameInput.value) {
       const baseName = file.name.replace(/\.[^.]+$/, '').replace(/[_-]/g, ' ');
       nameInput.value = baseName;
     }
 
-    // Show preview
     preview.classList.add('visible');
     dropZone.style.display = 'none';
 
-    // Remove old preview content (keeping the remove button)
     const existingPreviewContent = preview.querySelector('img, .preview-pdf');
     if (existingPreviewContent) existingPreviewContent.remove();
 
@@ -1386,6 +1432,26 @@ const DocApp = (() => {
     }
 
     submitBtn.disabled = false;
+  }
+
+  function parseStandardDate(str) {
+    if (!str) return null;
+    str = str.trim();
+    if (!str) return null;
+    if (/^\d{4}-\d{2}-\d{2}$/.test(str)) return str;
+    const parts = str.split(/[-/.]/);
+    if (parts.length === 3) {
+      if (parts[0].length === 4) return `${parts[0]}-${parts[1].padStart(2, '0')}-${parts[2].padStart(2, '0')}`;
+      if (parts[2].length === 4) return `${parts[2]}-${parts[1].padStart(2, '0')}-${parts[0].padStart(2, '0')}`;
+    }
+    const d = new Date(str);
+    if (!isNaN(d.getTime())) {
+      const year = d.getFullYear();
+      const month = String(d.getMonth() + 1).padStart(2, '0');
+      const day = String(d.getDate()).padStart(2, '0');
+      return `${year}-${month}-${day}`;
+    }
+    return null;
   }
 
   async function handleUpload() {
@@ -1432,22 +1498,21 @@ const DocApp = (() => {
       if (fObj) folderName = fObj.name;
     }
 
-    const expiryDate = document.getElementById('docExpiry')?.value || null;
+    const rawExpiry = document.getElementById('docExpiry')?.value;
+    const expiryDate = parseStandardDate(rawExpiry);
 
     const submitBtn = document.getElementById('uploadSubmit');
     submitBtn.classList.add('loading');
     submitBtn.disabled = true;
 
     try {
-      // Generate thumbnail for images
+      
       const thumbnail = await DocDB.generateThumbnail(file);
 
-      // Parse tags
       const tags = tagsStr
         ? tagsStr.split(',').map((t) => t.trim().toLowerCase()).filter(Boolean)
         : [];
 
-      // Save to database
       await DocDB.addDocument({
         vault,
         name,
@@ -1462,11 +1527,9 @@ const DocApp = (() => {
         thumbnail,
       });
 
-      // Close modal
       state.selectedFile = null;
       document.getElementById('uploadModal')?.remove();
 
-      // Refresh screen
       await renderCurrentScreen();
 
       DocUI.showToast(`"${name}" uploaded successfully!`, 'success');
@@ -1478,10 +1541,6 @@ const DocApp = (() => {
       submitBtn.disabled = false;
     }
   }
-
-  /* ============================================
-     Preview
-     ============================================ */
 
   async function openPreview(docId) {
     const doc = await DocDB.getDocument(docId);
@@ -1723,7 +1782,7 @@ const DocApp = (() => {
   }
 
   function closePreview() {
-    // Revoke blob URL to free memory
+    
     if (state.currentPreviewUrl) {
       URL.revokeObjectURL(state.currentPreviewUrl);
       state.currentPreviewUrl = null;
@@ -1732,13 +1791,8 @@ const DocApp = (() => {
     const overlay = document.getElementById('previewOverlay');
     if (overlay) overlay.remove();
 
-    // Refresh screen to reflect any changes (favorites, etc.)
     renderCurrentScreen();
   }
-
-  /* ============================================
-     Edit Modal
-     ============================================ */
 
   async function openEditModal(docId) {
     const doc = await DocDB.getDocument(docId);
@@ -1757,6 +1811,8 @@ const DocApp = (() => {
     const submitBtn = document.getElementById('editSubmit');
     const vaultSelect = document.getElementById('editDocVault');
 
+    DocUI.initVaultaDatePicker('editDocExpiry_container', 'editDocExpiry', doc.expiryDate || '');
+
     const closeModal = () => modal.remove();
 
     closeBtn.addEventListener('click', closeModal);
@@ -1765,7 +1821,6 @@ const DocApp = (() => {
       if (e.target === modal) closeModal();
     });
 
-    // Vault, Category & Folder change handlers
     const catSelect = document.getElementById('editDocCategory');
     const customGroup = document.getElementById('editCustomCategoryGroup');
     const folderSelect = document.getElementById('editDocFolder');
@@ -1817,7 +1872,6 @@ const DocApp = (() => {
     updateEditCustomVisibility();
     updateEditFolderVisibility();
 
-    // Save
     submitBtn.addEventListener('click', async () => {
       const name = document.getElementById('editDocName').value.trim();
       const vault = document.getElementById('editDocVault').value;
@@ -1859,7 +1913,8 @@ const DocApp = (() => {
         if (fObj) folderName = fObj.name;
       }
 
-      const expiryDate = document.getElementById('editDocExpiry')?.value || null;
+      const rawExpiry = document.getElementById('editDocExpiry')?.value;
+      const expiryDate = parseStandardDate(rawExpiry);
 
       const tags = tagsStr
         ? tagsStr.split(',').map((t) => t.trim().toLowerCase()).filter(Boolean)
@@ -1870,6 +1925,7 @@ const DocApp = (() => {
         closeModal();
         await renderCurrentScreen();
         DocUI.showToast('Document updated successfully!', 'success');
+        await checkExpiryNotifications(true);
       } catch (error) {
         console.error('Update failed:', error);
         DocUI.showToast('Failed to update document.', 'error');
@@ -1877,14 +1933,9 @@ const DocApp = (() => {
     });
   }
 
-  /* ============================================
-     Delete Confirmation
-     ============================================ */
-
   function openDeleteConfirm(docId, docName) {
     const modals = modalsContainer();
 
-    // Close preview first if open
     const previewOverlay = document.getElementById('previewOverlay');
     if (previewOverlay) previewOverlay.remove();
 
@@ -1904,7 +1955,6 @@ const DocApp = (() => {
         await DocDB.deleteDocument(docId);
         modal.remove();
 
-        // Revoke preview URL if any
         if (state.currentPreviewUrl) {
           URL.revokeObjectURL(state.currentPreviewUrl);
           state.currentPreviewUrl = null;
@@ -1918,10 +1968,6 @@ const DocApp = (() => {
       }
     });
   }
-
-  /* ============================================
-     Share & Download
-     ============================================ */
 
   async function shareDoc(docId) {
     try {
@@ -1956,7 +2002,6 @@ const DocApp = (() => {
       });
     }
 
-    // Format option radio toggle visual
     if (formatList) {
       formatList.addEventListener('change', (e) => {
         formatList.querySelectorAll('.share-format-option').forEach((opt) => {
@@ -1971,7 +2016,6 @@ const DocApp = (() => {
       return checkedRadio ? checkedRadio.value : 'original';
     }
 
-    // Share button action
     if (shareBtn) {
       shareBtn.addEventListener('click', async () => {
         const fmt = getSelectedFormat();
@@ -1996,7 +2040,6 @@ const DocApp = (() => {
       });
     }
 
-    // Download button action
     if (downloadBtn) {
       downloadBtn.addEventListener('click', async () => {
         const fmt = getSelectedFormat();
@@ -2013,7 +2056,6 @@ const DocApp = (() => {
       });
     }
 
-    // WhatsApp button action
     if (whatsAppBtn) {
       whatsAppBtn.addEventListener('click', async () => {
         const fmt = getSelectedFormat();
@@ -2022,7 +2064,6 @@ const DocApp = (() => {
           const converted = await DocShare.convertFile(blob, doc.fileType, fmt, doc.name, doc.fileName);
           const file = new File([converted.blob], converted.fileName, { type: converted.mime });
 
-          // Try native file share first (opens native share menu with actual PDF attached for WhatsApp)
           if (navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
             await navigator.share({
               files: [file],
@@ -2031,7 +2072,7 @@ const DocApp = (() => {
             closeModal();
             DocUI.showToast(`Shared ${converted.fileName}!`, 'success');
           } else {
-            // Fallback for browsers without native file share API
+            
             DocShare.downloadFile(converted.blob, converted.fileName);
             closeModal();
             DocUI.showToast(`Downloaded ${converted.fileName}! Please attach this file in WhatsApp.`, 'info', 5000);
@@ -2056,10 +2097,6 @@ const DocApp = (() => {
     }
   }
 
-  /* ============================================
-     Favorite Toggle (from card)
-     ============================================ */
-
   async function toggleFavorite(docId) {
     try {
       const updated = await DocDB.toggleFavorite(docId);
@@ -2068,16 +2105,11 @@ const DocApp = (() => {
         'info'
       );
 
-      // Refresh screen
       await renderCurrentScreen();
     } catch (error) {
       console.error('Favorite toggle failed:', error);
     }
   }
-
-  /* ============================================
-     Theme Toggle
-     ============================================ */
 
   function toggleTheme() {
     const current = document.documentElement.getAttribute('data-theme');
@@ -2085,14 +2117,9 @@ const DocApp = (() => {
     document.documentElement.setAttribute('data-theme', next);
     localStorage.setItem('docvault_theme', next);
 
-    // Update button icon
     const btn = document.getElementById('themeToggle');
     if (btn) btn.textContent = next === 'dark' ? '☀️' : '🌙';
   }
-
-  /* ============================================
-     Backup Export
-     ============================================ */
 
   async function exportBackup() {
     try {
@@ -2105,27 +2132,22 @@ const DocApp = (() => {
     }
   }
 
-  /* ============================================
-     Helpers
-     ============================================ */
-
   function formatFileSize(bytes) {
     if (bytes < 1024) return bytes + ' B';
     if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
     return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
   }
 
-  // Public API
   return {
     init,
     navigate,
     toggleTheme,
     exportBackup,
     openUploadModal,
+    requestNotificationPermission,
   };
 })();
 
-// Also expose formatFileSize globally for the upload handler
 function formatFileSize(bytes) {
   if (bytes < 1024) return bytes + ' B';
   if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';

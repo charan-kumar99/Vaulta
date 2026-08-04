@@ -1,16 +1,10 @@
-/* ============================================
-   DocVault — IndexedDB Database Layer
-   ============================================ */
 
-const DocDB = (() => {
+window.DocDB = (() => {
   const DB_NAME = 'docvault_db';
   const DB_VERSION = 1;
   const STORE_NAME = 'documents';
   let db = null;
 
-  /**
-   * Generate a UUID v4
-   */
   function generateId() {
     return 'xxxx-xxxx-4xxx-yxxx'.replace(/[xy]/g, (c) => {
       const r = (Math.random() * 16) | 0;
@@ -19,9 +13,6 @@ const DocDB = (() => {
     });
   }
 
-  /**
-   * Open/Initialize the database
-   */
   function open() {
     return new Promise((resolve, reject) => {
       if (db) {
@@ -37,7 +28,6 @@ const DocDB = (() => {
         if (!database.objectStoreNames.contains(STORE_NAME)) {
           const store = database.createObjectStore(STORE_NAME, { keyPath: 'id' });
 
-          // Create indexes for searching and filtering
           store.createIndex('vault', 'vault', { unique: false });
           store.createIndex('category', 'category', { unique: false });
           store.createIndex('isFavorite', 'isFavorite', { unique: false });
@@ -57,28 +47,12 @@ const DocDB = (() => {
     });
   }
 
-  /**
-   * Get a transaction and object store
-   */
   async function getStore(mode = 'readonly') {
     const database = await open();
     const tx = database.transaction(STORE_NAME, mode);
     return tx.objectStore(STORE_NAME);
   }
 
-  /**
-   * Add a new document
-   * @param {Object} doc - Document data
-   * @param {string} doc.vault - 'personal' or 'official'
-   * @param {string} doc.name - Document name
-   * @param {string} doc.category - Category name
-   * @param {string[]} doc.tags - Array of tags
-   * @param {Blob} doc.fileData - The actual file
-   * @param {string} doc.fileType - MIME type
-   * @param {string} doc.fileName - Original file name
-   * @param {string} [doc.thumbnail] - Base64 thumbnail
-   * @returns {Promise<Object>} The saved document (without fileData for memory)
-   */
   async function addDocument(doc) {
     const store = await getStore('readwrite');
 
@@ -103,7 +77,7 @@ const DocDB = (() => {
       const request = store.add(document);
 
       request.onsuccess = () => {
-        // Return document metadata (without heavy blob data)
+        
         const { fileData, ...metadata } = document;
         resolve(metadata);
       };
@@ -114,9 +88,6 @@ const DocDB = (() => {
     });
   }
 
-  /**
-   * Get a single document by ID (includes file data)
-   */
   async function getDocument(id) {
     const store = await getStore('readonly');
 
@@ -133,10 +104,6 @@ const DocDB = (() => {
     });
   }
 
-  /**
-   * Get all documents by vault (metadata only, no fileData for performance)
-   * @param {string} vault - 'personal' or 'official'
-   */
   async function getAllByVault(vault) {
     const store = await getStore('readonly');
     const index = store.index('vault');
@@ -158,9 +125,6 @@ const DocDB = (() => {
     });
   }
 
-  /**
-   * Get all documents (metadata only)
-   */
   async function getAll() {
     const store = await getStore('readonly');
 
@@ -181,9 +145,6 @@ const DocDB = (() => {
     });
   }
 
-  /**
-   * Get favorite documents (metadata only)
-   */
   async function getFavorites() {
     const store = await getStore('readonly');
 
@@ -206,9 +167,6 @@ const DocDB = (() => {
     });
   }
 
-  /**
-   * Get recent documents (last N, metadata only)
-   */
   async function getRecent(limit = 5) {
     const allDocs = await getAll();
     return allDocs
@@ -216,9 +174,6 @@ const DocDB = (() => {
       .slice(0, limit);
   }
 
-  /**
-   * Get document counts per vault
-   */
   async function getCounts() {
     const allDocs = await getAll();
     return {
@@ -228,9 +183,6 @@ const DocDB = (() => {
     };
   }
 
-  /**
-   * Update a document's metadata (not file data)
-   */
   async function updateDocument(id, updates) {
     const store = await getStore('readwrite');
 
@@ -247,8 +199,8 @@ const DocDB = (() => {
         const updated = {
           ...doc,
           ...updates,
-          id: doc.id, // preserve ID
-          fileData: doc.fileData, // preserve file data
+          id: doc.id, 
+          fileData: doc.fileData, 
           updatedAt: Date.now(),
         };
 
@@ -270,18 +222,12 @@ const DocDB = (() => {
     });
   }
 
-  /**
-   * Toggle favorite status
-   */
   async function toggleFavorite(id) {
     const doc = await getDocument(id);
     if (!doc) throw new Error('Document not found');
     return updateDocument(id, { isFavorite: !doc.isFavorite });
   }
 
-  /**
-   * Delete a document
-   */
   async function deleteDocument(id) {
     const store = await getStore('readwrite');
 
@@ -295,26 +241,18 @@ const DocDB = (() => {
     });
   }
 
-  /**
-   * Get file data as a Blob URL for preview/download
-   */
   async function getFileUrl(id) {
     const doc = await getDocument(id);
     if (!doc || !doc.fileData) return null;
 
-    // If fileData is already a Blob
     if (doc.fileData instanceof Blob) {
       return URL.createObjectURL(doc.fileData);
     }
 
-    // If fileData is an ArrayBuffer, convert it
     const blob = new Blob([doc.fileData], { type: doc.fileType });
     return URL.createObjectURL(blob);
   }
 
-  /**
-   * Get raw file Blob for sharing
-   */
   async function getFileBlob(id) {
     const doc = await getDocument(id);
     if (!doc || !doc.fileData) return null;
@@ -326,9 +264,6 @@ const DocDB = (() => {
     return new Blob([doc.fileData], { type: doc.fileType });
   }
 
-  /**
-   * Export all documents as an array (for backup)
-   */
   async function exportAll() {
     const store = await getStore('readonly');
 
@@ -345,9 +280,6 @@ const DocDB = (() => {
     });
   }
 
-  /**
-   * Generate a thumbnail from an image file
-   */
   function generateThumbnail(file, maxWidth = 300, maxHeight = 200) {
     return new Promise((resolve) => {
       if (file.type && file.type.startsWith('image/')) {
@@ -398,9 +330,6 @@ const DocDB = (() => {
     });
   }
 
-  /**
-   * Clear all documents from database
-   */
   async function clearAll() {
     const store = await getStore('readwrite');
     return new Promise((resolve, reject) => {
@@ -410,9 +339,6 @@ const DocDB = (() => {
     });
   }
 
-  /**
-   * Export complete Secret Sync Data Package (all documents + folders + categories)
-   */
   async function exportSecretSyncPackage() {
     const store = await getStore('readonly');
     return new Promise((resolve, reject) => {
@@ -479,15 +405,11 @@ const DocDB = (() => {
     });
   }
 
-  /**
-   * Import Secret Sync Data Package (restores documents, folders, and custom categories)
-   */
   async function importSecretSyncPackage(packageObj) {
     if (!packageObj || !packageObj.documents) {
       throw new Error('Invalid Vaulta sync file.');
     }
 
-    // Restore folders
     if (Array.isArray(packageObj.folders)) {
       const currentFolders = JSON.parse(localStorage.getItem('vaulta_nested_folders_v2') || '[]');
       const folderMap = new Map();
@@ -496,7 +418,6 @@ const DocDB = (() => {
       localStorage.setItem('vaulta_nested_folders_v2', JSON.stringify(Array.from(folderMap.values())));
     }
 
-    // Restore custom categories
     if (packageObj.customCategories) {
       const currentCats = JSON.parse(localStorage.getItem('vaulta_custom_categories') || '{"personal":[],"official":[]}');
       const personalCats = Array.from(new Set([...(currentCats.personal || []), ...(packageObj.customCategories.personal || [])]));
@@ -504,7 +425,6 @@ const DocDB = (() => {
       localStorage.setItem('vaulta_custom_categories', JSON.stringify({ personal: personalCats, official: officialCats }));
     }
 
-    // Restore documents into IndexedDB
     const store = await getStore('readwrite');
     let count = 0;
 
@@ -544,80 +464,77 @@ const DocDB = (() => {
     return { documentCount: count, folderCount: (packageObj.folders || []).length };
   }
 
-  /**
-   * Helper to calculate document expiry status
-   * @param {string} expiryDateStr - ISO date string (YYYY-MM-DD)
-   * @returns {Object} { status: 'valid' | 'expiring-soon' | 'expired', daysLeft: number }
-   */
   function getExpiryStatus(expiryDateStr) {
     if (!expiryDateStr) return { status: 'valid', daysLeft: Infinity };
     const expiry = new Date(expiryDateStr);
     if (isNaN(expiry.getTime())) return { status: 'valid', daysLeft: Infinity };
     const now = new Date();
-    // Normalize to midnight
+    
     expiry.setHours(0, 0, 0, 0);
     now.setHours(0, 0, 0, 0);
     const diffTime = expiry.getTime() - now.getTime();
     const daysLeft = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
 
-    if (daysLeft < 0) return { status: 'expired', daysLeft };
+    if (daysLeft <= 0) return { status: 'expired', daysLeft };
     if (daysLeft <= 30) return { status: 'expiring-soon', daysLeft };
     return { status: 'valid', daysLeft };
   }
 
-  /**
-   * Calculate storage analytics and category breakdown
-   */
   async function getStorageStats() {
-    const store = await getStore('readonly');
-    return new Promise((resolve, reject) => {
-      const request = store.getAll();
-      request.onsuccess = () => {
-        const docs = request.result || [];
-        let totalBytes = 0;
-        let expiringCount = 0;
-        let expiredCount = 0;
+    const docs = await getAll();
+    let totalBytes = 0;
+    let expiringCount = 0;
+    let expiredCount = 0;
 
-        const vaultStats = {
-          personal: { count: 0, bytes: 0 },
-          official: { count: 0, bytes: 0 }
-        };
-        const categoryStats = {};
+    const vaultStats = {
+      personal: { count: 0, bytes: 0 },
+      official: { count: 0, bytes: 0 }
+    };
+    const categoryStats = {};
 
-        docs.forEach((doc) => {
-          const size = doc.fileData ? (doc.fileData.size || doc.fileData.byteLength || 0) : 0;
-          totalBytes += size;
+    docs.forEach((doc) => {
+      let size = doc.fileSize || 0;
+      if (!size && doc.fileData) {
+        size = doc.fileData.size || doc.fileData.byteLength || doc.fileData.length || 0;
+      }
+      if (!size && doc.fileDataBase64) {
+        size = Math.round((doc.fileDataBase64.length * 3) / 4);
+      }
+      if (!size && doc.thumbnail) {
+        size = Math.round((doc.thumbnail.length * 3) / 4);
+      }
+      if (!size) {
+        size = 153600; 
+      }
 
-          const vault = doc.vault === 'official' ? 'official' : 'personal';
-          vaultStats[vault].count++;
-          vaultStats[vault].bytes += size;
+      totalBytes += size;
 
-          const cat = doc.category || 'Other';
-          if (!categoryStats[cat]) categoryStats[cat] = { count: 0, bytes: 0 };
-          categoryStats[cat].count++;
-          categoryStats[cat].bytes += size;
+      const vault = doc.vault === 'official' ? 'official' : 'personal';
+      vaultStats[vault].count++;
+      vaultStats[vault].bytes += size;
 
-          if (doc.expiryDate) {
-            const exp = getExpiryStatus(doc.expiryDate);
-            if (exp.status === 'expiring-soon') expiringCount++;
-            if (exp.status === 'expired') expiredCount++;
-          }
-        });
+      const cat = doc.category || 'Other';
+      if (!categoryStats[cat]) categoryStats[cat] = { count: 0, bytes: 0 };
+      categoryStats[cat].count++;
+      categoryStats[cat].bytes += size;
 
-        resolve({
-          totalBytes,
-          totalDocs: docs.length,
-          vaultStats,
-          categoryStats,
-          expiringCount,
-          expiredCount
-        });
-      };
-      request.onerror = (e) => reject(e.target.error);
+      if (doc.expiryDate) {
+        const exp = getExpiryStatus(doc.expiryDate);
+        if (exp.status === 'expiring-soon') expiringCount++;
+        if (exp.status === 'expired') expiredCount++;
+      }
     });
+
+    return {
+      totalBytes,
+      totalDocs: docs.length,
+      vaultStats,
+      categoryStats,
+      expiringCount,
+      expiredCount
+    };
   }
 
-  // Public API
   return {
     open,
     addDocument,

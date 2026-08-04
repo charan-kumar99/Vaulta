@@ -1,9 +1,6 @@
-/* ============================================
-   DocVault — UI Rendering Module
-   ============================================ */
 
 const DocUI = (() => {
-  /* ---- Category Definitions ---- */
+  
   const CATEGORIES = {
     personal: [
       { name: 'All', icon: '📋', color: 'var(--color-accent-primary)' },
@@ -26,7 +23,6 @@ const DocUI = (() => {
     ],
   };
 
-  /* ---- Custom Categories Persistence ---- */
   const CUSTOM_CATS_KEY = 'vaulta_custom_categories';
 
   function getCustomCategories() {
@@ -83,7 +79,6 @@ const DocUI = (() => {
     return [...builtIn, ...customObjs];
   }
 
-  /* ---- Nested Sub-Folders System ---- */
   const FOLDERS_STORAGE_KEY = 'vaulta_nested_folders_v2';
 
   function getFolders() {
@@ -107,7 +102,6 @@ const DocUI = (() => {
     const folders = getFolders();
     const targetVault = vault === 'official' ? 'official' : 'personal';
 
-    // Check if folder already exists in the same parentId & vault
     const existing = folders.find(
       (f) => f.vault === targetVault && (f.parentId || null) === (parentId || null) && f.name.toLowerCase() === formatted.toLowerCase()
     );
@@ -203,9 +197,6 @@ const DocUI = (() => {
     return null;
   }
 
-  /**
-   * Render a Folder Card in the documents grid
-   */
   function renderFolderCard(folder, itemCount = 0) {
     return `
       <div class="doc-card folder-card" data-folder-id="${folder.id}">
@@ -237,18 +228,12 @@ const DocUI = (() => {
     `;
   }
 
-  /**
-   * Get category icon by name and vault
-   */
   function getCategoryIcon(category, vault) {
     const cats = getAllCategories(vault || 'personal');
     const cat = cats.find((c) => c.name.toLowerCase() === (category || '').toLowerCase());
     return cat ? cat.icon : '📄';
   }
 
-  /**
-   * Get category color by name
-   */
   function getCategoryColor(category) {
     const map = {
       'Identity': 'var(--color-cat-identity)',
@@ -267,9 +252,6 @@ const DocUI = (() => {
     return map[category] || 'var(--color-accent-secondary)';
   }
 
-  /**
-   * Format timestamp to readable date
-   */
   function formatDate(timestamp) {
     const date = new Date(timestamp);
     const now = new Date();
@@ -287,9 +269,6 @@ const DocUI = (() => {
     });
   }
 
-  /**
-   * Get file type icon (for non-image files)
-   */
   function getFileTypeIcon(fileType, fileName = '') {
     const fn = (fileName || '').toLowerCase();
     const ft = (fileType || '').toLowerCase();
@@ -299,10 +278,6 @@ const DocUI = (() => {
     if (ft.includes('excel') || ft.includes('spreadsheet') || ft.includes('csv') || fn.endsWith('.xls') || fn.endsWith('.xlsx') || fn.endsWith('.csv')) return '📊';
     return '📄';
   }
-
-  /* ============================================
-     Screen Renderers
-     ============================================ */
 
   function getUsedCategories(docs) {
     const map = new Map();
@@ -323,9 +298,6 @@ const DocUI = (() => {
     return Array.from(map.values());
   }
 
-  /**
-   * Render the Home Screen
-   */
   function renderHome(container, { personalCount, officialCount, allDocs = [], filteredDocs = [], favoriteDocs = [], activeCategory = 'all' }) {
     const categories = getUsedCategories(allDocs);
     const docsToRender = (activeCategory && activeCategory !== 'all') ? filteredDocs : allDocs;
@@ -431,9 +403,6 @@ const DocUI = (() => {
     `;
   }
 
-  /**
-   * Render a favorite card (compact horizontal)
-   */
   function renderFavCard(doc) {
     const thumbContent = doc.thumbnail
       ? `<img src="${doc.thumbnail}" alt="${doc.name}" />`
@@ -447,9 +416,6 @@ const DocUI = (() => {
     `;
   }
 
-  /**
-   * Render a document card
-   */
   function renderDocCard(doc, selectMode = false) {
     const thumbContent = doc.thumbnail
       ? `<img src="${doc.thumbnail}" alt="${doc.name}" loading="lazy" />`
@@ -463,8 +429,9 @@ const DocUI = (() => {
       : '';
 
     let expiryBadge = '';
-    if (doc.expiryDate && window.DocDB && typeof window.DocDB.getExpiryStatus === 'function') {
-      const exp = window.DocDB.getExpiryStatus(doc.expiryDate);
+    const dbObj = window.DocDB || (typeof DocDB !== 'undefined' ? DocDB : null);
+    if (doc.expiryDate && dbObj && typeof dbObj.getExpiryStatus === 'function') {
+      const exp = dbObj.getExpiryStatus(doc.expiryDate);
       if (exp.status === 'expired') {
         expiryBadge = `<span class="expiry-badge expired" title="Expired on ${doc.expiryDate}">🔴 Expired</span>`;
       } else if (exp.status === 'expiring-soon') {
@@ -511,16 +478,12 @@ const DocUI = (() => {
     `;
   }
 
-  /**
-   * Render the Vault Screen
-   */
   function renderVault(container, { vault, currentFolder, folderPath = [], subFolders = [], subFolderCounts = {}, documents, activeCategory, sortBy }) {
     const isPersonal = vault === 'personal';
     const categories = getAllCategories(vault);
     const title = isPersonal ? 'Personal Vault' : 'Official Vault';
     const icon = isPersonal ? '🔐' : '💼';
 
-    // Build breadcrumb HTML
     let breadcrumbHtml = `
       <span class="breadcrumb-item ${!currentFolder ? 'active' : ''}" data-nav-folder="root">
         ${icon} ${title}
@@ -633,9 +596,6 @@ const DocUI = (() => {
     `;
   }
 
-  /**
-   * Get human-readable sort label
-   */
   function getSortLabel(sortBy) {
     const labels = {
       'date-desc': 'Newest',
@@ -647,13 +607,6 @@ const DocUI = (() => {
     return labels[sortBy] || 'Sort';
   }
 
-  /* ============================================
-     Upload Modal
-     ============================================ */
-
-  /**
-   * Render the Upload Modal
-   */
   function renderUploadModal(defaultVault = 'personal', selectedFolderId = null) {
     const personalCats = getAllCategories('personal').filter((c) => c.name !== 'All');
     const officialCats = getAllCategories('official').filter((c) => c.name !== 'All');
@@ -714,28 +667,31 @@ const DocUI = (() => {
               <input type="text" class="form-input" id="customCategory" placeholder="e.g. Medical, Tax Receipts, Vehicle" />
             </div>
 
-            <div class="form-group">
-              <label class="form-label" for="docFolder">Folder / Location</label>
-              <select class="form-select" id="docFolder">
-                <option value="">📁 Root (Main Vault)</option>
-                <optgroup label="Personal Folders" id="personalFolderGroup" ${defaultVault !== 'personal' ? 'style="display:none;"' : ''}>
-                  ${personalFolders.map((f) => `<option value="${f.id}" ${selectedFolderId === f.id ? 'selected' : ''}>📁 ${escapeHtml(f.displayName)}</option>`).join('')}
-                </optgroup>
-                <optgroup label="Official Folders" id="officialFolderGroup" ${defaultVault !== 'official' ? 'style="display:none;"' : ''}>
-                  ${officialFolders.map((f) => `<option value="${f.id}" ${selectedFolderId === f.id ? 'selected' : ''}>📁 ${escapeHtml(f.displayName)}</option>`).join('')}
-                </optgroup>
-                <option value="__new__">➕ Create New Folder...</option>
-              </select>
+            <div class="form-row">
+              <div class="form-group">
+                <label class="form-label" for="docFolder">Folder / Location</label>
+                <select class="form-select" id="docFolder">
+                  <option value="">📁 Root (Main Vault)</option>
+                  <optgroup label="Personal Folders" id="personalFolderGroup" ${defaultVault !== 'personal' ? 'style="display:none;"' : ''}>
+                    ${personalFolders.map((f) => `<option value="${f.id}" ${selectedFolderId === f.id ? 'selected' : ''}>📁 ${escapeHtml(f.displayName)}</option>`).join('')}
+                  </optgroup>
+                  <optgroup label="Official Folders" id="officialFolderGroup" ${defaultVault !== 'official' ? 'style="display:none;"' : ''}>
+                    ${officialFolders.map((f) => `<option value="${f.id}" ${selectedFolderId === f.id ? 'selected' : ''}>📁 ${escapeHtml(f.displayName)}</option>`).join('')}
+                  </optgroup>
+                  <option value="__new__">➕ Create New Folder...</option>
+                </select>
+              </div>
+
+              <div class="form-group">
+                <label class="form-label">Expiry Date (Optional)</label>
+                <input type="hidden" id="docExpiry" value="" />
+                <div id="docExpiry_container" class="vaulta-datepicker-wrapper"></div>
+              </div>
             </div>
 
             <div class="form-group" id="newFolderGroup" style="display: none;">
               <label class="form-label" for="newFolderName">New Folder Name *</label>
               <input type="text" class="form-input" id="newFolderName" placeholder="e.g. Nettech Service, TCS, Agreements" />
-            </div>
-
-            <div class="form-group">
-              <label class="form-label" for="docExpiry">Expiry Date (Optional)</label>
-              <input type="date" class="form-input" id="docExpiry" />
             </div>
 
             <div class="form-group">
@@ -754,10 +710,6 @@ const DocUI = (() => {
       </div>
     `;
   }
-
-  /* ============================================
-     Edit Modal
-     ============================================ */
 
   function renderEditModal(doc) {
     const personalCats = getAllCategories('personal').filter((c) => c.name !== 'All');
@@ -804,28 +756,31 @@ const DocUI = (() => {
               <input type="text" class="form-input" id="editCustomCategory" placeholder="e.g. Medical, Tax Receipts, Vehicle" />
             </div>
 
-            <div class="form-group">
-              <label class="form-label" for="editDocFolder">Folder / Location</label>
-              <select class="form-select" id="editDocFolder">
-                <option value="">📁 Root (Main Vault)</option>
-                <optgroup label="Personal Folders" id="editPersonalFolderGroup" ${doc.vault !== 'personal' ? 'style="display:none;"' : ''}>
-                  ${personalFolders.map((f) => `<option value="${f.id}" ${doc.folderId === f.id ? 'selected' : ''}>📁 ${escapeHtml(f.displayName)}</option>`).join('')}
-                </optgroup>
-                <optgroup label="Official Folders" id="editOfficialFolderGroup" ${doc.vault !== 'official' ? 'style="display:none;"' : ''}>
-                  ${officialFolders.map((f) => `<option value="${f.id}" ${doc.folderId === f.id ? 'selected' : ''}>📁 ${escapeHtml(f.displayName)}</option>`).join('')}
-                </optgroup>
-                <option value="__new__">➕ Create New Folder...</option>
-              </select>
+            <div class="form-row">
+              <div class="form-group">
+                <label class="form-label" for="editDocFolder">Folder / Location</label>
+                <select class="form-select" id="editDocFolder">
+                  <option value="">📁 Root (Main Vault)</option>
+                  <optgroup label="Personal Folders" id="editPersonalFolderGroup" ${doc.vault !== 'personal' ? 'style="display:none;"' : ''}>
+                    ${personalFolders.map((f) => `<option value="${f.id}" ${doc.folderId === f.id ? 'selected' : ''}>📁 ${escapeHtml(f.displayName)}</option>`).join('')}
+                  </optgroup>
+                  <optgroup label="Official Folders" id="editOfficialFolderGroup" ${doc.vault !== 'official' ? 'style="display:none;"' : ''}>
+                    ${officialFolders.map((f) => `<option value="${f.id}" ${doc.folderId === f.id ? 'selected' : ''}>📁 ${escapeHtml(f.displayName)}</option>`).join('')}
+                  </optgroup>
+                  <option value="__new__">➕ Create New Folder...</option>
+                </select>
+              </div>
+
+              <div class="form-group">
+                <label class="form-label">Expiry Date (Optional)</label>
+                <input type="hidden" id="editDocExpiry" value="${doc.expiryDate || ''}" />
+                <div id="editDocExpiry_container" class="vaulta-datepicker-wrapper"></div>
+              </div>
             </div>
 
             <div class="form-group" id="editNewFolderGroup" style="display: none;">
               <label class="form-label" for="editNewFolderName">New Folder Name *</label>
               <input type="text" class="form-input" id="editNewFolderName" placeholder="e.g. Nettech Service, TCS, Agreements" />
-            </div>
-
-            <div class="form-group">
-              <label class="form-label" for="editDocExpiry">Expiry Date (Optional)</label>
-              <input type="date" class="form-input" id="editDocExpiry" value="${doc.expiryDate || ''}" />
             </div>
 
             <div class="form-group">
@@ -869,10 +824,24 @@ const DocUI = (() => {
     const fileName = (doc.fileName || doc.name || '').toLowerCase();
     const isExcel = (doc.fileType && (doc.fileType.includes('excel') || doc.fileType.includes('spreadsheet') || doc.fileType.includes('csv'))) || fileName.endsWith('.xls') || fileName.endsWith('.xlsx') || fileName.endsWith('.csv');
 
+    let expiryBadge = '';
+    const dbObj = window.DocDB || (typeof DocDB !== 'undefined' ? DocDB : null);
+    if (doc.expiryDate && dbObj && typeof dbObj.getExpiryStatus === 'function') {
+      const exp = dbObj.getExpiryStatus(doc.expiryDate);
+      if (exp.status === 'expired') {
+        expiryBadge = `<span class="expiry-badge expired" title="Expired on ${doc.expiryDate}">🔴 Expired</span>`;
+      } else if (exp.status === 'expiring-soon') {
+        expiryBadge = `<span class="expiry-badge expiring-soon" title="Expires on ${doc.expiryDate}">🟡 ${exp.daysLeft}d left</span>`;
+      } else if (doc.expiryDate) {
+        expiryBadge = `<span class="expiry-badge valid" title="Expires on ${doc.expiryDate}">🟢 Valid</span>`;
+      }
+    }
+
     let viewerContent;
     if (isImage) {
       viewerContent = `<img src="${fileUrl}" alt="${escapeHtml(doc.name)}" />`;
     } else if (isPdf) {
+      viewerContent = `
         <div class="pdf-viewer-container" id="pdfViewerContainer">
           <div class="pdf-loading">
             <div class="spinner"></div>
@@ -926,6 +895,7 @@ const DocUI = (() => {
               <span class="doc-category-badge" style="background: ${getCategoryColor(doc.category)}15; color: ${getCategoryColor(doc.category)};">
                 ${getCategoryIcon(doc.category, doc.vault)} ${escapeHtml(doc.category)}
               </span>
+              ${expiryBadge}
               ${(doc.tags || []).length > 0 ? `
                 <div style="display: flex; gap: 4px; flex-wrap: wrap; align-items: center;">
                   ${doc.tags.map((t) => `<span class="doc-tag-badge">#${escapeHtml(t)}</span>`).join('')}
@@ -959,10 +929,6 @@ const DocUI = (() => {
     `;
   }
 
-  /* ============================================
-     Delete Confirmation
-     ============================================ */
-
   function renderDeleteConfirm(docId, docName) {
     return `
       <div class="modal-overlay active modal-overlay-enter" id="deleteModal">
@@ -980,10 +946,6 @@ const DocUI = (() => {
       </div>
     `;
   }
-
-  /* ============================================
-     Share As (Format Picker) Modal
-     ============================================ */
 
   function renderShareAsModal(doc, formats) {
     return `
@@ -1031,10 +993,6 @@ const DocUI = (() => {
     `;
   }
 
-  /* ============================================
-     Create Folder Modal
-     ============================================ */
-
   function renderCreateFolderModal() {
     return `
       <div class="modal-overlay active modal-overlay-enter" id="createFolderModal">
@@ -1065,10 +1023,6 @@ const DocUI = (() => {
     `;
   }
 
-  /* ============================================
-     Edit Folder Modal
-     ============================================ */
-
   function renderEditFolderModal(folder) {
     return `
       <div class="modal-overlay active modal-overlay-enter" id="editFolderModal">
@@ -1098,10 +1052,6 @@ const DocUI = (() => {
       </div>
     `;
   }
-
-  /* ============================================
-     Secret Vault Sync Modal
-     ============================================ */
 
   function renderSecretSyncModal() {
     return `
@@ -1157,10 +1107,6 @@ const DocUI = (() => {
     `;
   }
 
-  /* ============================================
-     Toast Notifications
-     ============================================ */
-
   function showToast(message, type = 'success', duration = 3000) {
     let container = document.getElementById('toastContainer');
     if (!container) {
@@ -1186,12 +1132,10 @@ const DocUI = (() => {
 
     container.appendChild(toast);
 
-    // Close button
     toast.querySelector('.toast-close').addEventListener('click', () => {
       removeToast(toast);
     });
 
-    // Auto-dismiss
     setTimeout(() => removeToast(toast), duration);
   }
 
@@ -1280,7 +1224,6 @@ const DocUI = (() => {
       </div>
     `;
 
-    // Event listeners
     const closeBtn = document.getElementById('closeSecurityModalBtn');
     const backdrop = document.getElementById('securityModalOverlay');
     const closeModal = () => { modalsContainer.innerHTML = ''; };
@@ -1288,7 +1231,6 @@ const DocUI = (() => {
     if (closeBtn) closeBtn.addEventListener('click', closeModal);
     if (backdrop) backdrop.addEventListener('click', (e) => { if (e.target === backdrop) closeModal(); });
 
-    // Toggle App Lock Button
     const toggleLockBtn = document.getElementById('toggleAppLockBtn');
     if (toggleLockBtn) {
       toggleLockBtn.addEventListener('click', async () => {
@@ -1309,7 +1251,6 @@ const DocUI = (() => {
       });
     }
 
-    // Set PIN button
     const setPinBtn = document.getElementById('setPinBtn');
     const pinGroup = document.getElementById('pinInputGroup');
     if (setPinBtn && pinGroup) {
@@ -1318,7 +1259,6 @@ const DocUI = (() => {
       });
     }
 
-    // Save PIN button
     const savePinBtn = document.getElementById('savePinBtn');
     const newPinInput = document.getElementById('newPinInput');
     if (savePinBtn && newPinInput) {
@@ -1334,7 +1274,6 @@ const DocUI = (() => {
       });
     }
 
-    // Toggle Biometrics button
     const toggleBioBtn = document.getElementById('toggleBioBtn');
     if (toggleBioBtn) {
       toggleBioBtn.addEventListener('click', async () => {
@@ -1355,7 +1294,6 @@ const DocUI = (() => {
       });
     }
 
-    // Lock Now button
     const lockNowBtn = document.getElementById('lockNowBtn');
     if (lockNowBtn) {
       lockNowBtn.addEventListener('click', () => {
@@ -1363,6 +1301,154 @@ const DocUI = (() => {
         window.SecurityModule.lockApp();
       });
     }
+  }
+
+  function initVaultaDatePicker(containerId, hiddenInputId, initialDateVal = '') {
+    const container = document.getElementById(containerId);
+    const hiddenInput = document.getElementById(hiddenInputId);
+    if (!container || !hiddenInput) return;
+
+    let currentDate = initialDateVal ? new Date(initialDateVal) : new Date();
+    if (isNaN(currentDate.getTime())) currentDate = new Date();
+
+    let viewYear = currentDate.getFullYear();
+    let viewMonth = currentDate.getMonth();
+    let selectedDateStr = initialDateVal || '';
+
+    const months = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+
+    const formatDisplay = (isoStr) => {
+      if (!isoStr) return '<span style="color: var(--color-text-tertiary); font-size: 0.82rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">Select expiry date...</span>';
+      const d = new Date(isoStr);
+      if (isNaN(d.getTime())) return isoStr;
+      return `<strong style="color: var(--color-accent-primary); font-size: 0.9rem;">📅 ${d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</strong>`;
+    };
+
+    container.innerHTML = `
+      <div class="vaulta-datepicker-trigger" id="${containerId}_trigger">
+        <span class="vdp-display-text">${formatDisplay(selectedDateStr)}</span>
+        <span style="display: flex; gap: 8px; align-items: center;">
+          ${selectedDateStr ? `<span class="vdp-clear-btn" style="cursor:pointer; opacity:0.7; font-size:0.85rem;" title="Clear date">✕</span>` : ''}
+          <span style="font-size: 1.1rem; opacity: 0.8;">📅</span>
+        </span>
+      </div>
+      <div class="vaulta-datepicker-popover" id="${containerId}_popover" style="display: none;"></div>
+    `;
+
+    const trigger = document.getElementById(`${containerId}_trigger`);
+    const popover = document.getElementById(`${containerId}_popover`);
+
+    const renderCalendar = () => {
+      const firstDay = new Date(viewYear, viewMonth, 1).getDay();
+      const daysInMonth = new Date(viewYear, viewMonth + 1, 0).getDate();
+      const todayStr = new Date().toISOString().split('T')[0];
+
+      let daysHtml = '';
+      for (let i = 0; i < firstDay; i++) {
+        daysHtml += `<div class="vdp-day empty"></div>`;
+      }
+
+      for (let day = 1; day <= daysInMonth; day++) {
+        const mStr = String(viewMonth + 1).padStart(2, '0');
+        const dStr = String(day).padStart(2, '0');
+        const iso = `${viewYear}-${mStr}-${dStr}`;
+
+        const isToday = iso === todayStr ? 'today' : '';
+        const isSelected = iso === selectedDateStr ? 'selected' : '';
+
+        daysHtml += `<div class="vdp-day ${isToday} ${isSelected}" data-date="${iso}">${day}</div>`;
+      }
+
+      popover.innerHTML = `
+        <div class="vdp-header">
+          <button class="vdp-nav-btn" id="${containerId}_prevMonth">‹</button>
+          <span class="vdp-month-year">${months[viewMonth]} ${viewYear}</span>
+          <button class="vdp-nav-btn" id="${containerId}_nextMonth">›</button>
+        </div>
+
+        <div class="vdp-presets">
+          <button class="vdp-preset-btn" data-add-months="1">+1 Mon</button>
+          <button class="vdp-preset-btn" data-add-months="6">+6 Mon</button>
+          <button class="vdp-preset-btn" data-add-years="1">+1 Yr</button>
+          <button class="vdp-preset-btn" data-add-years="3">+3 Yrs</button>
+          <button class="vdp-preset-btn" data-add-years="5">+5 Yrs</button>
+        </div>
+
+        <div class="vdp-weekdays">
+          <span>Su</span><span>Mo</span><span>Tu</span><span>We</span><span>Th</span><span>Fr</span><span>Sa</span>
+        </div>
+
+        <div class="vdp-days-grid">${daysHtml}</div>
+      `;
+
+      const prevBtn = document.getElementById(`${containerId}_prevMonth`);
+      const nextBtn = document.getElementById(`${containerId}_nextMonth`);
+      if (prevBtn) {
+        prevBtn.addEventListener('click', (e) => {
+          e.stopPropagation();
+          viewMonth--;
+          if (viewMonth < 0) { viewMonth = 11; viewYear--; }
+          renderCalendar();
+        });
+      }
+      if (nextBtn) {
+        nextBtn.addEventListener('click', (e) => {
+          e.stopPropagation();
+          viewMonth++;
+          if (viewMonth > 11) { viewMonth = 0; viewYear++; }
+          renderCalendar();
+        });
+      }
+
+      popover.querySelectorAll('.vdp-preset-btn').forEach((btn) => {
+        btn.addEventListener('click', (e) => {
+          e.stopPropagation();
+          const targetDate = new Date();
+          const addM = parseInt(btn.dataset.addMonths || '0', 10);
+          const addY = parseInt(btn.dataset.addYears || '0', 10);
+
+          if (addM) targetDate.setMonth(targetDate.getMonth() + addM);
+          if (addY) targetDate.setFullYear(targetDate.getFullYear() + addY);
+
+          const iso = targetDate.toISOString().split('T')[0];
+          selectDate(iso);
+        });
+      });
+
+      popover.querySelectorAll('.vdp-day:not(.empty)').forEach((dayEl) => {
+        dayEl.addEventListener('click', (e) => {
+          e.stopPropagation();
+          selectDate(dayEl.dataset.date);
+        });
+      });
+    };
+
+    const selectDate = (isoStr) => {
+      selectedDateStr = isoStr;
+      hiddenInput.value = isoStr;
+      popover.style.display = 'none';
+      initVaultaDatePicker(containerId, hiddenInputId, isoStr);
+    };
+
+    trigger.addEventListener('click', (e) => {
+      if (e.target.classList.contains('vdp-clear-btn')) {
+        e.stopPropagation();
+        selectDate('');
+        return;
+      }
+      const isVisible = popover.style.display === 'block';
+      popover.style.display = isVisible ? 'none' : 'block';
+      if (!isVisible) renderCalendar();
+    });
+
+    const closeOnOutside = (e) => {
+      if (!container.contains(e.target)) {
+        popover.style.display = 'none';
+      }
+    };
+    if (container._closeHandler) document.removeEventListener('click', container._closeHandler);
+    container._closeHandler = closeOnOutside;
+    document.addEventListener('click', closeOnOutside);
   }
 
   function formatBytes(bytes) {
@@ -1461,17 +1547,12 @@ const DocUI = (() => {
     if (backdrop) backdrop.addEventListener('click', (e) => { if (e.target === backdrop) closeModal(); });
   }
 
-  /* ============================================
-     Helpers
-     ============================================ */
-
   function escapeHtml(str) {
     const div = document.createElement('div');
     div.textContent = str || '';
     return div.innerHTML;
   }
 
-  // Public API
   return {
     CATEGORIES,
     getCustomCategories,
@@ -1505,6 +1586,7 @@ const DocUI = (() => {
     renderSecurityModal,
     renderStorageAnalyticsModal,
     loadPdfJsLibrary,
+    initVaultaDatePicker,
     showToast,
     escapeHtml,
     formatBytes,

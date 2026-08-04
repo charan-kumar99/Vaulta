@@ -1,21 +1,10 @@
-/* ============================================
-   DocVault — Search & Filter Engine
-   ============================================ */
-
 const DocSearch = (() => {
   let debounceTimer = null;
 
-  /**
-   * Normalize a string for comparison (lowercase, trim, remove extra spaces)
-   */
   function normalize(str) {
     return (str || '').toLowerCase().trim().replace(/\s+/g, ' ');
   }
 
-  /**
-   * Simple fuzzy match — checks if all characters in the query
-   * appear in order within the target string.
-   */
   function fuzzyMatch(query, target) {
     const q = normalize(query);
     const t = normalize(target);
@@ -30,10 +19,6 @@ const DocSearch = (() => {
     return qi === q.length;
   }
 
-  /**
-   * Calculate relevance score for sorting results.
-   * Higher score = more relevant.
-   */
   function relevanceScore(query, doc) {
     const q = normalize(query);
     if (!q) return 0;
@@ -44,40 +29,24 @@ const DocSearch = (() => {
     const folder = normalize(doc.folder || '');
     const tags = (doc.tags || []).map(normalize);
 
-    // Exact name match
     if (name === q) score += 100;
-    // Name starts with query
     else if (name.startsWith(q)) score += 80;
-    // Name contains query
     else if (name.includes(q)) score += 60;
-    // Fuzzy name match
     else if (fuzzyMatch(q, name)) score += 30;
 
-    // Category match
     if (category.includes(q)) score += 40;
-
-    // Folder match
     if (folder.includes(q)) score += 35;
 
-    // Tag match
     for (const tag of tags) {
       if (tag === q) score += 50;
       else if (tag.includes(q)) score += 25;
     }
 
-    // Favorite boost
     if (doc.isFavorite) score += 5;
 
     return score;
   }
 
-  /**
-   * Search documents by query string.
-   * Searches across name, category, and tags.
-   * @param {Object[]} documents - Array of document metadata
-   * @param {string} query - Search query
-   * @returns {Object[]} Filtered and sorted results
-   */
   function search(documents, query) {
     const q = normalize(query);
 
@@ -93,16 +62,6 @@ const DocSearch = (() => {
       .map(({ _score, ...doc }) => doc);
   }
 
-  /**
-   * Filter documents by criteria.
-   * @param {Object[]} documents - Array of document metadata
-   * @param {Object} filters
-   * @param {string} [filters.vault] - 'personal' or 'official'
-   * @param {string} [filters.category] - Category name (or 'all')
-   * @param {string} [filters.folder] - Folder name (or 'all')
-   * @param {boolean} [filters.favoritesOnly] - Only show favorites
-   * @returns {Object[]} Filtered results
-   */
   function filter(documents, filters = {}) {
     let result = [...documents];
 
@@ -129,12 +88,6 @@ const DocSearch = (() => {
     return result;
   }
 
-  /**
-   * Sort documents by a given criterion.
-   * @param {Object[]} documents
-   * @param {string} sortBy - 'date-desc', 'date-asc', 'name-asc', 'name-desc', 'category'
-   * @returns {Object[]} Sorted results
-   */
   function sort(documents, sortBy = 'date-desc') {
     const sorted = [...documents];
 
@@ -160,31 +113,20 @@ const DocSearch = (() => {
     }
   }
 
-  /**
-   * Combined: search + filter + sort in one pass.
-   */
   function query(documents, { searchQuery = '', filters = {}, sortBy = 'date-desc' } = {}) {
     let result = documents;
 
-    // Apply filter
     result = filter(result, filters);
 
-    // Apply search
     if (searchQuery) {
       result = search(result, searchQuery);
     } else {
-      // If no search query, apply sort
       result = sort(result, sortBy);
     }
 
     return result;
   }
 
-  /**
-   * Debounced search callback.
-   * @param {Function} callback - Called with the search query after debounce
-   * @param {number} delay - Debounce delay in ms
-   */
   function debounced(callback, delay = 250) {
     return (query) => {
       clearTimeout(debounceTimer);
@@ -192,25 +134,11 @@ const DocSearch = (() => {
     };
   }
 
-  /**
-   * Get unique categories from a list of documents.
-   */
-  function getCategories(documents) {
-    const categories = new Set();
-    documents.forEach((doc) => {
-      if (doc.category) categories.add(doc.category);
-    });
-    return Array.from(categories).sort();
-  }
-
-  // Public API
   return {
     search,
     filter,
     sort,
     query,
     debounced,
-    getCategories,
-    fuzzyMatch,
   };
 })();
