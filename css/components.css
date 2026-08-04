@@ -2007,6 +2007,13 @@
   transform: scale(1.1);
 }
 
+.pin-dot.error {
+  background: var(--color-danger) !important;
+  border-color: var(--color-danger) !important;
+  box-shadow: 0 0 12px rgba(239, 68, 68, 0.7) !important;
+  transform: scale(1.1);
+}
+
 /* PIN Keypad */
 .pin-keypad {
   display: grid;

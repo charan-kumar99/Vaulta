@@ -65,6 +65,14 @@
     },
 
     /**
+     * Get target length of configured PIN passcode (default 4)
+     */
+    getPinLength() {
+      const len = parseInt(localStorage.getItem(STORAGE_KEYS.PIN_LEN) || '4', 10);
+      return (isNaN(len) || len < 4) ? 4 : len;
+    },
+
+    /**
      * Set a new PIN passcode
      */
     async setPasscode(pin) {
@@ -73,6 +81,7 @@
       }
       const hash = await hashString(pin);
       localStorage.setItem(STORAGE_KEYS.PIN_HASH, hash);
+      localStorage.setItem(STORAGE_KEYS.PIN_LEN, pin.length.toString());
       localStorage.setItem(STORAGE_KEYS.ENABLED, 'true');
       return true;
     },
@@ -141,7 +150,6 @@
         });
 
         if (credential) {
-          // Convert credential ID to base64url string for storage
           const rawId = new Uint8Array(credential.rawId);
           const credIdStr = btoa(String.fromCharCode.apply(null, rawId));
           localStorage.setItem(STORAGE_KEYS.BIOMETRIC_CRED_ID, credIdStr);
@@ -166,7 +174,6 @@
       const credIdStr = localStorage.getItem(STORAGE_KEYS.BIOMETRIC_CRED_ID);
       if (!credIdStr) return false;
 
-      // Convert base64url back to Uint8Array
       const binaryStr = atob(credIdStr);
       const rawId = new Uint8Array(binaryStr.length);
       for (let i = 0; i < binaryStr.length; i++) {
@@ -241,6 +248,12 @@
       }
 
       const bioEnabled = this.isBiometricsEnabled();
+      const pinLen = this.getPinLength();
+
+      let dotsHtml = '';
+      for (let i = 0; i < pinLen; i++) {
+        dotsHtml += '<span class="pin-dot"></span>';
+      }
 
       overlay.innerHTML = `
         <div class="lock-card glass-panel">
@@ -248,13 +261,11 @@
             <div class="lock-app-icon">⚡</div>
             <h2 class="lock-title">Vaulta Locked</h2>
             <p class="lock-subtitle">Enter your Passcode or use Biometrics to access your files</p>
+            <p class="lock-error-msg" id="lockErrorMsg" style="display:none; color: var(--color-danger); font-size: 0.82rem; font-weight: 600; margin-top: 8px; animation: fadeIn 0.3s;"></p>
           </div>
 
           <div class="pin-display" id="pinDisplay">
-            <span class="pin-dot"></span>
-            <span class="pin-dot"></span>
-            <span class="pin-dot"></span>
-            <span class="pin-dot"></span>
+            ${dotsHtml}
           </div>
 
           <div class="pin-keypad">
@@ -287,7 +298,6 @@
       this.updatePinDisplay();
       this.bindLockOverlayEvents(overlay);
 
-      // Auto-trigger biometric prompt if enabled
       if (bioEnabled) {
         setTimeout(() => {
           this.triggerBiometricUnlock();
@@ -314,16 +324,16 @@
     },
 
     async handlePinInput(digit) {
-      if (_currentPinInput.length < 6) {
+      const pinLen = this.getPinLength();
+      if (_currentPinInput.length < pinLen) {
         _currentPinInput += digit;
         this.updatePinDisplay();
 
-        if (_currentPinInput.length >= 4) {
-          // Check if valid PIN
+        if (_currentPinInput.length === pinLen) {
           const valid = await this.verifyPasscode(_currentPinInput);
           if (valid) {
             this.unlockApp();
-          } else if (_currentPinInput.length >= 6) {
+          } else {
             this.triggerPinError();
           }
         }
@@ -332,15 +342,26 @@
 
     triggerPinError() {
       const card = document.querySelector('.lock-card');
+      const errorMsg = document.getElementById('lockErrorMsg');
+      const dots = document.querySelectorAll('#pinDisplay .pin-dot');
+
+      if (errorMsg) {
+        errorMsg.textContent = '⚠️ Incorrect Passcode PIN. Try again.';
+        errorMsg.style.display = 'block';
+      }
+
+      dots.forEach((d) => d.classList.add('error'));
+
       if (card) {
         card.classList.add('shake');
-        setTimeout(() => card.classList.remove('shake'), 500);
+        setTimeout(() => card.classList.remove('shake'), 400);
       }
-      _currentPinInput = '';
-      this.updatePinDisplay();
-      if (window.DocUI && typeof window.DocUI.showToast === 'function') {
-        window.DocUI.showToast('Incorrect PIN passcode', 'error');
-      }
+
+      setTimeout(() => {
+        _currentPinInput = '';
+        dots.forEach((d) => d.classList.remove('error'));
+        this.updatePinDisplay();
+      }, 400);
     },
 
     async triggerBiometricUnlock() {
