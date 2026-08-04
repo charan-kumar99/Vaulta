@@ -1432,6 +1432,8 @@ const DocApp = (() => {
       if (fObj) folderName = fObj.name;
     }
 
+    const expiryDate = document.getElementById('docExpiry')?.value || null;
+
     const submitBtn = document.getElementById('uploadSubmit');
     submitBtn.classList.add('loading');
     submitBtn.disabled = true;
@@ -1453,6 +1455,7 @@ const DocApp = (() => {
         folderId,
         folder: folderName,
         tags,
+        expiryDate,
         fileData: file,
         fileType: file.type,
         fileName: file.name,
@@ -1856,12 +1859,14 @@ const DocApp = (() => {
         if (fObj) folderName = fObj.name;
       }
 
+      const expiryDate = document.getElementById('editDocExpiry')?.value || null;
+
       const tags = tagsStr
         ? tagsStr.split(',').map((t) => t.trim().toLowerCase()).filter(Boolean)
         : [];
 
       try {
-        await DocDB.updateDocument(doc.id, { name, vault, category, folderId, folder: folderName, tags });
+        await DocDB.updateDocument(doc.id, { name, vault, category, folderId, folder: folderName, tags, expiryDate });
         closeModal();
         await renderCurrentScreen();
         DocUI.showToast('Document updated successfully!', 'success');

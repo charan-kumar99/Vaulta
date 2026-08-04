@@ -462,9 +462,26 @@ const DocUI = (() => {
          </div>`
       : '';
 
+    let expiryBadge = '';
+    if (doc.expiryDate && window.DocDB && typeof window.DocDB.getExpiryStatus === 'function') {
+      const exp = window.DocDB.getExpiryStatus(doc.expiryDate);
+      if (exp.status === 'expired') {
+        expiryBadge = `<span class="expiry-badge expired" title="Expired on ${doc.expiryDate}">🔴 Expired</span>`;
+      } else if (exp.status === 'expiring-soon') {
+        expiryBadge = `<span class="expiry-badge expiring-soon" title="Expires on ${doc.expiryDate}">🟡 ${exp.daysLeft}d left</span>`;
+      } else if (doc.expiryDate) {
+        expiryBadge = `<span class="expiry-badge valid" title="Expires on ${doc.expiryDate}">🟢 Valid</span>`;
+      }
+    }
+
     return `
       <div class="doc-card ${selectMode ? 'select-mode' : ''}" draggable="true" data-doc-id="${doc.id}" data-vault="${doc.vault}" data-action="${selectMode ? 'toggle-select' : 'preview'}">
         ${selectCheckbox}
+        <div class="doc-quick-actions">
+          <button class="quick-act-btn" data-doc-id="${doc.id}" data-action="preview" title="Quick Preview">👁️</button>
+          <button class="quick-act-btn" data-doc-id="${doc.id}" data-action="share" title="Download & Share">📥</button>
+          <button class="quick-act-btn" data-doc-id="${doc.id}" data-action="favorite" title="Toggle Favorite">${doc.isFavorite ? '★' : '☆'}</button>
+        </div>
         <div class="doc-thumbnail">${thumbContent}</div>
         <div class="doc-actions">
           <button class="doc-action-btn favorite ${doc.isFavorite ? 'active' : ''}"
@@ -484,6 +501,7 @@ const DocUI = (() => {
             <span class="doc-category-badge" style="background: ${getCategoryColor(doc.category)}15; color: ${getCategoryColor(doc.category)};">
               ${getCategoryIcon(doc.category, doc.vault)} ${escapeHtml(doc.category)}
             </span>
+            ${expiryBadge}
             ${doc.folder ? `<span class="doc-folder-badge">📁 ${escapeHtml(doc.folder)}</span>` : ''}
             ${(doc.tags || []).slice(0, 3).map((tag) => `<span class="doc-tag-badge">#${escapeHtml(tag)}</span>`).join('')}
           </div>
@@ -716,6 +734,11 @@ const DocUI = (() => {
             </div>
 
             <div class="form-group">
+              <label class="form-label" for="docExpiry">Expiry Date (Optional)</label>
+              <input type="date" class="form-input" id="docExpiry" />
+            </div>
+
+            <div class="form-group">
               <label class="form-label" for="docTags">Tags (comma separated)</label>
               <input type="text" class="form-input" id="docTags" placeholder="e.g. identity, government, front" />
             </div>
@@ -801,6 +824,11 @@ const DocUI = (() => {
             </div>
 
             <div class="form-group">
+              <label class="form-label" for="editDocExpiry">Expiry Date (Optional)</label>
+              <input type="date" class="form-input" id="editDocExpiry" value="${doc.expiryDate || ''}" />
+            </div>
+
+            <div class="form-group">
               <label class="form-label" for="editDocTags">Tags (comma separated)</label>
               <input type="text" class="form-input" id="editDocTags" value="${(doc.tags || []).join(', ')}" />
             </div>
@@ -816,9 +844,24 @@ const DocUI = (() => {
     `;
   }
 
-  /* ============================================
-     Preview Overlay
-     ============================================ */
+  async function loadPdfJsLibrary() {
+    if (window.pdfjsLib) return window.pdfjsLib;
+
+    return new Promise((resolve, reject) => {
+      const script = document.createElement('script');
+      script.src = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js';
+      script.onload = () => {
+        if (window.pdfjsLib) {
+          window.pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+          resolve(window.pdfjsLib);
+        } else {
+          reject(new Error('PDF.js library script failed to load'));
+        }
+      };
+      script.onerror = () => reject(new Error('Failed to load PDF.js script'));
+      document.head.appendChild(script);
+    });
+  }
 
   function renderPreview(doc, fileUrl) {
     const isImage = doc.fileType && doc.fileType.startsWith('image/');
@@ -830,7 +873,6 @@ const DocUI = (() => {
     if (isImage) {
       viewerContent = `<img src="${fileUrl}" alt="${escapeHtml(doc.name)}" />`;
     } else if (isPdf) {
-      viewerContent = `
         <div class="pdf-viewer-container" id="pdfViewerContainer">
           <div class="pdf-loading">
             <div class="spinner"></div>
@@ -1323,6 +1365,102 @@ const DocUI = (() => {
     }
   }
 
+  function formatBytes(bytes) {
+    if (!bytes || bytes === 0) return '0 B';
+    const k = 1024;
+    const sizes = ['B', 'KB', 'MB', 'GB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
+  }
+
+  async function renderStorageAnalyticsModal() {
+    const modalsContainer = document.getElementById('modals');
+    if (!modalsContainer) return;
+
+    const stats = window.DocDB ? await window.DocDB.getStorageStats() : {
+      totalBytes: 0, totalDocs: 0, vaultStats: { personal: { count: 0, bytes: 0 }, official: { count: 0, bytes: 0 } }, categoryStats: {}
+    };
+
+    const formattedTotal = formatBytes(stats.totalBytes);
+    const personalSize = formatBytes(stats.vaultStats.personal.bytes);
+    const officialSize = formatBytes(stats.vaultStats.official.bytes);
+
+    const categories = Object.keys(stats.categoryStats);
+    const colors = ['#6366f1', '#10b981', '#f59e0b', '#ec4899', '#8b5cf6', '#06b6d4', '#3b82f6'];
+
+    let progressSegments = '';
+    let categoryList = '';
+
+    categories.forEach((cat, index) => {
+      const cData = stats.categoryStats[cat];
+      const percent = stats.totalBytes > 0 ? ((cData.bytes / stats.totalBytes) * 100).toFixed(1) : 0;
+      const color = colors[index % colors.length];
+
+      if (cData.bytes > 0) {
+        progressSegments += `<div class="storage-progress-segment" style="width: ${percent}%; background: ${color};" title="${cat}: ${formatBytes(cData.bytes)} (${percent}%)"></div>`;
+      }
+
+      categoryList += `
+        <div class="storage-cat-item">
+          <div class="storage-cat-info">
+            <span class="storage-cat-dot" style="background: ${color};"></span>
+            <div>
+              <strong style="font-size: 0.9rem;">${escapeHtml(cat)}</strong>
+              <span style="display: block; font-size: 0.75rem; color: var(--color-text-secondary);">${cData.count} file${cData.count !== 1 ? 's' : ''}</span>
+            </div>
+          </div>
+          <strong style="font-size: 0.9rem;">${formatBytes(cData.bytes)}</strong>
+        </div>
+      `;
+    });
+
+    modalsContainer.innerHTML = `
+      <div class="modal-overlay active modal-overlay-enter" id="storageModalOverlay">
+        <div class="modal-content modal-content-enter" style="max-width: 460px;" role="dialog" aria-modal="true" aria-labelledby="storageModalTitle">
+          <div class="modal-header">
+            <h2 class="modal-title" id="storageModalTitle">📊 Storage Analytics</h2>
+            <button class="modal-close" id="closeStorageModalBtn" aria-label="Close modal">✕</button>
+          </div>
+          <div class="modal-body">
+            <div style="text-align: center; margin-bottom: 16px;">
+              <h3 style="font-size: 1.8rem; font-weight: 800; color: var(--color-text-primary); margin-bottom: 2px;">${formattedTotal}</h3>
+              <p style="font-size: 0.8rem; color: var(--color-text-secondary);">Total storage consumed across ${stats.totalDocs} document${stats.totalDocs !== 1 ? 's' : ''}</p>
+            </div>
+
+            <div class="storage-progress-track">
+              ${progressSegments || '<div class="storage-progress-segment" style="width: 100%; background: var(--color-border);"></div>'}
+            </div>
+
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 20px;">
+              <div style="background: var(--color-bg-tertiary); padding: 12px; border-radius: var(--radius-lg); border: 1px solid var(--color-border); text-align: center;">
+                <span style="font-size: 0.78rem; color: var(--color-text-secondary); display: block;">🔐 Personal Vault</span>
+                <strong style="font-size: 1.1rem; color: var(--color-text-primary);">${personalSize}</strong>
+                <span style="font-size: 0.72rem; color: var(--color-text-secondary); display: block;">${stats.vaultStats.personal.count} files</span>
+              </div>
+              <div style="background: var(--color-bg-tertiary); padding: 12px; border-radius: var(--radius-lg); border: 1px solid var(--color-border); text-align: center;">
+                <span style="font-size: 0.78rem; color: var(--color-text-secondary); display: block;">💼 Official Vault</span>
+                <strong style="font-size: 1.1rem; color: var(--color-text-primary);">${officialSize}</strong>
+                <span style="font-size: 0.72rem; color: var(--color-text-secondary); display: block;">${stats.vaultStats.official.count} files</span>
+              </div>
+            </div>
+
+            <h4 style="font-size: 0.9rem; font-weight: 700; margin-bottom: 10px; color: var(--color-text-primary);">Category Breakdown</h4>
+            <div style="max-height: 220px; overflow-y: auto;">
+              ${categoryList || '<p style="font-size: 0.85rem; color: var(--color-text-secondary); text-align: center;">No document category data</p>'}
+            </div>
+          </div>
+        </div>
+      </div>
+    `;
+
+    const closeBtn = document.getElementById('closeStorageModalBtn');
+    const backdrop = document.getElementById('storageModalOverlay');
+    const closeModal = () => { modalsContainer.innerHTML = ''; };
+
+    if (closeBtn) closeBtn.addEventListener('click', closeModal);
+    if (backdrop) backdrop.addEventListener('click', (e) => { if (e.target === backdrop) closeModal(); });
+  }
+
   /* ============================================
      Helpers
      ============================================ */
@@ -1365,7 +1503,10 @@ const DocUI = (() => {
     renderDeleteConfirm,
     renderShareAsModal,
     renderSecurityModal,
+    renderStorageAnalyticsModal,
+    loadPdfJsLibrary,
     showToast,
     escapeHtml,
+    formatBytes,
   };
 })();

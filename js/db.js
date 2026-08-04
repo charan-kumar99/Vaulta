@@ -93,6 +93,7 @@ const DocDB = (() => {
       fileType: doc.fileType,
       fileName: doc.fileName,
       thumbnail: doc.thumbnail || null,
+      expiryDate: doc.expiryDate || null,
       isFavorite: false,
       createdAt: Date.now(),
       updatedAt: Date.now(),
@@ -543,6 +544,79 @@ const DocDB = (() => {
     return { documentCount: count, folderCount: (packageObj.folders || []).length };
   }
 
+  /**
+   * Helper to calculate document expiry status
+   * @param {string} expiryDateStr - ISO date string (YYYY-MM-DD)
+   * @returns {Object} { status: 'valid' | 'expiring-soon' | 'expired', daysLeft: number }
+   */
+  function getExpiryStatus(expiryDateStr) {
+    if (!expiryDateStr) return { status: 'valid', daysLeft: Infinity };
+    const expiry = new Date(expiryDateStr);
+    if (isNaN(expiry.getTime())) return { status: 'valid', daysLeft: Infinity };
+    const now = new Date();
+    // Normalize to midnight
+    expiry.setHours(0, 0, 0, 0);
+    now.setHours(0, 0, 0, 0);
+    const diffTime = expiry.getTime() - now.getTime();
+    const daysLeft = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+    if (daysLeft < 0) return { status: 'expired', daysLeft };
+    if (daysLeft <= 30) return { status: 'expiring-soon', daysLeft };
+    return { status: 'valid', daysLeft };
+  }
+
+  /**
+   * Calculate storage analytics and category breakdown
+   */
+  async function getStorageStats() {
+    const store = await getStore('readonly');
+    return new Promise((resolve, reject) => {
+      const request = store.getAll();
+      request.onsuccess = () => {
+        const docs = request.result || [];
+        let totalBytes = 0;
+        let expiringCount = 0;
+        let expiredCount = 0;
+
+        const vaultStats = {
+          personal: { count: 0, bytes: 0 },
+          official: { count: 0, bytes: 0 }
+        };
+        const categoryStats = {};
+
+        docs.forEach((doc) => {
+          const size = doc.fileData ? (doc.fileData.size || doc.fileData.byteLength || 0) : 0;
+          totalBytes += size;
+
+          const vault = doc.vault === 'official' ? 'official' : 'personal';
+          vaultStats[vault].count++;
+          vaultStats[vault].bytes += size;
+
+          const cat = doc.category || 'Other';
+          if (!categoryStats[cat]) categoryStats[cat] = { count: 0, bytes: 0 };
+          categoryStats[cat].count++;
+          categoryStats[cat].bytes += size;
+
+          if (doc.expiryDate) {
+            const exp = getExpiryStatus(doc.expiryDate);
+            if (exp.status === 'expiring-soon') expiringCount++;
+            if (exp.status === 'expired') expiredCount++;
+          }
+        });
+
+        resolve({
+          totalBytes,
+          totalDocs: docs.length,
+          vaultStats,
+          categoryStats,
+          expiringCount,
+          expiredCount
+        });
+      };
+      request.onerror = (e) => reject(e.target.error);
+    });
+  }
+
   // Public API
   return {
     open,
@@ -563,5 +637,7 @@ const DocDB = (() => {
     exportSecretSyncPackage,
     importSecretSyncPackage,
     generateThumbnail,
+    getExpiryStatus,
+    getStorageStats,
   };
 })();

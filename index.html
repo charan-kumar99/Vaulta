@@ -39,6 +39,7 @@
       </div>
       <div class="header-actions">
         <button class="header-btn" id="installPwaBtn" title="Install App on Phone" aria-label="Install App" style="display: none;">📲 Install App</button>
+        <button class="header-btn" id="storageAnalyticsBtn" onclick="DocUI.renderStorageAnalyticsModal()" title="Storage Analytics & Category Breakdown" aria-label="Storage analytics">📊</button>
         <button class="header-btn" id="securityLockBtn" onclick="DocUI.renderSecurityModal()" title="Security & App Lock" aria-label="Security settings">🔒</button>
         <button class="header-btn" id="backupBtn" title="Export Backup" aria-label="Export backup">💾</button>
         <button class="header-btn" id="themeToggle" title="Toggle theme" aria-label="Toggle dark/light theme">☀️</button>
@@ -58,9 +59,6 @@
 
   <!-- Toast Container -->
   <div id="toastContainer" class="toast-container" aria-live="assertive"></div>
-
-  <!-- PDF.js library for rendering PDFs on mobile and desktop -->
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 
   <!-- Scripts (order matters: db → search → share → ui → app) -->
   <script src="js/db.js"></script>

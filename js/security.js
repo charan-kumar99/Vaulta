@@ -9,8 +9,10 @@
   const STORAGE_KEYS = {
     ENABLED: 'vaulta_security_enabled',
     PIN_HASH: 'vaulta_security_pin_hash',
+    PIN_LEN: 'vaulta_security_pin_len',
     BIOMETRIC_ENABLED: 'vaulta_bio_enabled',
-    BIOMETRIC_CRED_ID: 'vaulta_bio_cred_id'
+    BIOMETRIC_CRED_ID: 'vaulta_bio_cred_id',
+    ENCRYPTION_ENABLED: 'vaulta_encryption_enabled'
   };
 
   let _isLocked = false;
@@ -25,6 +27,32 @@
     const hashBuffer = await crypto.subtle.digest('SHA-256', data);
     const hashArray = Array.from(new Uint8Array(hashBuffer));
     return hashArray.map((b) => b.toString(16).padStart(2, '0')).join('');
+  }
+
+  /**
+   * Derive AES-256 key from PIN and salt via PBKDF2
+   */
+  async function deriveKey(pin, salt) {
+    const encoder = new TextEncoder();
+    const keyMaterial = await crypto.subtle.importKey(
+      'raw',
+      encoder.encode(pin),
+      'PBKDF2',
+      false,
+      ['deriveKey']
+    );
+    return crypto.subtle.deriveKey(
+      {
+        name: 'PBKDF2',
+        salt: salt,
+        iterations: 50000,
+        hash: 'SHA-256'
+      },
+      keyMaterial,
+      { name: 'AES-GCM', length: 256 },
+      false,
+      ['encrypt', 'decrypt']
+    );
   }
 
   const SecurityModule = {
@@ -70,6 +98,57 @@
     getPinLength() {
       const len = parseInt(localStorage.getItem(STORAGE_KEYS.PIN_LEN) || '4', 10);
       return (isNaN(len) || len < 4) ? 4 : len;
+    },
+    /**
+     * Check if Zero-Knowledge File Encryption is enabled
+     */
+    isEncryptionEnabled() {
+      return localStorage.getItem(STORAGE_KEYS.ENCRYPTION_ENABLED) === 'true';
+    },
+
+    setEncryptionEnabled(enabled) {
+      localStorage.setItem(STORAGE_KEYS.ENCRYPTION_ENABLED, enabled ? 'true' : 'false');
+    },
+
+    /**
+     * Encrypt a file Blob using AES-256-GCM with PIN
+     */
+    async encryptBlob(blob, pin) {
+      if (!blob || !pin) return blob;
+      const arrayBuffer = await blob.arrayBuffer();
+      const salt = crypto.getRandomValues(new Uint8Array(16));
+      const iv = crypto.getRandomValues(new Uint8Array(12));
+      const key = await deriveKey(pin, salt);
+      const encrypted = await crypto.subtle.encrypt({ name: 'AES-GCM', iv }, key, arrayBuffer);
+
+      // Package salt (16 bytes) + iv (12 bytes) + encryptedData
+      const packed = new Uint8Array(salt.length + iv.length + encrypted.byteLength);
+      packed.set(salt, 0);
+      packed.set(iv, salt.length);
+      packed.set(new Uint8Array(encrypted), salt.length + iv.length);
+
+      return new Blob([packed], { type: 'application/octet-stream' });
+    },
+
+    /**
+     * Decrypt an encrypted Blob back to raw Blob
+     */
+    async decryptBlob(blob, pin, originalMimeType = 'application/octet-stream') {
+      if (!blob || !pin) return blob;
+      try {
+        const arrayBuffer = await blob.arrayBuffer();
+        const dataView = new Uint8Array(arrayBuffer);
+        const salt = dataView.slice(0, 16);
+        const iv = dataView.slice(16, 28);
+        const ciphertext = dataView.slice(28);
+
+        const key = await deriveKey(pin, salt);
+        const decrypted = await crypto.subtle.decrypt({ name: 'AES-GCM', iv }, key, ciphertext);
+        return new Blob([decrypted], { type: originalMimeType });
+      } catch (e) {
+        console.error('[Security] Blob decryption failed:', e);
+        throw new Error('Decryption failed. Incorrect passcode PIN.');
+      }
     },
 
     /**
