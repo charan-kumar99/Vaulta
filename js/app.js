@@ -48,6 +48,7 @@ const DocApp = (() => {
     window.addEventListener('hashchange', handleRoute);
 
     bindBottomNav();
+    initScreenSecurity();
 
     document.addEventListener('click', (e) => {
       if (activeSwipedInner && !e.target.closest('.doc-card-swipe-wrapper')) {
@@ -722,10 +723,18 @@ const DocApp = (() => {
           navigate('home');
           updateActiveTab('home');
           break;
-        case 'vaults':
-          DocUI.renderVaultsSheet();
-          updateActiveTab('vaults');
+        case 'vaults': {
+          const existingVaultsSheet = document.getElementById('vaultsSheetOverlay');
+          if (existingVaultsSheet) {
+            const modals = modalsContainer();
+            if (modals) modals.innerHTML = '';
+            syncActiveTab();
+          } else {
+            DocUI.renderVaultsSheet();
+            updateActiveTab('vaults');
+          }
           break;
+        }
         case 'upload':
           triggerHaptic(20);
           openUploadModal();
@@ -749,10 +758,20 @@ const DocApp = (() => {
           }
           break;
         }
-        case 'settings':
-          DocUI.renderSettingsSheet();
-          updateActiveTab('settings');
+        case 'settings': {
+          const existingSettingsSheet = document.getElementById('settingsSheetOverlay');
+          const existingSecModal = document.getElementById('securityModalOverlay');
+          const existingStorageModal = document.getElementById('storageModalOverlay');
+          if (existingSettingsSheet || existingSecModal || existingStorageModal) {
+            const modals = modalsContainer();
+            if (modals) modals.innerHTML = '';
+            syncActiveTab();
+          } else {
+            DocUI.renderSettingsSheet();
+            updateActiveTab('settings');
+          }
           break;
+        }
       }
     });
   }
@@ -1604,7 +1623,10 @@ const DocApp = (() => {
     if (prefill.autoBrowse) {
       setTimeout(() => {
         const fileInput = document.getElementById('fileInput');
-        if (fileInput) fileInput.click();
+        if (fileInput) {
+          window.SecurityModule?.suppressLock(180000);
+          fileInput.click();
+        }
       }, 150);
     }
   }
@@ -1623,6 +1645,7 @@ const DocApp = (() => {
 
     const closeModal = () => {
       state.selectedFile = null;
+      window.SecurityModule?.clearLockSuppression();
       modal.remove();
     };
 
@@ -1632,7 +1655,10 @@ const DocApp = (() => {
       if (e.target === modal) closeModal();
     });
 
-    dropZone.addEventListener('click', () => fileInput.click());
+    dropZone.addEventListener('click', () => {
+      window.SecurityModule?.suppressLock(180000);
+      fileInput.click();
+    });
 
     dropZone.addEventListener('dragover', (e) => {
       e.preventDefault();
@@ -1922,6 +1948,7 @@ const DocApp = (() => {
     }
 
     state.currentPreviewUrl = fileUrl;
+    document.body.classList.add('preview-open');
 
     const modals = modalsContainer();
     modals.innerHTML = DocUI.renderPreview(doc, fileUrl);
@@ -2151,7 +2178,7 @@ const DocApp = (() => {
   }
 
   function closePreview() {
-    
+    document.body.classList.remove('preview-open');
     if (state.currentPreviewUrl) {
       URL.revokeObjectURL(state.currentPreviewUrl);
       state.currentPreviewUrl = null;
@@ -2505,6 +2532,146 @@ const DocApp = (() => {
     if (bytes < 1024) return bytes + ' B';
     if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
     return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
+  }
+
+  function initScreenSecurity() {
+    // Secret 5-tap counter on header logo for testing screenshots
+    const logoEl = document.querySelector('.app-header .logo');
+    let tapCount = 0;
+    let tapTimer = null;
+
+    if (logoEl) {
+      logoEl.addEventListener('click', () => {
+        tapCount++;
+        if (tapTimer) clearTimeout(tapTimer);
+        tapTimer = setTimeout(() => {
+          tapCount = 0;
+        }, 2000);
+
+        if (tapCount >= 5) {
+          tapCount = 0;
+          if (tapTimer) clearTimeout(tapTimer);
+          const currentDisabled = localStorage.getItem('vaulta_screen_security') === 'disabled';
+          const newStatus = currentDisabled ? 'enabled' : 'disabled';
+          localStorage.setItem('vaulta_screen_security', newStatus);
+
+          triggerHaptic([40, 80, 40]);
+          if (newStatus === 'disabled') {
+            DocUI.showToast('🔓 Secret Test Mode: Screen Security DISABLED (Screenshots & Recordings Allowed)', 'warning');
+          } else {
+            DocUI.showToast('🛡️ Screen Security ACTIVATED (Screenshots & Recordings Blocked)', 'success');
+          }
+          updatePrivacyShieldState();
+        }
+      });
+    }
+
+    // Privacy shield element for obfuscating screen during app switch or capture attempts
+    let shieldEl = document.getElementById('vaultaPrivacyShield');
+    if (!shieldEl) {
+      shieldEl = document.createElement('div');
+      shieldEl.id = 'vaultaPrivacyShield';
+      shieldEl.className = 'screen-privacy-shield';
+      shieldEl.style.display = 'none';
+      shieldEl.innerHTML = `
+        <div style="width: 68px; height: 68px; border-radius: 50%; background: rgba(99, 102, 241, 0.15); border: 1px solid rgba(99, 102, 241, 0.35); display: flex; align-items: center; justify-content: center; box-shadow: 0 0 28px rgba(99, 102, 241, 0.35);">
+          <svg viewBox="0 0 24 24" width="34" height="34" fill="none" stroke="#818cf8" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
+          </svg>
+        </div>
+        <h3 style="font-size: 1.2rem; font-weight: 700; color: #ffffff; margin: 0;">Protected Content</h3>
+        <p style="font-size: 0.85rem; color: #94a3b8; max-width: 290px; margin: 0; line-height: 1.4;">
+          Vaulta Screen Security is active. Content is obfuscated to protect sensitive documents.
+        </p>
+      `;
+      document.body.appendChild(shieldEl);
+    }
+
+    function isScreenSecActive() {
+      return localStorage.getItem('vaulta_screen_security') !== 'disabled';
+    }
+
+    function showShield() {
+      if (isScreenSecActive() && shieldEl) {
+        shieldEl.style.display = 'flex';
+      }
+    }
+
+    function hideShield() {
+      if (shieldEl) {
+        shieldEl.style.display = 'none';
+      }
+    }
+
+    function updatePrivacyShieldState() {
+      if (!isScreenSecActive()) {
+        hideShield();
+      }
+    }
+
+    // Obfuscate when app loses focus / app-switcher opened
+    window.addEventListener('blur', () => {
+      if (window.SecurityModule && typeof window.SecurityModule.isLockSuppressed === 'function' && window.SecurityModule.isLockSuppressed()) {
+        return;
+      }
+      if (isScreenSecActive()) showShield();
+    });
+
+    window.addEventListener('focus', () => {
+      hideShield();
+    });
+
+    document.addEventListener('visibilitychange', () => {
+      if (document.hidden) {
+        if (window.SecurityModule && typeof window.SecurityModule.isLockSuppressed === 'function' && window.SecurityModule.isLockSuppressed()) {
+          return;
+        }
+        if (isScreenSecActive()) showShield();
+      } else {
+        hideShield();
+      }
+    });
+
+    // Anti-screenshot key shortcuts
+    window.addEventListener('keydown', (e) => {
+      if (!isScreenSecActive()) return;
+
+      const isPrtSc = e.key === 'PrintScreen';
+      const isMacScreenshot = e.metaKey && e.shiftKey && ['3', '4', '5'].includes(e.key);
+
+      if (isPrtSc || isMacScreenshot) {
+        e.preventDefault();
+        showShield();
+        DocUI.showToast('🛡️ Screenshot blocked by Vaulta Screen Security', 'warning');
+        setTimeout(hideShield, 1500);
+      }
+    });
+
+    window.addEventListener('keyup', (e) => {
+      if (!isScreenSecActive()) return;
+      if (e.key === 'PrintScreen') {
+        showShield();
+        DocUI.showToast('🛡️ Screenshot blocked by Vaulta Screen Security', 'warning');
+        setTimeout(hideShield, 1500);
+      }
+    });
+
+    // Prevent context menu (right click / long-press save) on documents & sensitive images
+    document.addEventListener('contextmenu', (e) => {
+      if (!isScreenSecActive()) return;
+      if (['INPUT', 'TEXTAREA'].includes(e.target.tagName)) return;
+      e.preventDefault();
+    });
+
+    window.VaultaScreenSec = {
+      isActive: isScreenSecActive,
+      toggle: () => {
+        const current = isScreenSecActive();
+        localStorage.setItem('vaulta_screen_security', current ? 'disabled' : 'enabled');
+        updatePrivacyShieldState();
+        return !current;
+      }
+    };
   }
 
   return {

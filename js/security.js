@@ -289,8 +289,21 @@
       localStorage.removeItem(STORAGE_KEYS.BIOMETRIC_CRED_ID);
     },
 
+    suppressLock(durationMs = 180000) {
+      _lockSuppressionUntil = Date.now() + durationMs;
+    },
+
+    isLockSuppressed() {
+      return Date.now() < _lockSuppressionUntil;
+    },
+
+    clearLockSuppression() {
+      _lockSuppressionUntil = 0;
+    },
+
     lockApp() {
       if (!this.isSecurityEnabled()) return;
+      if (this.isLockSuppressed()) return;
       _isLocked = true;
       this.showLockOverlay();
     },
@@ -327,42 +340,95 @@
       }
 
       overlay.innerHTML = `
-        <div class="lock-card glass-panel">
+        <div class="lock-card glass-panel anim-scale-in">
           <div class="lock-header">
             <div class="lock-app-icon">
-              <img src="icons/icon-192.png" alt="Vaulta Icon" class="lock-icon-img" />
+              <svg class="logo-v-svg" viewBox="0 0 34 34" width="44" height="44" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <defs>
+                  <linearGradient id="lockVGradL" x1="0%" y1="0%" x2="100%" y2="100%">
+                    <stop offset="0%" stop-color="#00f5ff" />
+                    <stop offset="55%" stop-color="#0091ff" />
+                    <stop offset="100%" stop-color="#0062ff" />
+                  </linearGradient>
+                  <linearGradient id="lockVGradR" x1="0%" y1="100%" x2="100%" y2="0%">
+                    <stop offset="0%" stop-color="#0062ff" />
+                    <stop offset="50%" stop-color="#4f46e5" />
+                    <stop offset="100%" stop-color="#818cf8" />
+                  </linearGradient>
+                  <filter id="lockVGlow" x="-25%" y="-25%" width="150%" height="150%">
+                    <feDropShadow dx="0" dy="3" stdDeviation="4" flood-color="#00e5ff" flood-opacity="0.45" />
+                  </filter>
+                </defs>
+                <g filter="url(#lockVGlow)">
+                  <path d="M 6.5 7 L 14.8 24.5 C 15.7 26.4 18.3 26.4 19.2 24.5 L 27.5 7" 
+                        stroke="url(#lockVGradL)" stroke-width="5.2" stroke-linecap="round" stroke-linejoin="round"/>
+                  <path d="M 17 25.5 L 27.5 7" 
+                        stroke="url(#lockVGradR)" stroke-width="5.2" stroke-linecap="round"/>
+                </g>
+              </svg>
             </div>
             <h2 class="lock-title">Vaulta Locked</h2>
-            <p class="lock-subtitle">Enter your Passcode or use Biometrics to access your files</p>
+            <p class="lock-subtitle" id="lockSubtitleText">${bioEnabled ? 'Touch the fingerprint sensor to unlock' : 'Enter your Passcode PIN to access your files'}</p>
             <p class="lock-error-msg" id="lockErrorMsg" style="display:none; color: var(--color-danger); font-size: 0.82rem; font-weight: 600; margin-top: 8px; animation: fadeIn 0.3s;"></p>
           </div>
 
-          <div class="pin-display" id="pinDisplay">
-            ${dotsHtml}
-          </div>
-
-          <div class="pin-keypad">
-            <button class="keypad-btn" data-key="1">1</button>
-            <button class="keypad-btn" data-key="2">2</button>
-            <button class="keypad-btn" data-key="3">3</button>
-            <button class="keypad-btn" data-key="4">4</button>
-            <button class="keypad-btn" data-key="5">5</button>
-            <button class="keypad-btn" data-key="6">6</button>
-            <button class="keypad-btn" data-key="7">7</button>
-            <button class="keypad-btn" data-key="8">8</button>
-            <button class="keypad-btn" data-key="9">9</button>
-            <button class="keypad-btn keypad-clear" id="keypadClear">C</button>
-            <button class="keypad-btn" data-key="0">0</button>
-            <button class="keypad-btn keypad-backspace" id="keypadBack">⌫</button>
-          </div>
-
+          <!-- Biometric View (Default when biometrics enabled) -->
           ${bioEnabled ? `
-            <div class="biometric-trigger-wrap">
-              <button type="button" class="btn btn-secondary biometric-btn" id="bioUnlockBtn">
-                <span class="bio-icon">🖐️</span> Unlock with Fingerprint / Face
+            <div class="bio-prompt-view" id="bioPromptView">
+              <button type="button" class="bio-pulse-button" id="bioDirectTriggerBtn" title="Authenticate with Fingerprint" aria-label="Authenticate with Fingerprint">
+                <div class="bio-pulse-ring"></div>
+                <div class="bio-pulse-ring bio-pulse-ring-2"></div>
+                <div class="bio-icon-large">
+                  <svg viewBox="0 0 24 24" width="46" height="46" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M2 12C2 6.5 6.5 2 12 2a10 10 0 0 1 8 4"/>
+                    <path d="M5 19.5C5.5 18 6 15 6 12c0-.7.1-1.4.3-2"/>
+                    <path d="M12 10a2 2 0 0 0-2 2c0 1.02-.1 2.51-.26 4"/>
+                    <path d="M8.65 22c.21-.66.45-1.32.57-2"/>
+                    <path d="M14 13.12c0 2.38 0 6.38-1 8.88"/>
+                    <path d="M2 16h.01"/>
+                    <path d="M21.8 16c.2-2 .131-5.354 0-6"/>
+                    <path d="M9 6.8a6 6 0 0 1 9 5.2c0 .47 0 1.17-.02 2"/>
+                  </svg>
+                </div>
+              </button>
+              <p class="bio-touch-hint">Touch sensor or tap icon to prompt fingerprint</p>
+              <button type="button" class="btn-switch-lock-mode" id="showPinPadBtn">
+                <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
+                <span>Use Passcode PIN instead</span>
               </button>
             </div>
           ` : ''}
+
+          <!-- PIN Keypad View -->
+          <div class="pin-pad-view" id="pinPadView" ${bioEnabled ? 'style="display: none;"' : ''}>
+            <div class="pin-display" id="pinDisplay">
+              ${dotsHtml}
+            </div>
+
+            <div class="pin-keypad">
+              <button class="keypad-btn" data-key="1">1</button>
+              <button class="keypad-btn" data-key="2">2</button>
+              <button class="keypad-btn" data-key="3">3</button>
+              <button class="keypad-btn" data-key="4">4</button>
+              <button class="keypad-btn" data-key="5">5</button>
+              <button class="keypad-btn" data-key="6">6</button>
+              <button class="keypad-btn" data-key="7">7</button>
+              <button class="keypad-btn" data-key="8">8</button>
+              <button class="keypad-btn" data-key="9">9</button>
+              <button class="keypad-btn keypad-clear" id="keypadClear">C</button>
+              <button class="keypad-btn" data-key="0">0</button>
+              <button class="keypad-btn keypad-backspace" id="keypadBack">⌫</button>
+            </div>
+
+            ${bioEnabled ? `
+              <div style="text-align: center; margin-top: var(--space-4);">
+                <button type="button" class="btn-switch-lock-mode" id="backToBioBtn">
+                  <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 10a2 2 0 0 0-2 2c0 1.02-.1 2.51-.26 4"/><path d="M9 6.8a6 6 0 0 1 9 5.2"/></svg>
+                  <span>Use Fingerprint instead</span>
+                </button>
+              </div>
+            ` : ''}
+          </div>
         </div>
       `;
 
@@ -374,7 +440,7 @@
       if (bioEnabled) {
         setTimeout(() => {
           this.triggerBiometricUnlock();
-        }, 300);
+        }, 250);
       }
     },
 
@@ -496,6 +562,36 @@
             _currentPinInput = _currentPinInput.slice(0, -1);
             this.updatePinDisplay();
           }
+        });
+      }
+
+      const showPinBtn = overlay.querySelector('#showPinPadBtn');
+      const backToBioBtn = overlay.querySelector('#backToBioBtn');
+      const bioPromptView = overlay.querySelector('#bioPromptView');
+      const pinPadView = overlay.querySelector('#pinPadView');
+      const subtitle = overlay.querySelector('#lockSubtitleText');
+
+      if (showPinBtn && bioPromptView && pinPadView) {
+        showPinBtn.addEventListener('click', () => {
+          bioPromptView.style.display = 'none';
+          pinPadView.style.display = 'block';
+          if (subtitle) subtitle.textContent = 'Enter your Passcode PIN to access your files';
+        });
+      }
+
+      if (backToBioBtn && bioPromptView && pinPadView) {
+        backToBioBtn.addEventListener('click', () => {
+          pinPadView.style.display = 'none';
+          bioPromptView.style.display = 'flex';
+          if (subtitle) subtitle.textContent = 'Touch the fingerprint sensor to unlock';
+          this.triggerBiometricUnlock(true);
+        });
+      }
+
+      const bioDirectBtn = overlay.querySelector('#bioDirectTriggerBtn');
+      if (bioDirectBtn) {
+        bioDirectBtn.addEventListener('click', () => {
+          this.triggerBiometricUnlock(true);
         });
       }
 

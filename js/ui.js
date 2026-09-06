@@ -993,10 +993,18 @@ const DocUI = (() => {
                     data-doc-id="${doc.id}" title="${doc.isFavorite ? 'Remove from favorites' : 'Add to favorites'}">
               ${doc.isFavorite ? '★' : '☆'}
             </button>
-            <button class="header-btn desktop-only-btn" id="previewEdit" data-doc-id="${doc.id}" title="Edit details">✏️</button>
-            <button class="header-btn desktop-only-btn" id="previewShare" data-doc-id="${doc.id}" title="Share">↗</button>
-            <button class="header-btn desktop-only-btn" id="previewDownload" data-doc-id="${doc.id}" title="Download">⬇</button>
-            <button class="header-btn desktop-only-btn danger" id="previewDelete" data-doc-id="${doc.id}" title="Delete" style="color: var(--color-accent-danger);">🗑️</button>
+            <button class="header-btn desktop-only-btn" id="previewEdit" data-doc-id="${doc.id}" title="Edit details">
+              <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"></path><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path></svg>
+            </button>
+            <button class="header-btn desktop-only-btn" id="previewShare" data-doc-id="${doc.id}" title="Share">
+              <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="3"></circle><circle cx="6" cy="12" r="3"></circle><circle cx="18" cy="19" r="3"></circle><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"></line><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"></line></svg>
+            </button>
+            <button class="header-btn desktop-only-btn" id="previewDownload" data-doc-id="${doc.id}" title="Download">
+              <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+            </button>
+            <button class="header-btn desktop-only-btn danger" id="previewDelete" data-doc-id="${doc.id}" title="Delete" style="color: var(--color-accent-danger);">
+              <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path><line x1="10" y1="11" x2="10" y2="17"></line><line x1="14" y1="11" x2="14" y2="17"></line></svg>
+            </button>
           </div>
         </div>
         <div class="preview-body modal-content-enter">
@@ -1020,19 +1028,27 @@ const DocUI = (() => {
         </div>
         <div class="preview-mobile-footer">
           <button class="mobile-action-btn" id="previewMobileEdit" data-doc-id="${doc.id}">
-            <span class="btn-icon">✏️</span>
+            <span class="btn-icon">
+              <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"></path><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path></svg>
+            </span>
             <span class="btn-label">Edit</span>
           </button>
           <button class="mobile-action-btn" id="previewMobileShare" data-doc-id="${doc.id}">
-            <span class="btn-icon">↗</span>
+            <span class="btn-icon">
+              <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="3"></circle><circle cx="6" cy="12" r="3"></circle><circle cx="18" cy="19" r="3"></circle><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"></line><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"></line></svg>
+            </span>
             <span class="btn-label">Share</span>
           </button>
           <button class="mobile-action-btn" id="previewMobileDownload" data-doc-id="${doc.id}">
-            <span class="btn-icon">⬇</span>
+            <span class="btn-icon">
+              <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+            </span>
             <span class="btn-label">Download</span>
           </button>
           <button class="mobile-action-btn danger" id="previewMobileDelete" data-doc-id="${doc.id}">
-            <span class="btn-icon">🗑️</span>
+            <span class="btn-icon">
+              <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path><line x1="10" y1="11" x2="10" y2="17"></line><line x1="14" y1="11" x2="14" y2="17"></line></svg>
+            </span>
             <span class="btn-label">Delete</span>
           </button>
         </div>
@@ -1263,6 +1279,7 @@ const DocUI = (() => {
     const isSecEnabled = window.SecurityModule ? window.SecurityModule.isSecurityEnabled() : false;
     const hasPin = window.SecurityModule ? window.SecurityModule.hasPasscode() : false;
     const isBioEnabled = window.SecurityModule ? window.SecurityModule.isBiometricsEnabled() : false;
+    const isScreenSecEnabled = localStorage.getItem('vaulta_screen_security') !== 'disabled';
     
     let isBioSupported = false;
     let bioStatusText = '';
@@ -1287,60 +1304,102 @@ const DocUI = (() => {
         isBioSupported = false;
       }
       bioStatusText = isBioSupported
-        ? (isBioEnabled ? '🖐️ Biometrics enabled' : 'Device supported')
+        ? (isBioEnabled ? 'Device fingerprint / biometric sensor ready' : 'Sensor detected & ready to pair')
         : 'Device / Windows Hello sensor not detected';
     }
 
     modalsContainer.innerHTML = `
       <div class="modal-overlay active modal-overlay-enter" id="securityModalOverlay">
-        <div class="modal-content modal-content-enter" style="max-width: 440px;" role="dialog" aria-modal="true" aria-labelledby="securityModalTitle">
+        <div class="modal-content modal-content-enter" style="max-width: 460px;" role="dialog" aria-modal="true" aria-labelledby="securityModalTitle">
           <div class="modal-header">
-            <h2 class="modal-title" id="securityModalTitle">🔐 Security & App Lock</h2>
+            <h2 class="modal-title" id="securityModalTitle" style="display: flex; align-items: center; gap: 8px;">
+              <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="color: var(--color-accent-primary);"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
+              Security & App Lock
+            </h2>
             <button class="modal-close" id="closeSecurityModalBtn" aria-label="Close modal">✕</button>
           </div>
-          <div class="modal-body">
-            <div class="setting-item" style="display: flex; align-items: center; justify-content: space-between; padding: 14px 0; border-bottom: 1px solid var(--color-border);">
-              <div>
-                <strong style="display: block; font-size: 0.95rem; color: var(--color-text-primary);">App Lock Protection</strong>
-                <span style="font-size: 0.78rem; color: var(--color-text-secondary);">${isSecEnabled ? '🔒 Protection is ACTIVE' : '🔓 Protection is OFF'}</span>
-              </div>
-              <button type="button" class="btn ${isSecEnabled ? 'btn-danger' : 'btn-primary'} btn-sm" id="toggleAppLockBtn">
-                ${isSecEnabled ? 'Disable Lock' : 'Enable Lock'}
-              </button>
-            </div>
-
-            <div class="setting-item" style="padding: 14px 0; border-bottom: 1px solid var(--color-border);">
-              <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px;">
-                <div>
-                  <strong style="display: block; font-size: 0.95rem; color: var(--color-text-primary);">Passcode PIN</strong>
-                  <span style="font-size: 0.78rem; color: var(--color-text-secondary);">${hasPin ? '🔑 PIN configured' : '⚠️ No PIN configured'}</span>
+          <div class="modal-body" style="padding-top: var(--space-3);">
+            <div style="font-size: 0.72rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: var(--color-text-tertiary); margin-bottom: 8px; padding-left: 4px;">Access Protection</div>
+            <div class="settings-card-group">
+              <div class="settings-row-item">
+                <div class="settings-icon-tile tile-violet">
+                  <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
                 </div>
-                <button type="button" class="btn btn-secondary btn-sm" id="setPinBtn">
-                  ${hasPin ? 'Change PIN' : 'Set PIN'}
+                <div class="settings-item-body">
+                  <div style="display: flex; align-items: center; gap: 8px;">
+                    <span class="settings-item-title">App Lock Protection</span>
+                    <span class="settings-pill-badge ${isSecEnabled ? 'pill-active' : 'pill-inactive'}">${isSecEnabled ? 'ACTIVE' : 'OFF'}</span>
+                  </div>
+                  <div class="settings-item-subtitle">${isSecEnabled ? 'Requires PIN or Biometrics on launch' : 'Vault opens immediately without prompt'}</div>
+                </div>
+                <button type="button" class="btn ${isSecEnabled ? 'btn-secondary' : 'btn-primary'} btn-sm" id="toggleAppLockBtn">
+                  ${isSecEnabled ? 'Disable' : 'Enable'}
                 </button>
               </div>
-              <div id="pinInputGroup" style="display: none; margin-top: 12px; background: var(--color-bg-tertiary); padding: 12px; border-radius: var(--radius-lg); border: 1px solid var(--color-border);">
-                <input type="password" id="newPinInput" maxlength="6" pattern="[0-9]*" inputmode="numeric" placeholder="Enter 4 to 6 digit PIN" class="form-input" style="margin-bottom: 8px; width: 100%;">
-                <button type="button" class="btn btn-primary btn-sm" id="savePinBtn" style="width: 100%;">Save Passcode PIN</button>
+
+              <div class="settings-row-item" style="flex-direction: column; align-items: stretch; gap: 10px;">
+                <div style="display: flex; align-items: center; gap: var(--space-3); width: 100%;">
+                  <div class="settings-icon-tile tile-cyan">
+                    <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="2" width="16" height="20" rx="2" ry="2"></rect><line x1="8" y1="6" x2="8.01" y2="6"></line><line x1="12" y1="6" x2="12.01" y2="6"></line><line x1="16" y1="6" x2="16.01" y2="6"></line><line x1="8" y1="10" x2="8.01" y2="10"></line><line x1="12" y1="10" x2="12.01" y2="10"></line><line x1="16" y1="10" x2="16.01" y2="10"></line><line x1="8" y1="14" x2="8.01" y2="14"></line><line x1="12" y1="14" x2="12.01" y2="14"></line><line x1="16" y1="14" x2="16.01" y2="14"></line><line x1="12" y1="18" x2="12.01" y2="18"></line></svg>
+                  </div>
+                  <div class="settings-item-body">
+                    <div style="display: flex; align-items: center; gap: 8px;">
+                      <span class="settings-item-title">Passcode PIN</span>
+                      <span class="settings-pill-badge ${hasPin ? 'pill-active' : 'pill-inactive'}">${hasPin ? 'CONFIGURED' : 'NOT SET'}</span>
+                    </div>
+                    <div class="settings-item-subtitle">${hasPin ? '4 to 6 digit security code' : 'Required to activate lock protection'}</div>
+                  </div>
+                  <button type="button" class="btn btn-secondary btn-sm" id="setPinBtn">
+                    ${hasPin ? 'Change' : 'Set PIN'}
+                  </button>
+                </div>
+                <div id="pinInputGroup" style="display: none; background: var(--color-bg-tertiary); padding: 12px; border-radius: var(--radius-lg); border: 1px solid var(--color-border);">
+                  <input type="password" id="newPinInput" maxlength="6" pattern="[0-9]*" inputmode="numeric" placeholder="Enter 4 to 6 digit PIN" class="form-input" style="margin-bottom: 8px; width: 100%;">
+                  <button type="button" class="btn btn-primary btn-sm" id="savePinBtn" style="width: 100%;">Save Passcode PIN</button>
+                </div>
+              </div>
+
+              <div class="settings-row-item">
+                <div class="settings-icon-tile tile-emerald">
+                  <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 11c0 3.5-1.5 6-3 7.5"></path><path d="M12 7c-2 0-4 1.5-4 4.5 0 2.5.5 4.5 2 6"></path><path d="M12 3c-4.5 0-8 3.5-8 8.5 0 3 1.5 6 3 7.5"></path><path d="M15 8.5c.5.8.7 1.7.7 2.7 0 2.5-1 4.5-2 6"></path><path d="M18.5 7C19.5 8.5 20 10 20 12c0 3.5-1.5 6.5-3 8"></path></svg>
+                </div>
+                <div class="settings-item-body">
+                  <div style="display: flex; align-items: center; gap: 8px;">
+                    <span class="settings-item-title">Fingerprint / Biometrics</span>
+                    <span class="settings-pill-badge ${isBioEnabled ? 'pill-active' : 'pill-inactive'}">${isBioEnabled ? 'ENABLED' : 'OFF'}</span>
+                  </div>
+                  <div class="settings-item-subtitle">${bioStatusText}</div>
+                </div>
+                <button type="button" class="btn btn-secondary btn-sm" id="toggleBioBtn" ${(!isBioSupported || !isSecEnabled) ? 'disabled' : ''}>
+                  ${isBioEnabled ? 'Disable' : 'Enable'}
+                </button>
               </div>
             </div>
 
-            <div class="setting-item" style="display: flex; align-items: center; justify-content: space-between; padding: 14px 0; border-bottom: 1px solid var(--color-border);">
-              <div>
-                <strong style="display: block; font-size: 0.95rem; color: var(--color-text-primary);">Fingerprint / Face ID / Windows Hello</strong>
-                <span style="font-size: 0.78rem; color: var(--color-text-secondary); max-width: 250px; display: block;">
-                  ${bioStatusText}
-                </span>
+            <div style="font-size: 0.72rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: var(--color-text-tertiary); margin-bottom: 8px; padding-left: 4px; margin-top: 14px;">Privacy & Anti-Capture</div>
+            <div class="settings-card-group">
+              <div class="settings-row-item">
+                <div class="settings-icon-tile tile-amber">
+                  <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg>
+                </div>
+                <div class="settings-item-body">
+                  <div style="display: flex; align-items: center; gap: 8px;">
+                    <span class="settings-item-title">Screen Security & Anti-Capture</span>
+                    <span class="settings-pill-badge ${isScreenSecEnabled ? 'pill-active' : 'pill-inactive'}">${isScreenSecEnabled ? 'ACTIVE' : 'DISABLED (TEST)'}</span>
+                  </div>
+                  <div class="settings-item-subtitle">Blocks screenshots, task-switcher previews & recording (5 taps on logo toggles test mode)</div>
+                </div>
+                <button type="button" class="btn ${isScreenSecEnabled ? 'btn-secondary' : 'btn-primary'} btn-sm" id="toggleScreenSecBtn">
+                  ${isScreenSecEnabled ? 'Disable' : 'Enable'}
+                </button>
               </div>
-              <button type="button" class="btn btn-secondary btn-sm" id="toggleBioBtn" ${(!isBioSupported || !isSecEnabled) ? 'disabled' : ''}>
-                ${isBioEnabled ? 'Disable' : 'Enable'}
-              </button>
             </div>
 
             ${isSecEnabled ? `
-              <div style="margin-top: 20px;">
-                <button type="button" class="btn btn-primary" id="lockNowBtn" style="width: 100%; display: flex; align-items: center; justify-content: center; gap: 8px; background: var(--gradient-accent);">
-                  🔒 Lock App Now
+              <div style="margin-top: 16px;">
+                <button type="button" class="btn btn-primary" id="lockNowBtn" style="width: 100%; display: flex; align-items: center; justify-content: center; gap: 8px; background: var(--gradient-accent); font-weight: 600; padding: 12px;">
+                  <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
+                  Lock App Now
                 </button>
               </div>
             ` : ''}
@@ -1416,6 +1475,21 @@ const DocUI = (() => {
             showToast(err.message || 'Biometric setup failed', 'error');
           }
         }
+      });
+    }
+
+    const toggleScreenSecBtn = document.getElementById('toggleScreenSecBtn');
+    if (toggleScreenSecBtn) {
+      toggleScreenSecBtn.addEventListener('click', () => {
+        const currentlyEnabled = localStorage.getItem('vaulta_screen_security') !== 'disabled';
+        const nextState = currentlyEnabled ? 'disabled' : 'enabled';
+        localStorage.setItem('vaulta_screen_security', nextState);
+        if (nextState === 'disabled') {
+          showToast('🔓 Screen Security disabled (Screenshots allowed for testing)', 'warning');
+        } else {
+          showToast('🛡️ Screen Security active (Screenshots blocked)', 'success');
+        }
+        renderSecurityModal();
       });
     }
 
@@ -1684,35 +1758,71 @@ const DocUI = (() => {
       <div class="modal-overlay active" id="settingsSheetOverlay">
         <div class="modal-content" style="max-width: 480px;" role="dialog" aria-modal="true" aria-labelledby="settingsSheetTitle">
           <div class="modal-header">
-            <h2 class="modal-title" id="settingsSheetTitle">⚙️ Settings</h2>
+            <h2 class="modal-title" id="settingsSheetTitle" style="display: flex; align-items: center; gap: 8px;">
+              <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color: var(--color-accent-primary);"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
+              Settings
+            </h2>
             <button class="modal-close" id="closeSettingsSheetBtn" aria-label="Close">✕</button>
           </div>
-          <div class="modal-body" style="padding-top: var(--space-2);">
-            <div class="settings-sheet-list">
-              <button class="settings-sheet-item" id="settingsSecurityBtn">
-                <span class="settings-icon">🔒</span>
-                <span class="settings-label">Security & App Lock</span>
-                <span class="settings-chevron">›</span>
+          <div class="modal-body" style="padding-top: var(--space-3);">
+            <div style="font-size: 0.72rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: var(--color-text-tertiary); margin-bottom: 8px; padding-left: 4px;">Security & Vault</div>
+            <div class="settings-card-group">
+              <button class="settings-row-item" id="settingsSecurityBtn">
+                <div class="settings-icon-tile tile-violet">
+                  <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
+                </div>
+                <div class="settings-item-body">
+                  <span class="settings-item-title">Security & App Lock</span>
+                  <span class="settings-item-subtitle">PIN passcode, biometric sensor & anti-capture</span>
+                </div>
+                <span class="settings-chevron" style="font-size: 1.2rem; opacity: 0.5; font-weight: 300;">›</span>
               </button>
-              <button class="settings-sheet-item" id="settingsBackupBtn">
-                <span class="settings-icon">💾</span>
-                <span class="settings-label">Export Backup</span>
-                <span class="settings-chevron">›</span>
+              <button class="settings-row-item" id="settingsBackupBtn">
+                <div class="settings-icon-tile tile-emerald">
+                  <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path><polyline points="17 21 17 13 7 13 7 21"></polyline><polyline points="7 3 7 8 15 8"></polyline></svg>
+                </div>
+                <div class="settings-item-body">
+                  <span class="settings-item-title">Export Backup</span>
+                  <span class="settings-item-subtitle">Encrypted offline document backup archive</span>
+                </div>
+                <span class="settings-chevron" style="font-size: 1.2rem; opacity: 0.5; font-weight: 300;">›</span>
               </button>
-              <button class="settings-sheet-item" id="settingsStorageBtn">
-                <span class="settings-icon">📊</span>
-                <span class="settings-label">Storage Analytics</span>
-                <span class="settings-chevron">›</span>
+              <button class="settings-row-item" id="settingsStorageBtn">
+                <div class="settings-icon-tile tile-cyan">
+                  <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"></line><line x1="12" y1="20" x2="12" y2="4"></line><line x1="6" y1="20" x2="6" y2="14"></line></svg>
+                </div>
+                <div class="settings-item-body">
+                  <span class="settings-item-title">Storage Analytics</span>
+                  <span class="settings-item-subtitle">Document storage usage & category breakdown</span>
+                </div>
+                <span class="settings-chevron" style="font-size: 1.2rem; opacity: 0.5; font-weight: 300;">›</span>
               </button>
-              <button class="settings-sheet-item" id="settingsNotifyBtn">
-                <span class="settings-icon">🔔</span>
-                <span class="settings-label">Notifications</span>
-                <span class="settings-chevron">›</span>
+            </div>
+
+            <div style="font-size: 0.72rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: var(--color-text-tertiary); margin-bottom: 8px; padding-left: 4px; margin-top: 14px;">Preferences</div>
+            <div class="settings-card-group">
+              <button class="settings-row-item" id="settingsNotifyBtn">
+                <div class="settings-icon-tile tile-amber">
+                  <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path><path d="M13.73 21a2 2 0 0 1-3.46 0"></path></svg>
+                </div>
+                <div class="settings-item-body">
+                  <span class="settings-item-title">Notifications</span>
+                  <span class="settings-item-subtitle">Expiry reminders & security alerts</span>
+                </div>
+                <span class="settings-chevron" style="font-size: 1.2rem; opacity: 0.5; font-weight: 300;">›</span>
               </button>
-              <button class="settings-sheet-item" id="settingsThemeBtn">
-                <span class="settings-icon">${themeIcon}</span>
-                <span class="settings-label">${themeLabel}</span>
-                <span class="settings-chevron">›</span>
+              <button class="settings-row-item" id="settingsThemeBtn">
+                <div class="settings-icon-tile tile-blue">
+                  ${theme === 'dark' 
+                    ? `<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"></circle><line x1="12" y1="1" x2="12" y2="3"></line><line x1="12" y1="21" x2="12" y2="23"></line><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line><line x1="1" y1="12" x2="3" y2="12"></line><line x1="21" y1="12" x2="23" y2="12"></line><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line></svg>`
+                    : `<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg>`
+                  }
+                </div>
+                <div class="settings-item-body">
+                  <span class="settings-item-title">${themeLabel}</span>
+                  <span class="settings-item-subtitle">Switch visual appearance theme</span>
+                </div>
+                <span class="settings-chevron" style="font-size: 1.2rem; opacity: 0.5; font-weight: 300;">›</span>
               </button>
             </div>
           </div>
@@ -1785,20 +1895,40 @@ const DocUI = (() => {
       <div class="modal-overlay active" id="vaultsSheetOverlay">
         <div class="modal-content" style="max-width: 480px;" role="dialog" aria-modal="true" aria-labelledby="vaultsSheetTitle">
           <div class="modal-header">
-            <h2 class="modal-title" id="vaultsSheetTitle">📁 Choose Vault</h2>
+            <h2 class="modal-title" id="vaultsSheetTitle" style="display: flex; align-items: center; gap: 8px;">
+              <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color: var(--color-accent-primary);"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path></svg>
+              Choose Vault
+            </h2>
             <button class="modal-close" id="closeVaultsSheetBtn" aria-label="Close">✕</button>
           </div>
-          <div class="modal-body" style="padding-top: var(--space-2);">
-            <div class="settings-sheet-list">
-              <button class="settings-sheet-item" id="vaultPersonalBtn">
-                <span class="settings-icon">🔐</span>
-                <span class="settings-label">Personal Vault <span style="font-size: 0.78rem; color: var(--color-text-tertiary); margin-left: 6px;">${personalCount} docs</span></span>
-                <span class="settings-chevron">›</span>
+          <div class="modal-body" style="padding-top: var(--space-3);">
+            <div class="settings-card-group">
+              <button class="settings-row-item" id="vaultPersonalBtn">
+                <div class="settings-icon-tile tile-violet">
+                  <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg>
+                </div>
+                <div class="settings-item-body">
+                  <div style="display: flex; align-items: center; justify-content: space-between;">
+                    <span class="settings-item-title">Personal Vault</span>
+                    <span class="settings-pill-badge pill-active">${personalCount} doc${personalCount !== 1 ? 's' : ''}</span>
+                  </div>
+                  <span class="settings-item-subtitle">Identity, Finance, Health & Education</span>
+                </div>
+                <span class="settings-chevron" style="font-size: 1.2rem; opacity: 0.5; font-weight: 300; margin-left: 8px;">›</span>
               </button>
-              <button class="settings-sheet-item" id="vaultOfficialBtn">
-                <span class="settings-icon">💼</span>
-                <span class="settings-label">Official Vault <span style="font-size: 0.78rem; color: var(--color-text-tertiary); margin-left: 6px;">${officialCount} docs</span></span>
-                <span class="settings-chevron">›</span>
+
+              <button class="settings-row-item" id="vaultOfficialBtn">
+                <div class="settings-icon-tile tile-cyan">
+                  <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="20" height="14" rx="2" ry="2"></rect><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"></path></svg>
+                </div>
+                <div class="settings-item-body">
+                  <div style="display: flex; align-items: center; justify-content: space-between;">
+                    <span class="settings-item-title">Official Vault</span>
+                    <span class="settings-pill-badge pill-active">${officialCount} doc${officialCount !== 1 ? 's' : ''}</span>
+                  </div>
+                  <span class="settings-item-subtitle">Employment, Tax, Legal & Business</span>
+                </div>
+                <span class="settings-chevron" style="font-size: 1.2rem; opacity: 0.5; font-weight: 300; margin-left: 8px;">›</span>
               </button>
             </div>
           </div>
