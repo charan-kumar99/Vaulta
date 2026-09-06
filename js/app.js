@@ -1496,19 +1496,20 @@ const DocApp = (() => {
       backupBtn.addEventListener('click', () => openSecretSyncModal());
     }
 
-    let logoClickCount = 0;
-    let logoClickTimer = null;
-    const logoEl = document.querySelector('.app-header .logo');
-    if (logoEl) {
-      logoEl.addEventListener('click', () => {
-        logoClickCount++;
-        clearTimeout(logoClickTimer);
-        if (logoClickCount >= 3) {
-          logoClickCount = 0;
+    let badgeClickCount = 0;
+    let badgeClickTimer = null;
+    const badgeEl = document.querySelector('.security-status-badge');
+    if (badgeEl) {
+      badgeEl.addEventListener('click', (e) => {
+        e.stopPropagation();
+        badgeClickCount++;
+        clearTimeout(badgeClickTimer);
+        if (badgeClickCount >= 3) {
+          badgeClickCount = 0;
           DocUI.showToast('🔐 Secret Vault Sync Unlocked!', 'info');
           openSecretSyncModal();
         } else {
-          logoClickTimer = setTimeout(() => { logoClickCount = 0; }, 800);
+          badgeClickTimer = setTimeout(() => { badgeClickCount = 0; }, 800);
         }
       });
     }
@@ -2540,31 +2541,46 @@ const DocApp = (() => {
     let tapCount = 0;
     let tapTimer = null;
 
-    if (logoEl) {
-      logoEl.addEventListener('click', () => {
-        tapCount++;
+    function handleLogoTap(e) {
+      if (e) e.stopPropagation();
+      tapCount++;
+      if (tapTimer) clearTimeout(tapTimer);
+      tapTimer = setTimeout(() => {
+        tapCount = 0;
+      }, 2500);
+
+      triggerHaptic(15);
+
+      if (tapCount === 3) {
+        DocUI.showToast('Tap 2 more times for Secret Screenshot Mode...', 'info');
+      }
+
+      if (tapCount >= 5) {
+        tapCount = 0;
         if (tapTimer) clearTimeout(tapTimer);
-        tapTimer = setTimeout(() => {
-          tapCount = 0;
-        }, 2000);
+        const currentDisabled = localStorage.getItem('vaulta_screen_security') === 'disabled';
+        const newStatus = currentDisabled ? 'enabled' : 'disabled';
+        localStorage.setItem('vaulta_screen_security', newStatus);
 
-        if (tapCount >= 5) {
-          tapCount = 0;
-          if (tapTimer) clearTimeout(tapTimer);
-          const currentDisabled = localStorage.getItem('vaulta_screen_security') === 'disabled';
-          const newStatus = currentDisabled ? 'enabled' : 'disabled';
-          localStorage.setItem('vaulta_screen_security', newStatus);
-
-          triggerHaptic([40, 80, 40]);
-          if (newStatus === 'disabled') {
-            DocUI.showToast('🔓 Secret Test Mode: Screen Security DISABLED (Screenshots & Recordings Allowed)', 'warning');
-          } else {
-            DocUI.showToast('🛡️ Screen Security ACTIVATED (Screenshots & Recordings Blocked)', 'success');
-          }
-          updatePrivacyShieldState();
+        triggerHaptic([60, 100, 60]);
+        if (newStatus === 'disabled') {
+          DocUI.showToast('🔓 Secret Test Mode: Screenshots & Recordings ALLOWED', 'warning');
+        } else {
+          DocUI.showToast('🛡️ Screen Security ACTIVATED (Screenshots Blocked)', 'success');
         }
-      });
+        updatePrivacyShieldState();
+      }
     }
+
+    if (logoEl) {
+      logoEl.addEventListener('click', handleLogoTap);
+    }
+
+    document.addEventListener('click', (e) => {
+      if (e.target.closest('.lock-app-icon')) {
+        handleLogoTap(e);
+      }
+    });
 
     // Privacy shield element for obfuscating screen during app switch or capture attempts
     let shieldEl = document.getElementById('vaultaPrivacyShield');
