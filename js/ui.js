@@ -200,26 +200,30 @@ const DocUI = (() => {
   function renderFolderCard(folder, itemCount = 0) {
     return `
       <div class="doc-card folder-card" data-folder-id="${folder.id}">
-        <div class="doc-thumbnail folder-thumbnail" style="background: rgba(99, 102, 241, 0.08); display: flex; align-items: center; justify-content: center; flex-direction: column; gap: 8px;">
-          <div style="font-size: 3.5rem; filter: drop-shadow(0 4px 6px rgba(0,0,0,0.15));">📁</div>
+        <div class="doc-thumbnail folder-thumbnail" style="background: linear-gradient(135deg, rgba(99, 102, 241, 0.12), rgba(168, 85, 247, 0.08)); display: flex; align-items: center; justify-content: center; flex-direction: column; gap: 8px;">
+          <div style="width: 50px; height: 50px; border-radius: 14px; background: rgba(99, 102, 241, 0.18); border: 1px solid rgba(99, 102, 241, 0.3); display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 14px rgba(99, 102, 241, 0.25);">
+            <svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="#818cf8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path>
+            </svg>
+          </div>
         </div>
 
         <div class="doc-actions" style="opacity: 1; gap: 4px;">
-          <button class="doc-action-btn edit-folder-btn" data-folder-id="${folder.id}" title="Rename folder" aria-label="Rename folder" style="background: rgba(0,0,0,0.4);">
+          <button class="doc-action-btn edit-folder-btn" data-folder-id="${folder.id}" title="Rename folder" aria-label="Rename folder">
             ✏️
           </button>
-          <button class="doc-action-btn delete-folder-btn" data-folder-id="${folder.id}" title="Delete folder" aria-label="Delete folder" style="color: var(--color-accent-danger); background: rgba(0,0,0,0.4);">
+          <button class="doc-action-btn delete-folder-btn" data-folder-id="${folder.id}" title="Delete folder" aria-label="Delete folder" style="color: var(--color-accent-danger);">
             🗑️
           </button>
         </div>
 
         <div class="doc-info">
-          <div class="doc-name" title="${escapeHtml(folder.name)}" style="font-weight: var(--font-weight-semibold);">${escapeHtml(folder.name)}</div>
+          <div class="doc-name" title="${escapeHtml(folder.name)}" style="font-weight: 700;">${escapeHtml(folder.name)}</div>
           <div style="display: flex; align-items: center; justify-content: space-between; margin-top: var(--space-2);">
-            <span class="doc-folder-badge" style="background: rgba(99, 102, 241, 0.12); color: var(--color-accent-primary); border-color: rgba(99, 102, 241, 0.2);">
+            <span class="doc-folder-badge" style="background: rgba(99, 102, 241, 0.14); color: var(--color-accent-primary); border-color: rgba(99, 102, 241, 0.28); font-weight: 600;">
               📁 Folder
             </span>
-            <span style="font-size: var(--font-size-xs); color: var(--color-text-tertiary); font-weight: var(--font-weight-medium);">
+            <span style="font-size: var(--font-size-xs); color: var(--color-text-tertiary); font-weight: 600;">
               ${itemCount} ${itemCount === 1 ? 'item' : 'items'}
             </span>
           </div>
@@ -376,7 +380,7 @@ const DocUI = (() => {
 
           <!-- Quick Actions Shortcut Bar -->
           <div class="quick-actions-bar">
-            <button class="quick-action-pill" data-quick-action="scan" title="Scan Document">
+            <button class="quick-action-pill" id="quickActionScan" data-quick-action="scan" title="Scan Document">
               <div class="quick-pill-icon icon-cyan">
                 <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path><circle cx="12" cy="13" r="4"></circle></svg>
               </div>
@@ -592,20 +596,19 @@ const DocUI = (() => {
     const isPersonal = vault === 'personal';
     const categories = getAllCategories(vault);
     const title = isPersonal ? 'Personal Vault' : 'Official Vault';
-    const icon = isPersonal ? '🔐' : '💼';
 
     let breadcrumbHtml = `
       <span class="breadcrumb-item ${!currentFolder ? 'active' : ''}" data-nav-folder="root">
-        ${icon} ${title}
+        ${title}
       </span>
     `;
 
     folderPath.forEach((f, idx) => {
       const isLast = idx === folderPath.length - 1;
       breadcrumbHtml += `
-        <span class="breadcrumb-separator">/</span>
+        <span class="breadcrumb-separator">›</span>
         <span class="breadcrumb-item ${isLast ? 'active' : ''}" data-nav-folder="${f.id}">
-          📁 ${escapeHtml(f.name)}
+          ${escapeHtml(f.name)}
         </span>
       `;
     });
@@ -616,69 +619,100 @@ const DocUI = (() => {
 
     container.innerHTML = `
       <div class="container page-enter">
-        <!-- Page Title Bar & Breadcrumbs -->
-        <div class="page-title-bar" style="margin-top: var(--space-6);">
-          <div style="display: flex; align-items: center; gap: var(--space-3); flex-wrap: wrap;">
-            <button class="back-btn" id="vaultBackBtn" aria-label="Back">← Back</button>
-            <div class="vault-breadcrumbs" style="display: flex; align-items: center; gap: var(--space-2); font-size: var(--font-size-lg); font-weight: var(--font-weight-bold); color: var(--color-text-primary);">
-              ${breadcrumbHtml}
+        <!-- Vault Hero Banner -->
+        <div class="vault-hero-card ${vault}" style="margin-top: var(--space-4); margin-bottom: var(--space-4); cursor: default;">
+          <div style="display: flex; align-items: center; gap: 12px; width: 100%;">
+            <button class="vault-back-circle-btn" id="vaultBackBtn" title="Back" aria-label="Back">
+              <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="15 18 9 12 15 6"></polyline>
+              </svg>
+            </button>
+            <div class="vault-hero-badge" style="width: 44px; height: 44px;">
+              ${isPersonal ? `
+                <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
+              ` : `
+                <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="20" height="14" rx="2" ry="2"></rect><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"></path></svg>
+              `}
             </div>
-          </div>
-          <div style="display: flex; align-items: center; gap: var(--space-3); flex-wrap: wrap;">
-            <button class="btn btn-secondary" id="createFolderBtn" style="font-size: var(--font-size-sm); font-weight: var(--font-weight-medium);">
-              📁 + Create Folder
-            </button>
-            <button class="btn btn-secondary" id="bulkSelectBtn" style="font-size: var(--font-size-sm); padding: var(--space-2) var(--space-4);">
-              ☑ Select & Share
-            </button>
-            <div class="sort-dropdown">
-              <button class="sort-btn" id="sortToggle">
-                ↕ ${getSortLabel(sortBy)}
-              </button>
-              <div class="sort-menu" id="sortMenu">
-                <button class="sort-option ${sortBy === 'date-desc' ? 'active' : ''}" data-sort="date-desc">📅 Newest First</button>
-                <button class="sort-option ${sortBy === 'date-asc' ? 'active' : ''}" data-sort="date-asc">📅 Oldest First</button>
-                <button class="sort-option ${sortBy === 'name-asc' ? 'active' : ''}" data-sort="name-asc">🔤 Name A-Z</button>
-                <button class="sort-option ${sortBy === 'name-desc' ? 'active' : ''}" data-sort="name-desc">🔤 Name Z-A</button>
-                <button class="sort-option ${sortBy === 'category' ? 'active' : ''}" data-sort="category">📁 Category</button>
+            <div class="vault-hero-body" style="min-width: 0;">
+              <div class="vault-hero-header" style="flex-wrap: wrap; gap: 6px;">
+                <div class="vault-breadcrumbs" style="display: flex; align-items: center; gap: 6px; font-weight: 700; font-size: 1.05rem; color: var(--color-text-primary);">
+                  ${breadcrumbHtml}
+                </div>
+                <span class="vault-hero-tag ${vault === 'official' ? 'official-tag' : ''}">${isPersonal ? 'Private' : 'Work & Tax'}</span>
               </div>
+              <p class="vault-hero-subtitle" style="margin: 0; font-size: 0.78rem;">
+                ${isPersonal ? 'Aadhaar, PAN, Passport, Health & Family' : 'Offer Letters, Experience, Tax & Payslips'}
+                <span style="opacity: 0.5; margin: 0 4px;">•</span>
+                <span style="color: var(--color-accent-primary); font-weight: 600;">${documents.length} doc${documents.length !== 1 ? 's' : ''}</span>
+              </p>
             </div>
           </div>
+        </div>
 
-          <!-- Bulk Select Bar (hidden by default) -->
-          <div class="bulk-action-bar" id="bulkActionBar" style="display: none;">
-            <div style="display: flex; align-items: center; gap: var(--space-3);">
-              <button class="btn btn-ghost" id="selectAllBtn">☑ Select All</button>
-              <span id="selectedCount" style="font-size: var(--font-size-sm); color: var(--color-text-secondary);">0 selected</span>
+        <!-- Vault Actions Toolbar (Pills) -->
+        <div class="vault-actions-toolbar" style="margin-bottom: var(--space-4);">
+          <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+            <button class="vault-action-pill" id="createFolderBtn" title="Create Folder">
+              <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path><line x1="12" y1="11" x2="12" y2="17"></line><line x1="9" y1="14" x2="15" y2="14"></line></svg>
+              <span>+ Folder</span>
+            </button>
+            <button class="vault-action-pill" id="bulkSelectBtn" title="Select Multiple">
+              <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 11 12 14 22 4"></polyline><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"></path></svg>
+              <span>Select & Share</span>
+            </button>
+          </div>
+          <div class="sort-dropdown">
+            <button class="vault-action-pill sort-btn" id="sortToggle" title="Sort Order">
+              <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><polyline points="7 15 12 20 17 15"></polyline><polyline points="7 9 12 4 17 9"></polyline></svg>
+              <span>${getSortLabel(sortBy)}</span>
+              <span style="font-size: 0.65rem; opacity: 0.7; margin-left: 2px;">▾</span>
+            </button>
+            <div class="sort-menu" id="sortMenu">
+              <button class="sort-option ${sortBy === 'date-desc' ? 'active' : ''}" data-sort="date-desc">📅 Newest First</button>
+              <button class="sort-option ${sortBy === 'date-asc' ? 'active' : ''}" data-sort="date-asc">📅 Oldest First</button>
+              <button class="sort-option ${sortBy === 'name-asc' ? 'active' : ''}" data-sort="name-asc">🔤 Name A-Z</button>
+              <button class="sort-option ${sortBy === 'name-desc' ? 'active' : ''}" data-sort="name-desc">🔤 Name Z-A</button>
+              <button class="sort-option ${sortBy === 'category' ? 'active' : ''}" data-sort="category">📁 Category</button>
             </div>
-            <div style="display: flex; align-items: center; gap: var(--space-3); flex-wrap: wrap;">
-              <button class="btn btn-primary" id="bulkShareBtn" disabled style="font-size: var(--font-size-sm);">
-                📤 Share Selected
-              </button>
-              <button class="btn btn-secondary" id="bulkDownloadBtn" disabled style="font-size: var(--font-size-sm);">
-                ⬇ Download Selected
-              </button>
-              <button class="btn btn-secondary" id="bulkWhatsAppBtn" disabled style="font-size: var(--font-size-sm);">
-                💬 WhatsApp
-              </button>
-              <button class="btn btn-ghost" id="cancelSelectBtn">✕ Cancel</button>
-            </div>
+          </div>
+        </div>
+
+        <!-- Bulk Select Bar (hidden by default) -->
+        <div class="bulk-action-bar" id="bulkActionBar" style="display: none; margin-bottom: var(--space-4);">
+          <div style="display: flex; align-items: center; gap: var(--space-3);">
+            <button class="btn btn-ghost" id="selectAllBtn">☑ Select All</button>
+            <span id="selectedCount" style="font-size: var(--font-size-sm); color: var(--color-text-secondary);">0 selected</span>
+          </div>
+          <div style="display: flex; align-items: center; gap: var(--space-3); flex-wrap: wrap;">
+            <button class="btn btn-primary" id="bulkShareBtn" disabled style="font-size: var(--font-size-sm);">
+              📤 Share Selected
+            </button>
+            <button class="btn btn-secondary" id="bulkDownloadBtn" disabled style="font-size: var(--font-size-sm);">
+              ⬇ Download Selected
+            </button>
+            <button class="btn btn-secondary" id="bulkWhatsAppBtn" disabled style="font-size: var(--font-size-sm);">
+              💬 WhatsApp
+            </button>
+            <button class="btn btn-ghost" id="cancelSelectBtn">✕ Cancel</button>
           </div>
         </div>
 
         <!-- Search (vault-specific) -->
-        <div class="search-container">
+        <div class="search-container" style="margin-bottom: var(--space-4);">
+          <span class="search-icon-svg">
+            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+          </span>
           <input type="text" class="search-bar" id="vaultSearch" placeholder="Search in ${title.toLowerCase()}..." autocomplete="off" />
-          <span class="search-icon">🔍</span>
           <button class="search-clear" id="vaultSearchClear" aria-label="Clear search">✕</button>
         </div>
 
         <!-- Category Chips -->
-        <div class="category-chips" id="categoryChips">
+        <div class="category-chips" id="categoryChips" style="margin-bottom: var(--space-5);">
           ${categories.map((cat) => `
             <button class="category-chip ${(activeCategory === cat.name || (activeCategory === 'all' && cat.name === 'All')) ? 'active' : ''}"
                     data-category="${cat.name === 'All' ? 'all' : cat.name}">
-              ${cat.icon} ${cat.name}
+              ${escapeHtml(cat.name)}
             </button>
           `).join('')}
         </div>
@@ -690,13 +724,68 @@ const DocUI = (() => {
         </div>
 
         ${totalItems === 0 ? `
-          <div class="empty-state">
-            <div class="empty-icon anim-float">📁</div>
-            <h3 class="empty-title">This folder is empty</h3>
-            <p class="empty-desc">Upload a document to get started. You can create a new folder when uploading!</p>
-            <button class="btn btn-primary" id="emptyUploadBtn" style="margin-top: var(--space-3);">
-              <span class="btn-text">+ Upload Document</span>
-            </button>
+          <div class="quick-start-card anim-fade-in" style="margin-top: var(--space-4);">
+            <div class="quick-start-header">
+              <div class="quick-start-sparkle">${isPersonal ? '🔐' : '💼'}</div>
+              <div>
+                <h3 class="quick-start-title">${currentFolder ? escapeHtml(currentFolder.name) + ' is Empty' : title + ' is Ready'}</h3>
+                <p class="quick-start-desc">${currentFolder ? 'No documents in this folder yet.' : isPersonal ? 'Store and organize your personal identity cards, health records, and family documents.' : 'Store and organize your official employment, tax, and work documents.'}</p>
+              </div>
+            </div>
+
+            <div style="margin-top: 12px; margin-bottom: 8px;">
+              <span style="font-size: 0.76rem; font-weight: 700; color: var(--color-text-secondary); text-transform: uppercase; letter-spacing: 0.05em; display: block; margin-bottom: 8px;">Quick Suggestions:</span>
+              <div class="template-chips-grid">
+                ${isPersonal ? `
+                  <button class="template-chip" data-template-name="Aadhaar Card" data-template-category="Identity" data-template-vault="personal">
+                    <span class="chip-plus">+</span> Aadhaar Card
+                  </button>
+                  <button class="template-chip" data-template-name="PAN Card" data-template-category="Identity" data-template-vault="personal">
+                    <span class="chip-plus">+</span> PAN Card
+                  </button>
+                  <button class="template-chip" data-template-name="Driving License" data-template-category="Identity" data-template-vault="personal">
+                    <span class="chip-plus">+</span> Driving License
+                  </button>
+                  <button class="template-chip" data-template-name="Passport" data-template-category="Identity" data-template-vault="personal">
+                    <span class="chip-plus">+</span> Passport
+                  </button>
+                  <button class="template-chip" data-template-name="Health Insurance" data-template-category="Insurance" data-template-vault="personal">
+                    <span class="chip-plus">+</span> Health Insurance
+                  </button>
+                  <button class="template-chip" data-template-name="Vehicle RC" data-template-category="Property" data-template-vault="personal">
+                    <span class="chip-plus">+</span> Vehicle RC
+                  </button>
+                ` : `
+                  <button class="template-chip" data-template-name="Offer Letter" data-template-category="Employment" data-template-vault="official">
+                    <span class="chip-plus">+</span> Offer Letter
+                  </button>
+                  <button class="template-chip" data-template-name="Recent Payslip" data-template-category="Salary" data-template-vault="official">
+                    <span class="chip-plus">+</span> Payslip
+                  </button>
+                  <button class="template-chip" data-template-name="Form 16 / Tax" data-template-category="Financial" data-template-vault="official">
+                    <span class="chip-plus">+</span> Form 16
+                  </button>
+                  <button class="template-chip" data-template-name="Experience Letter" data-template-category="Employment" data-template-vault="official">
+                    <span class="chip-plus">+</span> Experience Letter
+                  </button>
+                  <button class="template-chip" data-template-name="Degree Certificate" data-template-category="Education" data-template-vault="official">
+                    <span class="chip-plus">+</span> Degree Certificate
+                  </button>
+                  <button class="template-chip" data-template-name="Company ID" data-template-category="Company ID" data-template-vault="official">
+                    <span class="chip-plus">+</span> Company ID
+                  </button>
+                `}
+              </div>
+            </div>
+
+            <div style="margin-top: 16px; display: flex; gap: 10px; align-items: center; justify-content: flex-start; flex-wrap: wrap;">
+              <button class="btn btn-primary" id="emptyUploadBtn" style="padding: 9px 20px;">
+                <span class="btn-text">+ Upload Document</span>
+              </button>
+              <button class="btn btn-secondary" id="emptyCreateFolderBtn" style="padding: 9px 16px; font-size: 0.85rem;">
+                📁 New Folder
+              </button>
+            </div>
           </div>
         ` : ''}
 
@@ -732,25 +821,22 @@ const DocUI = (() => {
             <button class="modal-close" id="uploadModalClose" aria-label="Close">✕</button>
           </div>
           <div class="modal-body">
-            <!-- Drop Zone -->
-            <div class="drop-zone" id="dropZone" style="text-align: center; padding: 22px 16px; margin-bottom: 16px; cursor: pointer;">
-              <div class="drop-icon anim-float" style="font-size: 2.2rem; margin-bottom: 6px;">📁</div>
-              <p class="drop-text" style="font-weight: 700; font-size: 1rem; margin-bottom: 4px; color: var(--color-text-primary);">Upload or Scan Document</p>
-              <p class="drop-subtext" style="font-size: 0.8rem; color: var(--color-text-secondary); margin-bottom: 14px;">Supports Camera Photos, Images (JPG, PNG), PDF & Excel</p>
-              
-              <div style="display: flex; gap: 10px; justify-content: center; flex-wrap: wrap;">
-                <button type="button" class="btn btn-primary" id="btnCameraScan" style="display: inline-flex; align-items: center; gap: 8px; padding: 10px 18px; font-weight: 600; border-radius: var(--radius-lg); font-size: 0.88rem;">
-                  <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path><circle cx="12" cy="13" r="4"></circle></svg>
-                  <span>📷 Scan with Camera</span>
-                </button>
-                <button type="button" class="btn btn-secondary" id="btnFileBrowse" style="display: inline-flex; align-items: center; gap: 8px; padding: 10px 18px; font-weight: 600; border-radius: var(--radius-lg); font-size: 0.88rem;">
-                  <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line></svg>
-                  <span>📁 Browse Files / PDF</span>
-                </button>
-              </div>
+            <!-- Compact Upload Zone -->
+            <div class="drop-zone compact-drop-zone" id="dropZone" style="padding: 12px 16px; margin-bottom: 12px; border-radius: var(--radius-xl); border: 1.5px dashed rgba(99, 102, 241, 0.45); background: rgba(99, 102, 241, 0.05); cursor: pointer; position: relative;">
+              <label for="fileInput" id="btnFileBrowse" style="cursor: pointer; display: flex; align-items: center; justify-content: space-between; gap: 12px; width: 100%; margin: 0; -webkit-tap-highlight-color: transparent;">
+                <div style="display: flex; align-items: center; gap: 12px; min-width: 0;">
+                  <div style="width: 38px; height: 38px; border-radius: 10px; background: var(--gradient-accent); display: flex; align-items: center; justify-content: center; flex-shrink: 0; box-shadow: 0 4px 12px rgba(99, 102, 241, 0.35);">
+                    <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
+                  </div>
+                  <div style="text-align: left; min-width: 0;">
+                    <div style="font-weight: 700; font-size: 0.9rem; color: var(--color-text-primary); line-height: 1.2;">Choose Document to Upload</div>
+                    <div style="font-size: 0.75rem; color: var(--color-text-secondary); margin-top: 2px;">PDF, Images (JPG, PNG), Excel or CSV</div>
+                  </div>
+                </div>
+                <span class="btn btn-secondary btn-sm" style="pointer-events: none; padding: 7px 14px; font-size: 0.8rem; font-weight: 600; flex-shrink: 0;">Browse</span>
+              </label>
 
-              <input type="file" id="cameraInput" accept="image/*" capture="environment" style="display:none;" />
-              <input type="file" id="fileInput" accept="image/*,.pdf,.xls,.xlsx,.csv,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,text/csv" style="display:none;" />
+              <input type="file" id="fileInput" accept="image/*,.pdf,.xls,.xlsx,.csv,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,text/csv" style="position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); border: 0; opacity: 0;" />
             </div>
 
             <!-- Upload Preview -->
@@ -1511,8 +1597,9 @@ const DocUI = (() => {
 
         const isToday = iso === todayStr ? 'today' : '';
         const isSelected = iso === selectedDateStr ? 'selected' : '';
+        const isSunday = (firstDay + day - 1) % 7 === 0;
 
-        daysHtml += `<div class="vdp-day ${isToday} ${isSelected}" data-date="${iso}">${day}</div>`;
+        daysHtml += `<div class="vdp-day ${isToday} ${isSelected} ${isSunday ? 'vdp-sunday' : ''}" data-date="${iso}">${day}</div>`;
       }
 
       const yearOptionsHtml = Array.from({ length: 121 }, (_, i) => 1950 + i)
@@ -1533,16 +1620,8 @@ const DocUI = (() => {
           <button class="vdp-nav-btn" id="${containerId}_nextMonth" title="Next Month">›</button>
         </div>
 
-        <div class="vdp-presets">
-          <button class="vdp-preset-btn" data-add-months="1">+1 Mon</button>
-          <button class="vdp-preset-btn" data-add-months="6">+6 Mon</button>
-          <button class="vdp-preset-btn" data-add-years="1">+1 Yr</button>
-          <button class="vdp-preset-btn" data-add-years="3">+3 Yrs</button>
-          <button class="vdp-preset-btn" data-add-years="5">+5 Yrs</button>
-        </div>
-
         <div class="vdp-weekdays">
-          <span>Su</span><span>Mo</span><span>Tu</span><span>We</span><span>Th</span><span>Fr</span><span>Sa</span>
+          <span class="vdp-sunday">Su</span><span>Mo</span><span>Tu</span><span>We</span><span>Th</span><span>Fr</span><span>Sa</span>
         </div>
 
         <div class="vdp-days-grid">${daysHtml}</div>
@@ -1583,21 +1662,6 @@ const DocUI = (() => {
           renderCalendar();
         });
       }
-
-      popover.querySelectorAll('.vdp-preset-btn').forEach((btn) => {
-        btn.addEventListener('click', (e) => {
-          e.stopPropagation();
-          const targetDate = new Date();
-          const addM = parseInt(btn.dataset.addMonths || '0', 10);
-          const addY = parseInt(btn.dataset.addYears || '0', 10);
-
-          if (addM) targetDate.setMonth(targetDate.getMonth() + addM);
-          if (addY) targetDate.setFullYear(targetDate.getFullYear() + addY);
-
-          const iso = targetDate.toISOString().split('T')[0];
-          selectDate(iso);
-        });
-      });
 
       popover.querySelectorAll('.vdp-day:not(.empty)').forEach((dayEl) => {
         dayEl.addEventListener('click', (e) => {
@@ -1733,6 +1797,153 @@ const DocUI = (() => {
     bindSheetDragDismiss(backdrop);
   }
 
+  async function renderExpiryTrackerModal() {
+    const modalsContainer = document.getElementById('modals');
+    if (!modalsContainer) return;
+    document.body.classList.add('modal-open');
+
+    const dbObj = window.DocDB || (typeof DocDB !== 'undefined' ? DocDB : null);
+    const allDocs = dbObj ? await dbObj.getAll() : [];
+
+    const expiryDocs = allDocs
+      .filter((d) => !!d.expiryDate)
+      .map((d) => {
+        const exp = (dbObj && typeof dbObj.getExpiryStatus === 'function')
+          ? dbObj.getExpiryStatus(d.expiryDate)
+          : { status: 'valid', daysLeft: 999 };
+        return { ...d, expStatus: exp };
+      })
+      .sort((a, b) => new Date(a.expiryDate) - new Date(b.expiryDate));
+
+    const expiredCount = expiryDocs.filter((d) => d.expStatus.status === 'expired').length;
+    const soonCount = expiryDocs.filter((d) => d.expStatus.status === 'expiring-soon').length;
+    const validCount = expiryDocs.filter((d) => d.expStatus.status === 'valid').length;
+
+    let itemsHtml = '';
+    if (expiryDocs.length === 0) {
+      itemsHtml = `
+        <div style="text-align: center; padding: 32px 16px;">
+          <div style="font-size: 2.6rem; margin-bottom: 8px;">📅</div>
+          <h4 style="font-size: 1rem; font-weight: 700; margin-bottom: 4px; color: var(--color-text-primary);">No Expiry Dates Set</h4>
+          <p style="font-size: 0.82rem; color: var(--color-text-secondary); max-width: 290px; margin: 0 auto 16px; line-height: 1.4;">
+            Set an expiry date on documents like Driving License, Passport, or IDs to track validity and get reminders.
+          </p>
+        </div>
+      `;
+    } else {
+      itemsHtml = expiryDocs.map((doc) => {
+        let badgeHtml = '';
+        let badgeBg = '';
+        let badgeColor = '';
+        let timeRemainingText = '';
+
+        const days = doc.expStatus.daysLeft;
+        if (doc.expStatus.status === 'expired') {
+          badgeHtml = '🔴 Expired';
+          badgeBg = 'rgba(239, 68, 68, 0.15)';
+          badgeColor = '#ef4444';
+          const daysAgo = Math.abs(days);
+          timeRemainingText = `Expired ${daysAgo} day${daysAgo !== 1 ? 's' : ''} ago`;
+        } else if (doc.expStatus.status === 'expiring-soon') {
+          badgeHtml = `🟡 ${days}d left`;
+          badgeBg = 'rgba(245, 158, 11, 0.15)';
+          badgeColor = '#f59e0b';
+          timeRemainingText = `Expires in ${days} days`;
+        } else {
+          badgeHtml = '🟢 Valid';
+          badgeBg = 'rgba(16, 185, 129, 0.15)';
+          badgeColor = '#10b981';
+          if (days > 365) {
+            const years = (days / 365.25).toFixed(1);
+            timeRemainingText = `${years} years left (${days} days)`;
+          } else {
+            timeRemainingText = `${days} days left`;
+          }
+        }
+
+        const dateFormatted = new Date(doc.expiryDate).toLocaleDateString('en-US', {
+          month: 'short',
+          day: 'numeric',
+          year: 'numeric'
+        });
+
+        return `
+          <div class="expiry-item" data-doc-id="${doc.id}" style="display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 12px 14px; background: var(--color-bg-tertiary); border: 1px solid var(--color-border); border-radius: var(--radius-lg); cursor: pointer; transition: all 0.15s ease;">
+            <div style="display: flex; align-items: center; gap: 10px; min-width: 0;">
+              <span style="font-size: 1.4rem; flex-shrink: 0;">${getFileTypeIcon(doc.fileType)}</span>
+              <div style="min-width: 0;">
+                <div style="font-weight: 700; font-size: 0.9rem; color: var(--color-text-primary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${escapeHtml(doc.name)}</div>
+                <div style="display: flex; gap: 6px; align-items: center; margin-top: 3px; font-size: 0.74rem; color: var(--color-text-secondary);">
+                  <span style="color: var(--color-accent-primary); font-weight: 600;">${escapeHtml(doc.category)}</span>
+                  <span>•</span>
+                  <span>${dateFormatted}</span>
+                </div>
+              </div>
+            </div>
+            <div style="text-align: right; flex-shrink: 0;">
+              <span style="display: inline-block; padding: 3px 8px; border-radius: var(--radius-full); font-size: 0.72rem; font-weight: 700; background: ${badgeBg}; color: ${badgeColor}; margin-bottom: 2px;">
+                ${badgeHtml}
+              </span>
+              <span style="display: block; font-size: 0.7rem; color: var(--color-text-tertiary);">${timeRemainingText}</span>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    modalsContainer.innerHTML = `
+      <div class="modal-overlay active modal-overlay-enter" id="expiryTrackerOverlay">
+        <div class="modal-content modal-content-enter" style="max-width: 480px;" role="dialog" aria-modal="true">
+          <div class="modal-header">
+            <h2 class="modal-title">📅 Document Expiry Tracker</h2>
+            <button class="modal-close" id="closeExpiryTrackerBtn" aria-label="Close modal">✕</button>
+          </div>
+          <div class="modal-body" style="padding: 14px 16px;">
+            ${expiryDocs.length > 0 ? `
+              <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; margin-bottom: 14px;">
+                <div style="background: rgba(239, 68, 68, 0.08); border: 1px solid rgba(239, 68, 68, 0.2); padding: 8px 6px; border-radius: var(--radius-md); text-align: center;">
+                  <span style="font-size: 0.72rem; color: #ef4444; font-weight: 600; display: block;">Expired</span>
+                  <strong style="font-size: 1.15rem; color: #ef4444;">${expiredCount}</strong>
+                </div>
+                <div style="background: rgba(245, 158, 11, 0.08); border: 1px solid rgba(245, 158, 11, 0.2); padding: 8px 6px; border-radius: var(--radius-md); text-align: center;">
+                  <span style="font-size: 0.72rem; color: #f59e0b; font-weight: 600; display: block;">Expiring Soon</span>
+                  <strong style="font-size: 1.15rem; color: #f59e0b;">${soonCount}</strong>
+                </div>
+                <div style="background: rgba(16, 185, 129, 0.08); border: 1px solid rgba(16, 185, 129, 0.2); padding: 8px 6px; border-radius: var(--radius-md); text-align: center;">
+                  <span style="font-size: 0.72rem; color: #10b981; font-weight: 600; display: block;">Valid</span>
+                  <strong style="font-size: 1.15rem; color: #10b981;">${validCount}</strong>
+                </div>
+              </div>
+            ` : ''}
+
+            <div style="display: flex; flex-direction: column; gap: 8px; max-height: 52vh; overflow-y: auto; -webkit-overflow-scrolling: touch;">
+              ${itemsHtml}
+            </div>
+          </div>
+        </div>
+      </div>
+    `;
+
+    const overlay = document.getElementById('expiryTrackerOverlay');
+    const closeBtn = document.getElementById('closeExpiryTrackerBtn');
+    const closeModal = () => {
+      document.body.classList.remove('modal-open');
+      if (overlay) overlay.remove();
+      if (modalsContainer) modalsContainer.innerHTML = '';
+    };
+
+    if (closeBtn) closeBtn.addEventListener('click', closeModal);
+    if (overlay) overlay.addEventListener('click', (e) => { if (e.target === overlay) closeModal(); });
+
+    overlay.querySelectorAll('.expiry-item').forEach((item) => {
+      item.addEventListener('click', () => {
+        const docId = item.dataset.docId;
+        closeModal();
+        window.location.hash = `#preview/${docId}`;
+      });
+    });
+  }
+
   function renderSettingsSheet() {
     const modalsContainer = document.getElementById('modals');
     if (!modalsContainer) return;
@@ -1808,8 +2019,10 @@ const DocUI = (() => {
     const backupBtn = document.getElementById('settingsBackupBtn');
     if (backupBtn) backupBtn.addEventListener('click', () => {
       closeSheet();
-      if (window.DocShare && typeof window.DocShare.exportDataPackage === 'function') {
-        window.DocShare.exportDataPackage();
+      if (window.DocApp && typeof window.DocApp.exportBackup === 'function') {
+        window.DocApp.exportBackup();
+      } else if (window.DocShare && typeof window.DocShare.exportBackup === 'function') {
+        window.DocShare.exportBackup();
       } else {
         showToast('Backup feature initialized', 'info');
       }
@@ -1999,6 +2212,7 @@ const DocUI = (() => {
     renderStorageAnalyticsModal,
     renderSettingsSheet,
     renderVaultsSheet,
+    renderExpiryTrackerModal,
     loadPdfJsLibrary,
     initVaultaDatePicker,
     showToast,

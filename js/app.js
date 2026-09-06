@@ -62,6 +62,21 @@ const DocApp = (() => {
     bindBottomNav();
     initScreenSecurity();
 
+    const directCam = document.getElementById('directCameraInput');
+    if (directCam) {
+      directCam.addEventListener('change', (e) => {
+        if (e.target.files && e.target.files.length > 0) {
+          const file = e.target.files[0];
+          window.SecurityModule?.suppressLock(45000);
+          openUploadModal();
+          setTimeout(() => {
+            handleFileSelect(file);
+          }, 60);
+          directCam.value = '';
+        }
+      });
+    }
+
     document.addEventListener('click', (e) => {
       if (activeSwipedInner && !e.target.closest('.doc-card-swipe-wrapper')) {
         closeActiveSwiped();
@@ -448,7 +463,13 @@ const DocApp = (() => {
   async function handleQuickAction(action) {
     switch (action) {
       case 'scan': {
-        openUploadModal({ autoCamera: true });
+        const directCam = document.getElementById('directCameraInput');
+        if (directCam) {
+          window.SecurityModule?.suppressLock(45000);
+          directCam.click();
+        } else {
+          openUploadModal({ autoCamera: true });
+        }
         break;
       }
       case 'upload': {
@@ -468,21 +489,10 @@ const DocApp = (() => {
         break;
       }
       case 'expiring': {
-        try {
-          const docs = await DocDB.getAllDocuments();
-          const expiringDocs = docs.filter((d) => {
-            if (!d.expiryDate || typeof DocDB.getExpiryStatus !== 'function') return false;
-            const exp = DocDB.getExpiryStatus(d.expiryDate);
-            return exp.status === 'expired' || exp.status === 'expiring-soon';
-          });
-          if (expiringDocs.length > 0) {
-            DocUI.showToast(`⚠️ ${expiringDocs.length} document${expiringDocs.length > 1 ? 's' : ''} expiring soon or expired.`, 'warning', 3000);
-            DocUI.renderStorageAnalyticsModal();
-          } else {
-            DocUI.showToast('🟢 All documents are up to date! None expiring soon.', 'success');
-          }
-        } catch (e) {
-          DocUI.showToast('No expiring documents found.', 'info');
+        if (DocUI && typeof DocUI.renderExpiryTrackerModal === 'function') {
+          await DocUI.renderExpiryTrackerModal();
+        } else {
+          DocUI.showToast('Opening expiry tracker...', 'info');
         }
         break;
       }
@@ -1671,8 +1681,6 @@ const DocApp = (() => {
     const submitBtn = document.getElementById('uploadSubmit');
     const dropZone = document.getElementById('dropZone');
     const fileInput = document.getElementById('fileInput');
-    const cameraInput = document.getElementById('cameraInput');
-    const btnCamera = document.getElementById('btnCameraScan');
     const btnBrowse = document.getElementById('btnFileBrowse');
     const vaultSelect = document.getElementById('docVault');
     const previewRemove = document.getElementById('previewRemove');
@@ -1720,38 +1728,21 @@ const DocApp = (() => {
 
     if (fileInput) {
       fileInput.addEventListener('change', (e) => {
+        window.SecurityModule?.suppressLock(45000);
         if (e.target.files && e.target.files.length > 0) onFilePicked(e.target.files[0]);
       });
     }
 
-    if (cameraInput) {
-      cameraInput.addEventListener('change', (e) => {
-        if (e.target.files && e.target.files.length > 0) onFilePicked(e.target.files[0]);
-      });
-    }
-
-    if (btnCamera && cameraInput) {
-      btnCamera.addEventListener('click', (e) => {
-        e.preventDefault();
-        e.stopPropagation();
-        window.SecurityModule?.suppressLock(25000);
-        cameraInput.click();
-      });
-    }
-
-    if (btnBrowse && fileInput) {
-      btnBrowse.addEventListener('click', (e) => {
-        e.preventDefault();
-        e.stopPropagation();
-        window.SecurityModule?.suppressLock(25000);
-        fileInput.click();
+    if (btnBrowse) {
+      btnBrowse.addEventListener('click', () => {
+        window.SecurityModule?.suppressLock(45000);
       });
     }
 
     if (dropZone && fileInput) {
       dropZone.addEventListener('click', (e) => {
-        if (e.target.closest('#btnCameraScan') || e.target.closest('#btnFileBrowse')) return;
-        window.SecurityModule?.suppressLock(25000);
+        if (e.target.closest('#btnFileBrowse') || e.target.closest('label') || e.target.closest('input')) return;
+        window.SecurityModule?.suppressLock(45000);
         fileInput.click();
       });
 
@@ -1777,10 +1768,12 @@ const DocApp = (() => {
         e.stopPropagation();
         state.selectedFile = null;
         const preview = document.getElementById('uploadPreview');
-        preview.classList.remove('visible');
-        preview.querySelector('img, .preview-pdf')?.remove();
-        dropZone.style.display = '';
-        submitBtn.disabled = true;
+        if (preview) {
+          preview.classList.remove('visible');
+          preview.querySelector('img, .preview-pdf')?.remove();
+        }
+        if (dropZone) dropZone.style.display = '';
+        if (submitBtn) submitBtn.disabled = true;
       });
     }
 
@@ -1810,63 +1803,56 @@ const DocApp = (() => {
     if (catSelect) catSelect.addEventListener('change', updateCustomVisibility);
     if (folderSelect) folderSelect.addEventListener('change', updateFolderVisibility);
 
-    vaultSelect.addEventListener('change', () => {
-      const vault = vaultSelect.value;
-      const personalGroup = document.getElementById('personalCatGroup');
-      const officialGroup = document.getElementById('officialCatGroup');
-      const personalFolders = document.getElementById('personalFolderGroup');
-      const officialFolders = document.getElementById('officialFolderGroup');
+    if (vaultSelect) {
+      vaultSelect.addEventListener('change', () => {
+        const vault = vaultSelect.value;
+        const personalGroup = document.getElementById('personalCatGroup');
+        const officialGroup = document.getElementById('officialCatGroup');
+        const personalFolders = document.getElementById('personalFolderGroup');
+        const officialFolders = document.getElementById('officialFolderGroup');
 
-      if (vault === 'personal') {
-        if (personalGroup) personalGroup.style.display = '';
-        if (officialGroup) officialGroup.style.display = 'none';
-        if (personalFolders) personalFolders.style.display = '';
-        if (officialFolders) officialFolders.style.display = 'none';
-        const firstOption = personalGroup?.querySelector('option');
-        if (firstOption) firstOption.selected = true;
-      } else {
-        if (personalGroup) personalGroup.style.display = 'none';
-        if (officialGroup) officialGroup.style.display = '';
-        if (personalFolders) personalFolders.style.display = 'none';
-        if (officialFolders) officialFolders.style.display = '';
-        const firstOption = officialGroup?.querySelector('option');
-        if (firstOption) firstOption.selected = true;
-      }
-      if (folderSelect) folderSelect.value = '';
-      updateCustomVisibility();
-      updateFolderVisibility();
-    });
+        if (vault === 'personal') {
+          if (personalGroup) personalGroup.style.display = '';
+          if (officialGroup) officialGroup.style.display = 'none';
+          if (personalFolders) personalFolders.style.display = '';
+          if (officialFolders) officialFolders.style.display = 'none';
+          const firstOption = personalGroup?.querySelector('option');
+          if (firstOption) firstOption.selected = true;
+        } else {
+          if (personalGroup) personalGroup.style.display = 'none';
+          if (officialGroup) officialGroup.style.display = '';
+          if (personalFolders) personalFolders.style.display = 'none';
+          if (officialFolders) officialFolders.style.display = '';
+          const firstOption = officialGroup?.querySelector('option');
+          if (firstOption) firstOption.selected = true;
+        }
+        if (folderSelect) folderSelect.value = '';
+        updateCustomVisibility();
+        updateFolderVisibility();
+      });
+    }
 
     updateCustomVisibility();
     updateFolderVisibility();
 
-    submitBtn.addEventListener('click', handleUpload);
+    if (submitBtn) submitBtn.addEventListener('click', handleUpload);
   }
 
   function handleFileSelect(file) {
-    const validTypes = [
-      'image/jpeg', 'image/png', 'image/gif', 'image/webp',
-      'application/pdf',
-      'application/vnd.ms-excel',
-      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-      'text/csv',
-      'application/csv',
-      'text/excel',
-      'application/excel',
-      'application/x-excel',
-      'application/x-msexcel'
-    ];
+    if (!file) return;
 
     const fileName = (file.name || '').toLowerCase();
-    const isExcelFile = fileName.endsWith('.xls') || fileName.endsWith('.xlsx') || fileName.endsWith('.csv') || file.type.includes('excel') || file.type.includes('spreadsheet') || file.type.includes('csv');
+    const isImageFile = (file.type && file.type.startsWith('image/')) || /\.(jpe?g|png|gif|webp|heic|heif|bmp|svg)$/i.test(fileName);
+    const isPdfFile = (file.type && file.type.includes('pdf')) || fileName.endsWith('.pdf');
+    const isExcelFile = fileName.endsWith('.xls') || fileName.endsWith('.xlsx') || fileName.endsWith('.csv') || (file.type && (file.type.includes('excel') || file.type.includes('spreadsheet') || file.type.includes('csv')));
 
-    if (!validTypes.includes(file.type) && !isExcelFile) {
+    if (!isImageFile && !isPdfFile && !isExcelFile) {
       DocUI.showToast('Unsupported file type. Please use JPG, PNG, PDF, or Excel (XLS, XLSX, CSV).', 'error');
       return;
     }
 
-    if (file.size > 20 * 1024 * 1024) {
-      DocUI.showToast('File is too large. Maximum 20MB allowed.', 'error');
+    if (file.size > 25 * 1024 * 1024) {
+      DocUI.showToast('File is too large. Maximum 25MB allowed.', 'error');
       return;
     }
 
@@ -1878,46 +1864,48 @@ const DocApp = (() => {
     const nameInput = document.getElementById('docName');
 
     if (nameInput && !nameInput.value) {
-      const baseName = file.name.replace(/\.[^.]+$/, '').replace(/[_-]/g, ' ');
+      const baseName = file.name ? file.name.replace(/\.[^.]+$/, '').replace(/[_-]/g, ' ') : 'Scanned Document';
       nameInput.value = baseName;
     }
 
-    preview.classList.add('visible');
-    dropZone.style.display = 'none';
+    if (preview) preview.classList.add('visible');
+    if (dropZone) dropZone.style.display = 'none';
 
-    const existingPreviewContent = preview.querySelector('img, .preview-pdf');
-    if (existingPreviewContent) existingPreviewContent.remove();
+    if (preview) {
+      const existingPreviewContent = preview.querySelector('img, .preview-pdf');
+      if (existingPreviewContent) existingPreviewContent.remove();
 
-    if (file.type.startsWith('image/')) {
-      const img = document.createElement('img');
-      img.src = URL.createObjectURL(file);
-      img.alt = 'Preview';
-      preview.insertBefore(img, preview.firstChild);
-    } else if (isExcelFile) {
-      const excelDiv = document.createElement('div');
-      excelDiv.className = 'preview-pdf';
-      excelDiv.innerHTML = `
-        <span class="pdf-icon">📊</span>
-        <div>
-          <div style="font-weight: var(--font-weight-semibold);">${DocUI.escapeHtml(file.name)}</div>
-          <div style="font-size: var(--font-size-xs); color: var(--color-text-tertiary);">${formatFileSize(file.size)}</div>
-        </div>
-      `;
-      preview.insertBefore(excelDiv, preview.firstChild);
-    } else {
-      const pdfDiv = document.createElement('div');
-      pdfDiv.className = 'preview-pdf';
-      pdfDiv.innerHTML = `
-        <span class="pdf-icon">📕</span>
-        <div>
-          <div style="font-weight: var(--font-weight-semibold);">${DocUI.escapeHtml(file.name)}</div>
-          <div style="font-size: var(--font-size-xs); color: var(--color-text-tertiary);">${formatFileSize(file.size)}</div>
-        </div>
-      `;
-      preview.insertBefore(pdfDiv, preview.firstChild);
+      if (isImageFile) {
+        const img = document.createElement('img');
+        img.src = URL.createObjectURL(file);
+        img.alt = 'Preview';
+        preview.insertBefore(img, preview.firstChild);
+      } else if (isExcelFile) {
+        const excelDiv = document.createElement('div');
+        excelDiv.className = 'preview-pdf';
+        excelDiv.innerHTML = `
+          <span class="pdf-icon">📊</span>
+          <div>
+            <div style="font-weight: var(--font-weight-semibold);">${DocUI.escapeHtml(file.name)}</div>
+            <div style="font-size: var(--font-size-xs); color: var(--color-text-tertiary);">${formatFileSize(file.size)}</div>
+          </div>
+        `;
+        preview.insertBefore(excelDiv, preview.firstChild);
+      } else {
+        const pdfDiv = document.createElement('div');
+        pdfDiv.className = 'preview-pdf';
+        pdfDiv.innerHTML = `
+          <span class="pdf-icon">📕</span>
+          <div>
+            <div style="font-weight: var(--font-weight-semibold);">${DocUI.escapeHtml(file.name)}</div>
+            <div style="font-size: var(--font-size-xs); color: var(--color-text-tertiary);">${formatFileSize(file.size)}</div>
+          </div>
+        `;
+        preview.insertBefore(pdfDiv, preview.firstChild);
+      }
     }
 
-    submitBtn.disabled = false;
+    if (submitBtn) submitBtn.disabled = false;
   }
 
   function parseStandardDate(str) {
