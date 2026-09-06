@@ -567,7 +567,7 @@ const DocUI = (() => {
             </div>
             <div class="doc-info">
               <div class="doc-name" title="${escapeHtml(doc.name)}">${escapeHtml(doc.name)}</div>
-              <div style="display: flex; flex-wrap: wrap; gap: 4px; align-items: center; margin-bottom: var(--space-2);">
+              <div style="display: flex; flex-wrap: wrap; gap: 4px; align-items: center; margin-bottom: var(--space-2); max-width: 100%; overflow: hidden;">
                 <span class="doc-category-badge" style="background: ${getCategoryColor(doc.category)}15; color: ${getCategoryColor(doc.category)};">
                   ${getCategoryIcon(doc.category, doc.vault)} ${escapeHtml(doc.category)}
                 </span>
@@ -1372,6 +1372,7 @@ const DocUI = (() => {
                 <button type="button" class="btn btn-secondary btn-sm" id="toggleBioBtn" ${(!isBioSupported || !isSecEnabled) ? 'disabled' : ''}>
                   ${isBioEnabled ? 'Disable' : 'Enable'}
                 </button>
+              </div>
             </div>
 
             ${isSecEnabled ? `
@@ -1522,11 +1523,22 @@ const DocUI = (() => {
         daysHtml += `<div class="vdp-day ${isToday} ${isSelected}" data-date="${iso}">${day}</div>`;
       }
 
+      const yearOptionsHtml = Array.from({ length: 121 }, (_, i) => 1950 + i)
+        .map((y) => `<option value="${y}" ${y === viewYear ? 'selected' : ''}>${y}</option>`)
+        .join('');
+
       popover.innerHTML = `
         <div class="vdp-header">
-          <button class="vdp-nav-btn" id="${containerId}_prevMonth">‹</button>
-          <span class="vdp-month-year">${months[viewMonth]} ${viewYear}</span>
-          <button class="vdp-nav-btn" id="${containerId}_nextMonth">›</button>
+          <button class="vdp-nav-btn" id="${containerId}_prevMonth" title="Previous Month">‹</button>
+          <div class="vdp-selectors">
+            <select class="vdp-select vdp-select-month" id="${containerId}_selectMonth" aria-label="Select month">
+              ${months.map((m, idx) => `<option value="${idx}" ${idx === viewMonth ? 'selected' : ''}>${m}</option>`).join('')}
+            </select>
+            <select class="vdp-select vdp-select-year" id="${containerId}_selectYear" aria-label="Select year">
+              ${yearOptionsHtml}
+            </select>
+          </div>
+          <button class="vdp-nav-btn" id="${containerId}_nextMonth" title="Next Month">›</button>
         </div>
 
         <div class="vdp-presets">
@@ -1546,6 +1558,9 @@ const DocUI = (() => {
 
       const prevBtn = document.getElementById(`${containerId}_prevMonth`);
       const nextBtn = document.getElementById(`${containerId}_nextMonth`);
+      const selectMonth = document.getElementById(`${containerId}_selectMonth`);
+      const selectYear = document.getElementById(`${containerId}_selectYear`);
+
       if (prevBtn) {
         prevBtn.addEventListener('click', (e) => {
           e.stopPropagation();
@@ -1559,6 +1574,20 @@ const DocUI = (() => {
           e.stopPropagation();
           viewMonth++;
           if (viewMonth > 11) { viewMonth = 0; viewYear++; }
+          renderCalendar();
+        });
+      }
+      if (selectMonth) {
+        selectMonth.addEventListener('change', (e) => {
+          e.stopPropagation();
+          viewMonth = parseInt(e.target.value, 10);
+          renderCalendar();
+        });
+      }
+      if (selectYear) {
+        selectYear.addEventListener('change', (e) => {
+          e.stopPropagation();
+          viewYear = parseInt(e.target.value, 10);
           renderCalendar();
         });
       }
@@ -1764,33 +1793,6 @@ const DocUI = (() => {
                 <span class="settings-chevron" style="font-size: 1.2rem; opacity: 0.5; font-weight: 300;">›</span>
               </button>
             </div>
-
-            <div style="font-size: 0.72rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: var(--color-text-tertiary); margin-bottom: 8px; padding-left: 4px; margin-top: 14px;">Preferences</div>
-            <div class="settings-card-group">
-              <button class="settings-row-item" id="settingsNotifyBtn">
-                <div class="settings-icon-tile tile-amber">
-                  <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path><path d="M13.73 21a2 2 0 0 1-3.46 0"></path></svg>
-                </div>
-                <div class="settings-item-body">
-                  <span class="settings-item-title">Notifications</span>
-                  <span class="settings-item-subtitle">Expiry reminders & security alerts</span>
-                </div>
-                <span class="settings-chevron" style="font-size: 1.2rem; opacity: 0.5; font-weight: 300;">›</span>
-              </button>
-              <button class="settings-row-item" id="settingsThemeBtn">
-                <div class="settings-icon-tile tile-blue">
-                  ${theme === 'dark' 
-                    ? `<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"></circle><line x1="12" y1="1" x2="12" y2="3"></line><line x1="12" y1="21" x2="12" y2="23"></line><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line><line x1="1" y1="12" x2="3" y2="12"></line><line x1="21" y1="12" x2="23" y2="12"></line><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line></svg>`
-                    : `<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg>`
-                  }
-                </div>
-                <div class="settings-item-body">
-                  <span class="settings-item-title">${themeLabel}</span>
-                  <span class="settings-item-subtitle">Switch visual appearance theme</span>
-                </div>
-                <span class="settings-chevron" style="font-size: 1.2rem; opacity: 0.5; font-weight: 300;">›</span>
-              </button>
-            </div>
           </div>
         </div>
       </div>
@@ -1823,22 +1825,6 @@ const DocUI = (() => {
 
     const storageBtn = document.getElementById('settingsStorageBtn');
     if (storageBtn) storageBtn.addEventListener('click', () => { closeSheet(); renderStorageAnalyticsModal(); });
-
-    const notifyBtn = document.getElementById('settingsNotifyBtn');
-    if (notifyBtn) notifyBtn.addEventListener('click', () => {
-      closeSheet();
-      if (window.DocApp && typeof window.DocApp.requestNotificationPermission === 'function') {
-        window.DocApp.requestNotificationPermission();
-      }
-    });
-
-    const themeBtn = document.getElementById('settingsThemeBtn');
-    if (themeBtn) themeBtn.addEventListener('click', () => {
-      closeSheet();
-      if (window.DocApp && typeof window.DocApp.toggleTheme === 'function') {
-        window.DocApp.toggleTheme();
-      }
-    });
 
     bindSheetDragDismiss(backdrop);
   }

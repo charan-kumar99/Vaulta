@@ -22,9 +22,9 @@
   <link rel="icon" type="image/png" sizes="32x32" href="icons/favicon-32x32.png" />
   <link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png" />
 
-  <link rel="stylesheet" href="css/index.css" />
-  <link rel="stylesheet" href="css/animations.css" />
-  <link rel="stylesheet" href="css/components.css" />
+  <link rel="stylesheet" href="css/index.css?v=50" />
+  <link rel="stylesheet" href="css/animations.css?v=50" />
+  <link rel="stylesheet" href="css/components.css?v=50" />
 </head>
 <body>
 
@@ -119,12 +119,12 @@
     </button>
   </nav>
 
-  <script src="js/db.js"></script>
-  <script src="js/search.js"></script>
-  <script src="js/share.js"></script>
-  <script src="js/ui.js"></script>
-  <script src="js/security.js"></script>
-  <script src="js/app.js"></script>
+  <script src="js/db.js?v=50"></script>
+  <script src="js/search.js?v=50"></script>
+  <script src="js/share.js?v=50"></script>
+  <script src="js/ui.js?v=50"></script>
+  <script src="js/security.js?v=50"></script>
+  <script src="js/app.js?v=50"></script>
 
   <script>
     document.addEventListener('DOMContentLoaded', () => {
@@ -168,7 +168,18 @@
       document.getElementById('themeToggle').textContent = theme === 'dark' ? '☀️' : '🌙';
 
       if ('serviceWorker' in navigator) {
-        navigator.serviceWorker.register('sw.js')
+        let refreshing = false;
+        navigator.serviceWorker.addEventListener('controllerchange', () => {
+          if (!refreshing) {
+            refreshing = true;
+            window.location.reload();
+          }
+        });
+
+        navigator.serviceWorker.register('sw.js?v=50')
+          .then((reg) => {
+            if (reg) reg.update();
+          })
           .catch((err) => console.error(err));
       }
 

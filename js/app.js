@@ -47,6 +47,18 @@ const DocApp = (() => {
 
     window.addEventListener('hashchange', handleRoute);
 
+    window.addEventListener('popstate', (e) => {
+      if (document.body.classList.contains('preview-open')) {
+        closePreview(true);
+        return;
+      }
+      const modals = modalsContainer();
+      if (modals && modals.innerHTML.trim() !== '') {
+        modals.innerHTML = '';
+        syncActiveTab();
+      }
+    });
+
     bindBottomNav();
     initScreenSecurity();
 
@@ -213,10 +225,11 @@ const DocApp = (() => {
   }
 
   function navigate(screen, vault = null) {
-    if (screen === 'home') {
-      window.location.hash = '#home';
-    } else if (screen === 'vault' && vault) {
-      window.location.hash = `#vault/${vault}`;
+    const targetHash = screen === 'home' ? '#home' : (screen === 'vault' && vault ? `#vault/${vault}` : '#home');
+    if (window.location.hash === targetHash) {
+      handleRoute();
+    } else {
+      window.location.hash = targetHash;
     }
   }
 
@@ -719,27 +732,36 @@ const DocApp = (() => {
       triggerHaptic(15);
 
       switch (navTarget) {
-        case 'home':
+        case 'home': {
+          const modals = modalsContainer();
+          if (modals) modals.innerHTML = '';
           navigate('home');
           updateActiveTab('home');
           break;
+        }
         case 'vaults': {
           const existingVaultsSheet = document.getElementById('vaultsSheetOverlay');
+          const modals = modalsContainer();
           if (existingVaultsSheet) {
-            const modals = modalsContainer();
             if (modals) modals.innerHTML = '';
             syncActiveTab();
           } else {
+            if (modals) modals.innerHTML = '';
             DocUI.renderVaultsSheet();
             updateActiveTab('vaults');
           }
           break;
         }
-        case 'upload':
+        case 'upload': {
+          const modals = modalsContainer();
+          if (modals) modals.innerHTML = '';
           triggerHaptic(20);
           openUploadModal();
           break;
+        }
         case 'search': {
+          const modals = modalsContainer();
+          if (modals) modals.innerHTML = '';
           updateActiveTab('search');
           const searchInput = document.getElementById('globalSearch');
           if (searchInput) {
@@ -762,11 +784,12 @@ const DocApp = (() => {
           const existingSettingsSheet = document.getElementById('settingsSheetOverlay');
           const existingSecModal = document.getElementById('securityModalOverlay');
           const existingStorageModal = document.getElementById('storageModalOverlay');
+          const modals = modalsContainer();
           if (existingSettingsSheet || existingSecModal || existingStorageModal) {
-            const modals = modalsContainer();
             if (modals) modals.innerHTML = '';
             syncActiveTab();
           } else {
+            if (modals) modals.innerHTML = '';
             DocUI.renderSettingsSheet();
             updateActiveTab('settings');
           }
@@ -1625,7 +1648,7 @@ const DocApp = (() => {
       setTimeout(() => {
         const fileInput = document.getElementById('fileInput');
         if (fileInput) {
-          window.SecurityModule?.suppressLock(180000);
+          window.SecurityModule?.suppressLock(25000);
           fileInput.click();
         }
       }, 150);
@@ -1657,7 +1680,7 @@ const DocApp = (() => {
     });
 
     dropZone.addEventListener('click', () => {
-      window.SecurityModule?.suppressLock(180000);
+      window.SecurityModule?.suppressLock(25000);
       fileInput.click();
     });
 
@@ -1950,6 +1973,9 @@ const DocApp = (() => {
 
     state.currentPreviewUrl = fileUrl;
     document.body.classList.add('preview-open');
+    try {
+      history.pushState({ modal: 'preview' }, '');
+    } catch (_) {}
 
     const modals = modalsContainer();
     modals.innerHTML = DocUI.renderPreview(doc, fileUrl);
@@ -2178,7 +2204,7 @@ const DocApp = (() => {
     document.addEventListener('keydown', escHandler);
   }
 
-  function closePreview() {
+  function closePreview(fromPopState = false) {
     document.body.classList.remove('preview-open');
     if (state.currentPreviewUrl) {
       URL.revokeObjectURL(state.currentPreviewUrl);
@@ -2187,6 +2213,12 @@ const DocApp = (() => {
 
     const overlay = document.getElementById('previewOverlay');
     if (overlay) overlay.remove();
+
+    if (!fromPopState && history.state && history.state.modal === 'preview') {
+      try {
+        history.back();
+      } catch (_) {}
+    }
 
     renderCurrentScreen();
   }
@@ -2564,9 +2596,9 @@ const DocApp = (() => {
 
         triggerHaptic([60, 100, 60]);
         if (newStatus === 'disabled') {
-          DocUI.showToast('🔓 Secret Test Mode: Screenshots & Recordings ALLOWED', 'warning');
+          DocUI.showToast('🔓 Secret Test Mode: Screenshots ALLOWED (Protection OFF)', 'warning');
         } else {
-          DocUI.showToast('🛡️ Screen Security ACTIVATED (Screenshots Blocked)', 'success');
+          DocUI.showToast('🛡️ Screen Security ACTIVATED (Protection ON — Screenshots Blocked)', 'success');
         }
         updatePrivacyShieldState();
       }
@@ -2647,6 +2679,30 @@ const DocApp = (() => {
         hideShield();
       }
     });
+
+    // Multi-touch screenshot gesture detection (e.g. 3-finger swipe on Android)
+    window.addEventListener('touchstart', (e) => {
+      if (!isScreenSecActive()) return;
+      if (e.touches && e.touches.length >= 3) {
+        showShield();
+        DocUI.showToast('🛡️ Screenshot blocked by Vaulta Screen Security', 'warning');
+      }
+    }, { passive: true });
+
+    window.addEventListener('touchmove', (e) => {
+      if (!isScreenSecActive()) return;
+      if (e.touches && e.touches.length >= 3) {
+        showShield();
+      }
+    }, { passive: true });
+
+    window.addEventListener('touchend', (e) => {
+      if (!e.touches || e.touches.length < 3) {
+        setTimeout(() => {
+          hideShield();
+        }, 1200);
+      }
+    }, { passive: true });
 
     // Anti-screenshot key shortcuts
     window.addEventListener('keydown', (e) => {

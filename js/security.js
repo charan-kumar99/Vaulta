@@ -48,7 +48,9 @@
   const SecurityModule = {
     
     isSecurityEnabled() {
-      return localStorage.getItem(STORAGE_KEYS.ENABLED) === 'true';
+      const explicit = localStorage.getItem(STORAGE_KEYS.ENABLED);
+      if (explicit !== null) return explicit === 'true';
+      return this.hasPasscode() || this.isBiometricsEnabled();
     },
 
     hasPasscode() {
@@ -289,7 +291,7 @@
       localStorage.removeItem(STORAGE_KEYS.BIOMETRIC_CRED_ID);
     },
 
-    suppressLock(durationMs = 180000) {
+    suppressLock(durationMs = 25000) {
       _lockSuppressionUntil = Date.now() + durationMs;
     },
 
@@ -301,9 +303,9 @@
       _lockSuppressionUntil = 0;
     },
 
-    lockApp() {
+    lockApp(force = false) {
       if (!this.isSecurityEnabled()) return;
-      if (this.isLockSuppressed()) return;
+      if (!force && this.isLockSuppressed()) return;
       _isLocked = true;
       this.showLockOverlay();
     },
@@ -640,8 +642,9 @@
     },
 
     async init() {
+      _lockSuppressionUntil = 0;
       if (this.isSecurityEnabled()) {
-        this.lockApp();
+        this.lockApp(true);
       }
     }
   };
