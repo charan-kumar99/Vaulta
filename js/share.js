@@ -120,7 +120,7 @@ const DocShare = (() => {
       await loadScript('https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js');
     }
 
-    const allDocs = await DocDB.exportAll();
+    const allDocs = (typeof DocDB !== 'undefined' && DocDB.getAll) ? await DocDB.getAll() : [];
     const zip = new JSZip();
 
     const personalFolder = zip.folder('Personal');
@@ -129,18 +129,43 @@ const DocShare = (() => {
     const metadata = [];
 
     for (const doc of allDocs) {
-      const folder = doc.vault === 'personal' ? personalFolder : officialFolder;
+      const folder = doc.vault === 'official' ? officialFolder : personalFolder;
 
       if (doc.fileData) {
         const blob = doc.fileData instanceof Blob
           ? doc.fileData
-          : new Blob([doc.fileData], { type: doc.fileType });
-        folder.file(doc.fileName, blob);
+          : new Blob([doc.fileData], { type: doc.fileType || 'application/octet-stream' });
+        folder.file(doc.fileName || `${doc.name}.bin`, blob);
+      } else if (doc.fileDataBase64) {
+        try {
+          const parts = doc.fileDataBase64.split(',');
+          const bstr = atob(parts[1]);
+          let n = bstr.length;
+          const u8arr = new Uint8Array(n);
+          while (n--) {
+            u8arr[n] = bstr.charCodeAt(n);
+          }
+          folder.file(doc.fileName || `${doc.name}.bin`, u8arr);
+        } catch (e) {
+          console.warn('[Backup] Base64 export error:', e);
+        }
       }
 
-      const { fileData, ...meta } = doc;
+      const { fileData, fileDataBase64, ...meta } = doc;
       metadata.push(meta);
     }
+
+    let folders = [];
+    try {
+      folders = JSON.parse(localStorage.getItem('vaulta_nested_folders_v2') || '[]');
+    } catch (_) {}
+    zip.file('folders.json', JSON.stringify(folders, null, 2));
+
+    let customCategories = { personal: [], official: [] };
+    try {
+      customCategories = JSON.parse(localStorage.getItem('vaulta_custom_categories') || '{"personal":[],"official":[]}');
+    } catch (_) {}
+    zip.file('categories.json', JSON.stringify(customCategories, null, 2));
 
     zip.file('vaulta_metadata.json', JSON.stringify(metadata, null, 2));
 
@@ -151,7 +176,11 @@ const DocShare = (() => {
     });
 
     const date = new Date().toISOString().slice(0, 10);
-    return downloadFile(zipBlob, `Vaulta_Backup_${date}.zip`);
+    downloadFile(zipBlob, `Vaulta_Backup_${date}.zip`);
+    if (window.DocUI && typeof window.DocUI.showToast === 'function') {
+      window.DocUI.showToast(`✅ Exported ${allDocs.length} documents backup successfully!`, 'success');
+    }
+    return { success: true };
   }
 
   function loadScript(src) {

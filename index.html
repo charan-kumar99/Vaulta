@@ -22,9 +22,9 @@
   <link rel="icon" type="image/png" sizes="32x32" href="icons/favicon-32x32.png" />
   <link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png" />
 
-  <link rel="stylesheet" href="css/index.css?v=61" />
-  <link rel="stylesheet" href="css/animations.css?v=61" />
-  <link rel="stylesheet" href="css/components.css?v=61" />
+  <link rel="stylesheet" href="css/index.css?v=62" />
+  <link rel="stylesheet" href="css/animations.css?v=62" />
+  <link rel="stylesheet" href="css/components.css?v=62" />
 </head>
 <body>
 
@@ -82,7 +82,7 @@
 
   <main id="app" role="main"></main>
 
-  <input type="file" id="directCameraInput" accept="image/*" capture="environment" style="position:fixed;top:-1000px;left:-1000px;opacity:0;pointer-events:none;" aria-hidden="true" />
+  <input type="file" id="directCameraInput" accept="image/*" capture="environment" style="position:fixed;top:-1000px;left:-1000px;opacity:0;" aria-hidden="true" />
 
   <div id="modals" aria-live="polite"></div>
 
@@ -121,12 +121,12 @@
     </button>
   </nav>
 
-  <script src="js/db.js?v=61"></script>
-  <script src="js/search.js?v=61"></script>
-  <script src="js/share.js?v=61"></script>
-  <script src="js/ui.js?v=61"></script>
-  <script src="js/security.js?v=61"></script>
-  <script src="js/app.js?v=61"></script>
+  <script src="js/db.js?v=62"></script>
+  <script src="js/search.js?v=62"></script>
+  <script src="js/share.js?v=62"></script>
+  <script src="js/ui.js?v=62"></script>
+  <script src="js/security.js?v=62"></script>
+  <script src="js/app.js?v=62"></script>
 
   <script>
     document.addEventListener('DOMContentLoaded', () => {
@@ -190,7 +190,7 @@
           }
         });
 
-        navigator.serviceWorker.register('sw.js?v=61')
+        navigator.serviceWorker.register('sw.js?v=62')
           .then((reg) => {
             if (reg) reg.update();
           })

@@ -464,6 +464,10 @@ window.DocDB = (() => {
     return { documentCount: count, folderCount: (packageObj.folders || []).length };
   }
 
+  async function exportAll() {
+    return getAll();
+  }
+
   function getExpiryStatus(expiryDateStr) {
     if (!expiryDateStr) return { status: 'valid', daysLeft: Infinity };
     const expiry = new Date(expiryDateStr);

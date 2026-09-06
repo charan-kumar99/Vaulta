@@ -1,27 +1,55 @@
-# ⚡ Vaulta — Personal Document Manager
+# ⚡ Vaulta — Secure Personal Document Manager
 
-> **A private, offline-first Progressive Web App (PWA) to securely store, organize, convert, search, and backup your personal & official documents.**
+> **A private, offline-first Progressive Web App (PWA) to securely store, organize, scan, convert, protect, and backup your personal & official documents.**
 
 ---
 
 ## ✨ Key Features
 
-- 🔒 **App Security & Privacy Lock**: Protect your documents with PIN or Pattern lock. Supports auto-locking when switching tabs or minimizing the app. 100% local client-side storage — zero cloud tracking.
-- 📂 **Dual Vault System & Folders**: Separate **Personal** and **Official** document vaults with custom folders, smart categories, and tags.
-- 🔄 **In-App Format Converter**: Convert document images seamlessly into **PDF**, **PNG**, **JPG**, **WebP**, or text notes during export and sharing.
-- 📱 **Installable Offline PWA**: Works 100% offline. Install directly to your iOS or Android home screen with native app capabilities.
-- 🔍 **Instant Full-Text Search**: Fuzzy and relevance-based search across document titles, categories, tags, and folders.
-- 🔔 **Document Expiry Tracking & Alerts**: Automated background monitoring for document expiration dates with desktop and mobile notification triggers.
-- 💾 **Data Backup & Encrypted Sync**: Export and import complete JSON backups or encrypted Secret Sync packages between devices.
-- 🌙 **Glassmorphic UI**: High-contrast dark and light modes with smooth animations, modern typography, and mobile-responsive layouts.
+- 🔒 **Biometric & PIN App Lock**:
+  - Secure your vaults with a 4–6 digit Passcode PIN or device biometric sensors (Fingerprint, Touch ID, Face ID, Windows Hello via WebAuthn).
+  - Background auto-lock when leaving the tab or minimizing the app, with smart suppression during native camera capture and file picker workflows.
+  - Client-side cryptographic hashing — zero remote server dependencies.
+
+- 🛡️ **Screen Privacy & Anti-Screenshot Shield (`VaultaScreenSec`)**:
+  - Obfuscates and blurs document content during app switching, multitasking, and window blur to prevent snooping.
+  - Intercepts screenshot shortcuts (`PrintScreen`, `Win + Shift + S`) and blocks unauthorized context menus.
+  - Easily toggled on or off in Settings and Security modals.
+
+- 📷 **Live Document & ID Camera Scanner**:
+  - Interactive full-screen viewfinder HUD with target reticle lines, animated laser scanner, and camera flipping (environment/user).
+  - Native fallback to device high-resolution camera input if `getUserMedia` is unsupported.
+  - Direct instant capture with automatic image-to-document ingestion.
+
+- 📂 **Dual Vault System & Nested Folder Hierarchy**:
+  - Dedicated **Personal Vault** (Identity, Finance, Health, Family) and **Official Vault** (Employment, Tax, Legal, Contracts).
+  - Infinite nested folder structures, breadcrumb navigation, document counts, and custom category badges.
+
+- 📅 **Custom Glassmorphic Calendar & Date Picker**:
+  - Fully custom styled month and year dropdown selectors matching the app's glassmorphic aesthetics.
+  - Day picker with quick navigation and automatic format standardization (`YYYY-MM-DD`).
+
+- 🔔 **Document Expiry Tracking & Proactive Alerts**:
+  - Comprehensive expiry tracker modal displaying expired, expiring soon (<= 30 days), and active documents.
+  - System toast reminders upon startup when renewals are pending.
+
+- 📦 **Offline Backup & Export (.ZIP Archive)**:
+  - One-click encrypted offline backup generating a structured `.zip` containing all documents, metadata, folders, and categories.
+  - Fast offline export using client-side JSZip.
+
+- 📊 **Storage Analytics**:
+  - Real-time disk space usage, category breakdown charts, and document size distributions stored inside IndexedDB.
+
+- 🌙 **Modern Glassmorphic UI & Themes**:
+  - Curated dark and light themes with smooth micro-animations, SVG vector icons, touch-friendly bottom sheets, and responsive mobile layouts.
 
 ---
 
 ## 🚀 Quick Start
 
-### Run Locally
+Vaulta is built with vanilla web technologies (HTML5, CSS3, ES6+ JS, IndexedDB) with zero build steps or npm installations required.
 
-Vaulta is built with pure vanilla web technologies (HTML5, CSS3, ES6+ JS, IndexedDB). Serve it locally using any HTTP server:
+### Run Locally
 
 ```bash
 # Using Python 3
@@ -37,22 +65,24 @@ Open your browser at `http://localhost:8090`.
 
 ## 📱 Installing as a Progressive Web App (PWA)
 
-1. Open Vaulta in your mobile browser.
-2. **Android (Chrome)**: Click **"📲 Install App"** in the top bar or tap Chrome menu (`⋮`) $\rightarrow$ **Install app**.
+1. Open Vaulta in Chrome, Edge, or Safari on your mobile device or computer.
+2. **Android (Chrome)**: Tap **"📲 Install App"** in the top bar or tap the Chrome menu (`⋮`) $\rightarrow$ **Install app**.
 3. **iOS (Safari)**: Tap **Share** $\rightarrow$ **Add to Home Screen**.
-4. Launch Vaulta from your home screen as a standalone application.
+4. **Desktop (Chrome/Edge)**: Click the Install icon in the address bar.
+5. Vaulta operates standalone with full offline persistence.
 
 ---
 
 ## 🛠️ Tech Architecture
 
-- **Core**: Vanilla HTML5, CSS3, ES6 JavaScript (No external framework dependencies).
-- **Storage**: IndexedDB API (`docvault_db`) for encrypted client-side storage of document files and metadata.
-- **PWA**: Service Worker (`sw.js`) for offline caching, background periodicsync, and desktop push notifications.
-- **Design System**: Modular CSS design system with CSS custom properties, glassmorphism, and keyframe animations.
+- **Core Engine**: Vanilla HTML5, CSS3 (Custom Design System with CSS variables), ES6+ JavaScript.
+- **Storage Layer**: IndexedDB (`docvault_db`) for zero-cloud, encrypted offline persistence of files and metadata.
+- **Security & Privacy**: Web Cryptography API, WebAuthn API for biometrics, and dynamic DOM occlusion shields.
+- **PWA / Service Worker**: `sw.js` for offline caching and background sync.
+- **Document Processing**: `pdf.js` for client-side PDF rendering, `jszip` for offline backup archives.
 
 ---
 
 ## 📄 License
 
-MIT License — Free to use, modify, and distribute privately or publicly.
+MIT License — 100% Free, Private, and Open Source.

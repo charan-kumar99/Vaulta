@@ -13,6 +13,7 @@
 
   let _isLocked = false;
   let _currentPinInput = '';
+  let _lockSuppressionUntil = 0;
 
   async function hashString(str) {
     const encoder = new TextEncoder();

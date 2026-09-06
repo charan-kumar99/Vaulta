@@ -627,7 +627,7 @@ const DocUI = (() => {
                 <polyline points="15 18 9 12 15 6"></polyline>
               </svg>
             </button>
-            <div class="vault-hero-badge" style="width: 44px; height: 44px;">
+            <div class="vault-hero-badge" id="vaultHeroBadge" style="width: 44px; height: 44px; cursor: pointer;" title="Security & App Lock">
               ${isPersonal ? `
                 <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
               ` : `
@@ -669,11 +669,26 @@ const DocUI = (() => {
               <span style="font-size: 0.65rem; opacity: 0.7; margin-left: 2px;">▾</span>
             </button>
             <div class="sort-menu" id="sortMenu">
-              <button class="sort-option ${sortBy === 'date-desc' ? 'active' : ''}" data-sort="date-desc">📅 Newest First</button>
-              <button class="sort-option ${sortBy === 'date-asc' ? 'active' : ''}" data-sort="date-asc">📅 Oldest First</button>
-              <button class="sort-option ${sortBy === 'name-asc' ? 'active' : ''}" data-sort="name-asc">🔤 Name A-Z</button>
-              <button class="sort-option ${sortBy === 'name-desc' ? 'active' : ''}" data-sort="name-desc">🔤 Name Z-A</button>
-              <button class="sort-option ${sortBy === 'category' ? 'active' : ''}" data-sort="category">📁 Category</button>
+              <button class="sort-option ${sortBy === 'date-desc' ? 'active' : ''}" data-sort="date-desc">
+                <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line><polyline points="10 16 12 18 14 16"></polyline></svg>
+                <span>Newest First</span>
+              </button>
+              <button class="sort-option ${sortBy === 'date-asc' ? 'active' : ''}" data-sort="date-asc">
+                <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line><polyline points="10 14 12 12 14 14"></polyline></svg>
+                <span>Oldest First</span>
+              </button>
+              <button class="sort-option ${sortBy === 'name-asc' ? 'active' : ''}" data-sort="name-asc">
+                <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 6v12M18 9l-3-3-3 3M4 18h6M4 14h8M4 10h10M4 6h12"/></svg>
+                <span>Name A-Z</span>
+              </button>
+              <button class="sort-option ${sortBy === 'name-desc' ? 'active' : ''}" data-sort="name-desc">
+                <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 18V6M18 15l-3 3-3-3M4 18h6M4 14h8M4 10h10M4 6h12"/></svg>
+                <span>Name Z-A</span>
+              </button>
+              <button class="sort-option ${sortBy === 'category' ? 'active' : ''}" data-sort="category">
+                <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>
+                <span>Category</span>
+              </button>
             </div>
           </div>
         </div>
@@ -854,18 +869,18 @@ const DocUI = (() => {
               <div class="form-group">
                 <label class="form-label" for="docVault">Vault *</label>
                 <select class="form-select" id="docVault">
-                  <option value="personal" ${resolvedVault === 'personal' ? 'selected' : ''}>🔐 Personal</option>
-                  <option value="official" ${resolvedVault === 'official' ? 'selected' : ''}>💼 Official</option>
+                  <option value="personal" ${resolvedVault === 'personal' ? 'selected' : ''}>Personal</option>
+                  <option value="official" ${resolvedVault === 'official' ? 'selected' : ''}>Official</option>
                 </select>
               </div>
               <div class="form-group">
                 <label class="form-label" for="docCategory">Category *</label>
                 <select class="form-select" id="docCategory">
                   <optgroup label="Personal" id="personalCatGroup" ${resolvedVault !== 'personal' ? 'style="display:none;"' : ''}>
-                    ${personalCats.map((c) => `<option value="${c.name}" ${(prefill.category && prefill.category.toLowerCase() === c.name.toLowerCase()) ? 'selected' : ''}>${c.icon} ${c.name}</option>`).join('')}
+                    ${personalCats.map((c) => `<option value="${c.name}" ${(prefill.category && prefill.category.toLowerCase() === c.name.toLowerCase()) ? 'selected' : ''}>${c.name}</option>`).join('')}
                   </optgroup>
                   <optgroup label="Official" id="officialCatGroup" ${resolvedVault !== 'official' ? 'style="display:none;"' : ''}>
-                    ${officialCats.map((c) => `<option value="${c.name}" ${(prefill.category && prefill.category.toLowerCase() === c.name.toLowerCase()) ? 'selected' : ''}>${c.icon} ${c.name}</option>`).join('')}
+                    ${officialCats.map((c) => `<option value="${c.name}" ${(prefill.category && prefill.category.toLowerCase() === c.name.toLowerCase()) ? 'selected' : ''}>${c.name}</option>`).join('')}
                   </optgroup>
                 </select>
               </div>
@@ -880,14 +895,14 @@ const DocUI = (() => {
               <div class="form-group">
                 <label class="form-label" for="docFolder">Folder / Location</label>
                 <select class="form-select" id="docFolder">
-                  <option value="">📁 Root (Main Vault)</option>
+                  <option value="">Root (Main Vault)</option>
                   <optgroup label="Personal Folders" id="personalFolderGroup" ${defaultVault !== 'personal' ? 'style="display:none;"' : ''}>
-                    ${personalFolders.map((f) => `<option value="${f.id}" ${selectedFolderId === f.id ? 'selected' : ''}>📁 ${escapeHtml(f.displayName)}</option>`).join('')}
+                    ${personalFolders.map((f) => `<option value="${f.id}" ${selectedFolderId === f.id ? 'selected' : ''}>${escapeHtml(f.displayName)}</option>`).join('')}
                   </optgroup>
                   <optgroup label="Official Folders" id="officialFolderGroup" ${defaultVault !== 'official' ? 'style="display:none;"' : ''}>
-                    ${officialFolders.map((f) => `<option value="${f.id}" ${selectedFolderId === f.id ? 'selected' : ''}>📁 ${escapeHtml(f.displayName)}</option>`).join('')}
+                    ${officialFolders.map((f) => `<option value="${f.id}" ${selectedFolderId === f.id ? 'selected' : ''}>${escapeHtml(f.displayName)}</option>`).join('')}
                   </optgroup>
-                  <option value="__new__">➕ Create New Folder...</option>
+                  <option value="__new__">+ Create New Folder...</option>
                 </select>
               </div>
 
@@ -943,18 +958,18 @@ const DocUI = (() => {
               <div class="form-group">
                 <label class="form-label" for="editDocVault">Vault *</label>
                 <select class="form-select" id="editDocVault">
-                  <option value="personal" ${doc.vault === 'personal' ? 'selected' : ''}>🔐 Personal</option>
-                  <option value="official" ${doc.vault === 'official' ? 'selected' : ''}>💼 Official</option>
+                  <option value="personal" ${doc.vault === 'personal' ? 'selected' : ''}>Personal</option>
+                  <option value="official" ${doc.vault === 'official' ? 'selected' : ''}>Official</option>
                 </select>
               </div>
               <div class="form-group">
                 <label class="form-label" for="editDocCategory">Category *</label>
                 <select class="form-select" id="editDocCategory">
                   <optgroup label="Personal" id="editPersonalCatGroup" ${doc.vault !== 'personal' ? 'style="display:none;"' : ''}>
-                    ${personalCats.map((c) => `<option value="${c.name}" ${doc.category === c.name && doc.vault === 'personal' ? 'selected' : ''}>${c.icon} ${c.name}</option>`).join('')}
+                    ${personalCats.map((c) => `<option value="${c.name}" ${doc.category === c.name && doc.vault === 'personal' ? 'selected' : ''}>${c.name}</option>`).join('')}
                   </optgroup>
                   <optgroup label="Official" id="editOfficialCatGroup" ${doc.vault !== 'official' ? 'style="display:none;"' : ''}>
-                    ${officialCats.map((c) => `<option value="${c.name}" ${doc.category === c.name && doc.vault === 'official' ? 'selected' : ''}>${c.icon} ${c.name}</option>`).join('')}
+                    ${officialCats.map((c) => `<option value="${c.name}" ${doc.category === c.name && doc.vault === 'official' ? 'selected' : ''}>${c.name}</option>`).join('')}
                   </optgroup>
                 </select>
               </div>
@@ -969,14 +984,14 @@ const DocUI = (() => {
               <div class="form-group">
                 <label class="form-label" for="editDocFolder">Folder / Location</label>
                 <select class="form-select" id="editDocFolder">
-                  <option value="">📁 Root (Main Vault)</option>
+                  <option value="">Root (Main Vault)</option>
                   <optgroup label="Personal Folders" id="editPersonalFolderGroup" ${doc.vault !== 'personal' ? 'style="display:none;"' : ''}>
-                    ${personalFolders.map((f) => `<option value="${f.id}" ${doc.folderId === f.id ? 'selected' : ''}>📁 ${escapeHtml(f.displayName)}</option>`).join('')}
+                    ${personalFolders.map((f) => `<option value="${f.id}" ${doc.folderId === f.id ? 'selected' : ''}>${escapeHtml(f.displayName)}</option>`).join('')}
                   </optgroup>
                   <optgroup label="Official Folders" id="editOfficialFolderGroup" ${doc.vault !== 'official' ? 'style="display:none;"' : ''}>
-                    ${officialFolders.map((f) => `<option value="${f.id}" ${doc.folderId === f.id ? 'selected' : ''}>📁 ${escapeHtml(f.displayName)}</option>`).join('')}
+                    ${officialFolders.map((f) => `<option value="${f.id}" ${doc.folderId === f.id ? 'selected' : ''}>${escapeHtml(f.displayName)}</option>`).join('')}
                   </optgroup>
-                  <option value="__new__">➕ Create New Folder...</option>
+                  <option value="__new__">+ Create New Folder...</option>
                 </select>
               </div>
 
@@ -1405,6 +1420,9 @@ const DocUI = (() => {
         : 'Device / Windows Hello sensor not detected';
     }
 
+    document.body.classList.add('modal-open');
+    const isScreenSecActive = window.VaultaScreenSec ? window.VaultaScreenSec.isEnabled() : true;
+
     modalsContainer.innerHTML = `
       <div class="modal-overlay active modal-overlay-enter" id="securityModalOverlay">
         <div class="modal-content modal-content-enter" style="max-width: 460px;" role="dialog" aria-modal="true" aria-labelledby="securityModalTitle">
@@ -1415,7 +1433,7 @@ const DocUI = (() => {
             </h2>
             <button class="modal-close" id="closeSecurityModalBtn" aria-label="Close modal">✕</button>
           </div>
-          <div class="modal-body" style="padding-top: var(--space-3);">
+          <div class="modal-body" style="padding-top: var(--space-3); max-height: 75vh; overflow-y: auto; -webkit-overflow-scrolling: touch;">
             <div style="font-size: 0.72rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: var(--color-text-tertiary); margin-bottom: 8px; padding-left: 4px;">Access Protection</div>
             <div class="settings-card-group">
               <div class="settings-row-item" style="flex-direction: column; align-items: stretch; gap: 10px;">
@@ -1462,6 +1480,22 @@ const DocUI = (() => {
                   ${isBioEnabled ? 'Disable' : 'Enable'}
                 </button>
               </div>
+
+              <div class="settings-row-item">
+                <div class="settings-icon-tile tile-amber">
+                  <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg>
+                </div>
+                <div class="settings-item-body">
+                  <div style="display: flex; align-items: center; gap: 8px;">
+                    <span class="settings-item-title">Screen Privacy Shield</span>
+                    <span class="settings-pill-badge ${isScreenSecActive ? 'pill-active' : 'pill-inactive'}">${isScreenSecActive ? 'ACTIVE' : 'OFF'}</span>
+                  </div>
+                  <div class="settings-item-subtitle">Obfuscates content in task switchers & anti-screenshot protection</div>
+                </div>
+                <button type="button" class="btn btn-secondary btn-sm" id="toggleScreenSecBtn">
+                  ${isScreenSecActive ? 'Disable' : 'Enable'}
+                </button>
+              </div>
             </div>
 
             ${isSecEnabled ? `
@@ -1479,7 +1513,10 @@ const DocUI = (() => {
 
     const closeBtn = document.getElementById('closeSecurityModalBtn');
     const backdrop = document.getElementById('securityModalOverlay');
-    const closeModal = () => { modalsContainer.innerHTML = ''; };
+    const closeModal = () => {
+      document.body.classList.remove('modal-open');
+      modalsContainer.innerHTML = '';
+    };
 
     if (closeBtn) closeBtn.addEventListener('click', closeModal);
     if (backdrop) backdrop.addEventListener('click', (e) => { if (e.target === backdrop) closeModal(); });
@@ -1536,6 +1573,17 @@ const DocUI = (() => {
       });
     }
 
+    const toggleScreenSecBtn = document.getElementById('toggleScreenSecBtn');
+    if (toggleScreenSecBtn) {
+      toggleScreenSecBtn.addEventListener('click', () => {
+        if (window.VaultaScreenSec && typeof window.VaultaScreenSec.toggle === 'function') {
+          const nowActive = window.VaultaScreenSec.toggle();
+          showToast(nowActive ? '🛡️ Screen Privacy Shield Activated' : 'Screen Privacy Shield Disabled', 'info');
+          renderSecurityModal();
+        }
+      });
+    }
+
     const lockNowBtn = document.getElementById('lockNowBtn');
     if (lockNowBtn) {
       lockNowBtn.addEventListener('click', () => {
@@ -1543,6 +1591,210 @@ const DocUI = (() => {
         window.SecurityModule.lockApp();
       });
     }
+  }
+
+  function getCustomOptionSvg(type, value, text) {
+    const val = (value || '').toLowerCase();
+    const txt = (text || '').toLowerCase();
+
+    // Vault icons
+    if (type === 'vault') {
+      if (val === 'personal') {
+        return `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="#818cf8" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>`;
+      }
+      return `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="#38bdf8" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="20" height="14" rx="2" ry="2"></rect><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"></path></svg>`;
+    }
+
+    // Folder icons
+    if (type === 'folder') {
+      if (val === '__new__') {
+        return `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="#10b981" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="16"></line><line x1="8" y1="12" x2="16" y2="12"></line></svg>`;
+      }
+      if (val === '') {
+        return `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="#818cf8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path><polyline points="9 22 9 12 15 12 15 22"></polyline></svg>`;
+      }
+      return `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="#f59e0b" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path></svg>`;
+    }
+
+    // Category icons
+    if (txt.includes('identity')) {
+      return `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="#818cf8" stroke-width="2"><rect x="3" y="4" width="18" height="16" rx="3"></rect><circle cx="9" cy="10" r="2"></circle><line x1="15" y1="8" x2="17" y2="8"></line><line x1="15" y1="12" x2="17" y2="12"></line><line x1="7" y1="16" x2="17" y2="16"></line></svg>`;
+    }
+    if (txt.includes('finan') || txt.includes('tax') || txt.includes('salary')) {
+      return `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="#10b981" stroke-width="2"><line x1="12" y1="1" x2="12" y2="23"></line><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path></svg>`;
+    }
+    if (txt.includes('educat') || txt.includes('degree')) {
+      return `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="#a855f7" stroke-width="2"><path d="M22 10v6M2 10l10-5 10 5-10 5z"></path><path d="M6 12v5c3 3 9 3 12 0v-5"></path></svg>`;
+    }
+    if (txt.includes('insur')) {
+      return `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="#06b6d4" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg>`;
+    }
+    if (txt.includes('prop') || txt.includes('vehicle')) {
+      return `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="#f59e0b" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path></svg>`;
+    }
+    if (txt.includes('employ') || txt.includes('work') || txt.includes('offer')) {
+      return `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="#38bdf8" stroke-width="2"><rect x="2" y="7" width="20" height="14" rx="2"></rect><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"></path></svg>`;
+    }
+    if (txt.includes('apprais') || txt.includes('certif')) {
+      return `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="#eab308" stroke-width="2"><circle cx="12" cy="8" r="7"></circle><polyline points="8.21 13.89 7 23 12 20 17 23 15.79 13.88"></polyline></svg>`;
+    }
+    if (txt.includes('company')) {
+      return `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="#6366f1" stroke-width="2"><rect x="3" y="4" width="18" height="16" rx="3"></rect><circle cx="12" cy="10" r="2.5"></circle><line x1="8" y1="16" x2="16" y2="16"></line></svg>`;
+    }
+    if (txt.includes('agree')) {
+      return `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="#ec4899" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line></svg>`;
+    }
+    return `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="#94a3b8" stroke-width="2"><circle cx="12" cy="12" r="1"></circle><circle cx="19" cy="12" r="1"></circle><circle cx="5" cy="12" r="1"></circle></svg>`;
+  }
+
+  function setupVaultaCustomSelect(selectId, type = 'category') {
+    const select = document.getElementById(selectId);
+    if (!select) return null;
+
+    select.style.display = 'none';
+
+    const parent = select.parentElement;
+    const existingWrapper = parent.querySelector(`.vaulta-custom-select-wrapper[data-for="${selectId}"]`);
+    if (existingWrapper) existingWrapper.remove();
+
+    const wrapper = document.createElement('div');
+    wrapper.className = 'vaulta-custom-select-wrapper';
+    wrapper.dataset.for = selectId;
+
+    const trigger = document.createElement('div');
+    trigger.className = 'custom-select-trigger';
+    trigger.setAttribute('tabindex', '0');
+    trigger.setAttribute('role', 'button');
+
+    const menu = document.createElement('div');
+    menu.className = 'custom-select-menu';
+    menu.style.display = 'none';
+
+    wrapper.appendChild(trigger);
+    wrapper.appendChild(menu);
+    parent.appendChild(wrapper);
+
+    const cleanLabel = (text) => {
+      if (!text) return '';
+      return text.replace(/^[\p{Emoji_Presentation}\p{Extended_Pictographic}\uFE0F\u200D\s]+/u, '').trim() || text;
+    };
+
+    const renderTrigger = () => {
+      const selectedOption = select.options[select.selectedIndex] || select.options[0];
+      const text = selectedOption ? cleanLabel(selectedOption.text) : 'Select...';
+      const val = selectedOption ? selectedOption.value : '';
+      const icon = getCustomOptionSvg(type, val, text);
+
+      trigger.innerHTML = `
+        <div class="custom-select-selection">
+          <span class="custom-select-icon">${icon}</span>
+          <span class="custom-select-label">${escapeHtml(text)}</span>
+        </div>
+        <span class="custom-select-chevron">
+          <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="6 9 12 15 18 9"></polyline>
+          </svg>
+        </span>
+      `;
+    };
+
+    const appendOptionItem = (opt) => {
+      const isSelected = opt.value === select.value;
+      const text = cleanLabel(opt.text);
+      const icon = getCustomOptionSvg(type, opt.value, text);
+
+      const item = document.createElement('div');
+      item.className = `custom-select-item ${isSelected ? 'selected' : ''}`;
+      item.innerHTML = `
+        <div class="custom-select-item-content">
+          <span class="custom-select-icon">${icon}</span>
+          <span class="custom-select-item-label">${escapeHtml(text)}</span>
+        </div>
+        ${isSelected ? `<span class="custom-select-check">✓</span>` : ''}
+      `;
+
+      item.addEventListener('click', (e) => {
+        e.stopPropagation();
+        select.value = opt.value;
+        select.dispatchEvent(new Event('change', { bubbles: true }));
+        closeMenu();
+        renderTrigger();
+      });
+
+      menu.appendChild(item);
+    };
+
+    const renderMenu = () => {
+      menu.innerHTML = '';
+      const optgroups = Array.from(select.querySelectorAll('optgroup'));
+
+      if (optgroups.length > 0) {
+        optgroups.forEach((group) => {
+          if (group.style.display === 'none') return;
+          if (group.label) {
+            const groupHeader = document.createElement('div');
+            groupHeader.className = 'custom-select-group-header';
+            groupHeader.textContent = group.label;
+            menu.appendChild(groupHeader);
+          }
+          Array.from(group.querySelectorAll('option')).forEach((opt) => {
+            appendOptionItem(opt);
+          });
+        });
+        Array.from(select.children).forEach((child) => {
+          if (child.tagName === 'OPTION') appendOptionItem(child);
+        });
+      } else {
+        Array.from(select.options).forEach((opt) => {
+          appendOptionItem(opt);
+        });
+      }
+    };
+
+    const openMenu = () => {
+      document.querySelectorAll('.custom-select-menu').forEach((m) => {
+        if (m !== menu) m.style.display = 'none';
+      });
+      document.querySelectorAll('.custom-select-trigger').forEach((t) => {
+        if (t !== trigger) t.classList.remove('active');
+      });
+      renderMenu();
+      menu.style.display = 'block';
+      trigger.classList.add('active');
+    };
+
+    const closeMenu = () => {
+      menu.style.display = 'none';
+      trigger.classList.remove('active');
+    };
+
+    trigger.addEventListener('click', (e) => {
+      e.stopPropagation();
+      if (menu.style.display === 'block') {
+        closeMenu();
+      } else {
+        openMenu();
+      }
+    });
+
+    document.addEventListener('click', (e) => {
+      if (!wrapper.contains(e.target)) {
+        closeMenu();
+      }
+    });
+
+    select.addEventListener('change', () => {
+      renderTrigger();
+    });
+
+    renderTrigger();
+
+    return {
+      refresh: () => {
+        renderTrigger();
+        if (menu.style.display === 'block') renderMenu();
+      }
+    };
   }
 
   function initVaultaDatePicker(containerId, hiddenInputId, initialDateVal = '') {
@@ -1602,20 +1854,39 @@ const DocUI = (() => {
         daysHtml += `<div class="vdp-day ${isToday} ${isSelected} ${isSunday ? 'vdp-sunday' : ''}" data-date="${iso}">${day}</div>`;
       }
 
-      const yearOptionsHtml = Array.from({ length: 121 }, (_, i) => 1950 + i)
-        .map((y) => `<option value="${y}" ${y === viewYear ? 'selected' : ''}>${y}</option>`)
-        .join('');
-
       popover.innerHTML = `
         <div class="vdp-header">
           <button class="vdp-nav-btn" id="${containerId}_prevMonth" title="Previous Month">‹</button>
           <div class="vdp-selectors">
-            <select class="vdp-select vdp-select-month" id="${containerId}_selectMonth" aria-label="Select month">
-              ${months.map((m, idx) => `<option value="${idx}" ${idx === viewMonth ? 'selected' : ''}>${m}</option>`).join('')}
-            </select>
-            <select class="vdp-select vdp-select-year" id="${containerId}_selectYear" aria-label="Select year">
-              ${yearOptionsHtml}
-            </select>
+            <div class="vdp-dropdown-wrap" id="${containerId}_monthWrap">
+              <button type="button" class="vdp-custom-btn" id="${containerId}_monthBtn" aria-haspopup="true" aria-expanded="false">
+                <span>${months[viewMonth]}</span>
+                <svg viewBox="0 0 24 24" width="11" height="11" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
+              </button>
+              <div class="vdp-custom-menu month-menu" id="${containerId}_monthMenu" style="display: none;">
+                ${months.map((m, idx) => `
+                  <button type="button" class="vdp-custom-item ${idx === viewMonth ? 'selected' : ''}" data-month="${idx}">
+                    <span>${m}</span>
+                    ${idx === viewMonth ? '<span style="color:#818cf8;font-size:0.75rem;">✓</span>' : ''}
+                  </button>
+                `).join('')}
+              </div>
+            </div>
+
+            <div class="vdp-dropdown-wrap" id="${containerId}_yearWrap">
+              <button type="button" class="vdp-custom-btn" id="${containerId}_yearBtn" aria-haspopup="true" aria-expanded="false">
+                <span>${viewYear}</span>
+                <svg viewBox="0 0 24 24" width="11" height="11" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
+              </button>
+              <div class="vdp-custom-menu year-menu" id="${containerId}_yearMenu" style="display: none;">
+                ${Array.from({ length: 121 }, (_, i) => 1950 + i).map((y) => `
+                  <button type="button" class="vdp-custom-item ${y === viewYear ? 'selected' : ''}" data-year="${y}" id="${containerId}_year_opt_${y}">
+                    <span>${y}</span>
+                    ${y === viewYear ? '<span style="color:#818cf8;font-size:0.75rem;">✓</span>' : ''}
+                  </button>
+                `).join('')}
+              </div>
+            </div>
           </div>
           <button class="vdp-nav-btn" id="${containerId}_nextMonth" title="Next Month">›</button>
         </div>
@@ -1629,8 +1900,10 @@ const DocUI = (() => {
 
       const prevBtn = document.getElementById(`${containerId}_prevMonth`);
       const nextBtn = document.getElementById(`${containerId}_nextMonth`);
-      const selectMonth = document.getElementById(`${containerId}_selectMonth`);
-      const selectYear = document.getElementById(`${containerId}_selectYear`);
+      const monthBtn = document.getElementById(`${containerId}_monthBtn`);
+      const monthMenu = document.getElementById(`${containerId}_monthMenu`);
+      const yearBtn = document.getElementById(`${containerId}_yearBtn`);
+      const yearMenu = document.getElementById(`${containerId}_yearMenu`);
 
       if (prevBtn) {
         prevBtn.addEventListener('click', (e) => {
@@ -1648,18 +1921,46 @@ const DocUI = (() => {
           renderCalendar();
         });
       }
-      if (selectMonth) {
-        selectMonth.addEventListener('change', (e) => {
+
+      if (monthBtn && monthMenu) {
+        monthBtn.addEventListener('click', (e) => {
           e.stopPropagation();
-          viewMonth = parseInt(e.target.value, 10);
-          renderCalendar();
+          const isHidden = monthMenu.style.display === 'none';
+          if (yearMenu) { yearMenu.style.display = 'none'; yearBtn?.classList.remove('active'); }
+          monthMenu.style.display = isHidden ? 'flex' : 'none';
+          monthBtn.classList.toggle('active', isHidden);
+        });
+
+        monthMenu.querySelectorAll('.vdp-custom-item').forEach((item) => {
+          item.addEventListener('click', (e) => {
+            e.stopPropagation();
+            viewMonth = parseInt(item.dataset.month, 10);
+            renderCalendar();
+          });
         });
       }
-      if (selectYear) {
-        selectYear.addEventListener('change', (e) => {
+
+      if (yearBtn && yearMenu) {
+        yearBtn.addEventListener('click', (e) => {
           e.stopPropagation();
-          viewYear = parseInt(e.target.value, 10);
-          renderCalendar();
+          const isHidden = yearMenu.style.display === 'none';
+          if (monthMenu) { monthMenu.style.display = 'none'; monthBtn?.classList.remove('active'); }
+          yearMenu.style.display = isHidden ? 'flex' : 'none';
+          yearBtn.classList.toggle('active', isHidden);
+          if (isHidden) {
+            const activeYearEl = document.getElementById(`${containerId}_year_opt_${viewYear}`);
+            if (activeYearEl) {
+              setTimeout(() => activeYearEl.scrollIntoView({ block: 'center' }), 10);
+            }
+          }
+        });
+
+        yearMenu.querySelectorAll('.vdp-custom-item').forEach((item) => {
+          item.addEventListener('click', (e) => {
+            e.stopPropagation();
+            viewYear = parseInt(item.dataset.year, 10);
+            renderCalendar();
+          });
         });
       }
 
@@ -1947,14 +2248,15 @@ const DocUI = (() => {
   function renderSettingsSheet() {
     const modalsContainer = document.getElementById('modals');
     if (!modalsContainer) return;
+    document.body.classList.add('modal-open');
 
-    const theme = document.documentElement.getAttribute('data-theme');
+    const theme = document.documentElement.getAttribute('data-theme') || 'dark';
     const themeLabel = theme === 'dark' ? 'Light Mode' : 'Dark Mode';
-    const themeIcon = theme === 'dark' ? '☀️' : '🌙';
+    const isScreenSecActive = window.VaultaScreenSec ? window.VaultaScreenSec.isEnabled() : true;
 
     modalsContainer.innerHTML = `
-      <div class="modal-overlay active" id="settingsSheetOverlay">
-        <div class="modal-content" style="max-width: 480px;" role="dialog" aria-modal="true" aria-labelledby="settingsSheetTitle">
+      <div class="modal-overlay active modal-overlay-enter" id="settingsSheetOverlay">
+        <div class="modal-content modal-content-enter" style="max-width: 480px;" role="dialog" aria-modal="true" aria-labelledby="settingsSheetTitle">
           <div class="modal-header">
             <h2 class="modal-title" id="settingsSheetTitle" style="display: flex; align-items: center; gap: 8px;">
               <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color: var(--color-accent-primary);"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
@@ -1962,7 +2264,7 @@ const DocUI = (() => {
             </h2>
             <button class="modal-close" id="closeSettingsSheetBtn" aria-label="Close">✕</button>
           </div>
-          <div class="modal-body" style="padding-top: var(--space-3);">
+          <div class="modal-body" style="padding-top: var(--space-3); padding-bottom: 40px; max-height: 75vh; overflow-y: auto; -webkit-overflow-scrolling: touch;">
             <div style="font-size: 0.72rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: var(--color-text-tertiary); margin-bottom: 8px; padding-left: 4px;">Security & Vault</div>
             <div class="settings-card-group">
               <button class="settings-row-item" id="settingsSecurityBtn">
@@ -1975,16 +2277,34 @@ const DocUI = (() => {
                 </div>
                 <span class="settings-chevron" style="font-size: 1.2rem; opacity: 0.5; font-weight: 300;">›</span>
               </button>
+
+              <div class="settings-row-item">
+                <div class="settings-icon-tile tile-amber">
+                  <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg>
+                </div>
+                <div class="settings-item-body">
+                  <div style="display: flex; align-items: center; gap: 8px;">
+                    <span class="settings-item-title">Screen Privacy Shield</span>
+                    <span class="settings-pill-badge ${isScreenSecActive ? 'pill-active' : 'pill-inactive'}">${isScreenSecActive ? 'ACTIVE' : 'OFF'}</span>
+                  </div>
+                  <div class="settings-item-subtitle">Obfuscates content in task switchers & anti-screenshot protection</div>
+                </div>
+                <button type="button" class="btn btn-secondary btn-sm" id="settingsScreenSecToggleBtn">
+                  ${isScreenSecActive ? 'Disable' : 'Enable'}
+                </button>
+              </div>
+
               <button class="settings-row-item" id="settingsBackupBtn">
                 <div class="settings-icon-tile tile-emerald">
                   <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path><polyline points="17 21 17 13 7 13 7 21"></polyline><polyline points="7 3 7 8 15 8"></polyline></svg>
                 </div>
                 <div class="settings-item-body">
                   <span class="settings-item-title">Export Backup</span>
-                  <span class="settings-item-subtitle">Encrypted offline document backup archive</span>
+                  <span class="settings-item-subtitle">Encrypted offline document backup archive (.zip)</span>
                 </div>
                 <span class="settings-chevron" style="font-size: 1.2rem; opacity: 0.5; font-weight: 300;">›</span>
               </button>
+
               <button class="settings-row-item" id="settingsStorageBtn">
                 <div class="settings-icon-tile tile-cyan">
                   <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"></line><line x1="12" y1="20" x2="12" y2="4"></line><line x1="6" y1="20" x2="6" y2="14"></line></svg>
@@ -1996,6 +2316,20 @@ const DocUI = (() => {
                 <span class="settings-chevron" style="font-size: 1.2rem; opacity: 0.5; font-weight: 300;">›</span>
               </button>
             </div>
+
+            <div style="font-size: 0.72rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: var(--color-text-tertiary); margin-top: 16px; margin-bottom: 8px; padding-left: 4px;">Appearance</div>
+            <div class="settings-card-group">
+              <button class="settings-row-item" id="settingsThemeToggleBtn">
+                <div class="settings-icon-tile tile-indigo">
+                  <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"></circle><line x1="12" y1="1" x2="12" y2="3"></line><line x1="12" y1="21" x2="12" y2="23"></line><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line><line x1="1" y1="12" x2="3" y2="12"></line><line x1="21" y1="12" x2="23" y2="12"></line><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line></svg>
+                </div>
+                <div class="settings-item-body">
+                  <span class="settings-item-title">Theme</span>
+                  <span class="settings-item-subtitle">Switch to ${themeLabel}</span>
+                </div>
+                <span class="settings-pill-badge pill-active">${theme.toUpperCase()}</span>
+              </button>
+            </div>
           </div>
         </div>
       </div>
@@ -2004,6 +2338,7 @@ const DocUI = (() => {
     const closeBtn = document.getElementById('closeSettingsSheetBtn');
     const backdrop = document.getElementById('settingsSheetOverlay');
     const closeSheet = () => {
+      document.body.classList.remove('modal-open');
       modalsContainer.innerHTML = '';
       if (window.DocApp && typeof window.DocApp.syncActiveTab === 'function') {
         window.DocApp.syncActiveTab();
@@ -2015,6 +2350,17 @@ const DocUI = (() => {
 
     const securityBtn = document.getElementById('settingsSecurityBtn');
     if (securityBtn) securityBtn.addEventListener('click', () => { closeSheet(); renderSecurityModal(); });
+
+    const screenSecToggleBtn = document.getElementById('settingsScreenSecToggleBtn');
+    if (screenSecToggleBtn) {
+      screenSecToggleBtn.addEventListener('click', () => {
+        if (window.VaultaScreenSec && typeof window.VaultaScreenSec.toggle === 'function') {
+          const nowActive = window.VaultaScreenSec.toggle();
+          showToast(nowActive ? '🛡️ Screen Privacy Shield Activated' : 'Screen Privacy Shield Disabled', 'info');
+          renderSettingsSheet();
+        }
+      });
+    }
 
     const backupBtn = document.getElementById('settingsBackupBtn');
     if (backupBtn) backupBtn.addEventListener('click', () => {
@@ -2030,6 +2376,17 @@ const DocUI = (() => {
 
     const storageBtn = document.getElementById('settingsStorageBtn');
     if (storageBtn) storageBtn.addEventListener('click', () => { closeSheet(); renderStorageAnalyticsModal(); });
+
+    const themeToggleBtn = document.getElementById('settingsThemeToggleBtn');
+    if (themeToggleBtn) {
+      themeToggleBtn.addEventListener('click', () => {
+        const currentTheme = document.documentElement.getAttribute('data-theme') || 'dark';
+        const nextTheme = currentTheme === 'dark' ? 'light' : 'dark';
+        document.documentElement.setAttribute('data-theme', nextTheme);
+        localStorage.setItem('vaulta_theme', nextTheme);
+        renderSettingsSheet();
+      });
+    }
 
     bindSheetDragDismiss(backdrop);
   }
@@ -2093,9 +2450,11 @@ const DocUI = (() => {
       </div>
     `;
 
+    document.body.classList.add('modal-open');
     const closeBtn = document.getElementById('closeVaultsSheetBtn');
     const backdrop = document.getElementById('vaultsSheetOverlay');
     const closeSheet = () => {
+      document.body.classList.remove('modal-open');
       modalsContainer.innerHTML = '';
       if (window.DocApp && typeof window.DocApp.syncActiveTab === 'function') {
         window.DocApp.syncActiveTab();
@@ -2144,6 +2503,8 @@ const DocUI = (() => {
 
     content.addEventListener('touchmove', (e) => {
       if (!isDragging) return;
+      const modalBody = content.querySelector('.modal-body');
+      if (modalBody && modalBody.scrollTop > 0) return;
       currentY = e.touches[0].clientY;
       const diff = currentY - startY;
       if (diff > 0) {
@@ -2170,6 +2531,180 @@ const DocUI = (() => {
       startY = 0;
       currentY = 0;
     }, { passive: true });
+  }
+
+  async function openCameraScannerModal() {
+    const modalsContainer = document.getElementById('modals');
+    if (!modalsContainer) return;
+
+    let currentFacingMode = 'environment';
+    let stream = null;
+
+    const stopStream = () => {
+      if (stream) {
+        stream.getTracks().forEach((t) => t.stop());
+        stream = null;
+      }
+    };
+
+    const triggerNativeFallback = () => {
+      stopStream();
+      document.body.classList.remove('modal-open');
+      modalsContainer.innerHTML = '';
+      const directInput = document.getElementById('directCameraInput');
+      if (directInput) {
+        directInput.click();
+      } else {
+        renderUploadModal();
+      }
+    };
+
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+      triggerNativeFallback();
+      return;
+    }
+
+    document.body.classList.add('modal-open');
+
+    modalsContainer.innerHTML = `
+      <div class="modal-overlay active modal-overlay-enter" id="cameraScannerOverlay" style="background: rgba(0,0,0,0.92); z-index: 10000; padding: 0;">
+        <div class="camera-scanner-hud" style="position: relative; width: 100%; height: 100%; display: flex; flex-direction: column; justify-content: space-between; align-items: center; padding: 24px 16px;">
+          
+          <!-- Top Bar -->
+          <div style="width: 100%; max-width: 500px; display: flex; align-items: center; justify-content: space-between; z-index: 10;">
+            <button type="button" id="closeCameraScannerBtn" style="background: rgba(0,0,0,0.5); border: 1px solid rgba(255,255,255,0.2); color: #fff; width: 44px; height: 44px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 1.2rem; cursor: pointer;">✕</button>
+            <div style="background: rgba(0,0,0,0.6); backdrop-filter: blur(8px); padding: 6px 16px; border-radius: 20px; border: 1px solid rgba(255,255,255,0.15); color: #fff; font-size: 0.85rem; font-weight: 600; letter-spacing: 0.05em; display: flex; align-items: center; gap: 8px;">
+              <span style="width: 8px; height: 8px; border-radius: 50%; background: #10b981; display: inline-block; box-shadow: 0 0 8px #10b981;"></span>
+              ID & DOC SCANNER
+            </div>
+            <button type="button" id="flipCameraBtn" style="background: rgba(0,0,0,0.5); border: 1px solid rgba(255,255,255,0.2); color: #fff; width: 44px; height: 44px; border-radius: 50%; display: flex; align-items: center; justify-content: center; cursor: pointer;" title="Flip Camera">
+              <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 4v6h-6"></path><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"></path></svg>
+            </button>
+          </div>
+
+          <!-- Video Viewfinder Frame -->
+          <div style="position: relative; width: 100%; max-width: 440px; height: 60vh; border-radius: 24px; overflow: hidden; display: flex; align-items: center; justify-content: center; background: #000; box-shadow: 0 0 30px rgba(99,102,241,0.2);">
+            <video id="cameraScannerVideo" playsinline autoplay muted style="width: 100%; height: 100%; object-fit: cover;"></video>
+            
+            <!-- Reticle Target Lines -->
+            <div style="position: absolute; inset: 20px; border: 2px dashed rgba(255,255,255,0.4); border-radius: 16px; pointer-events: none; box-shadow: inset 0 0 0 1000px rgba(0,0,0,0.25);"></div>
+            <div class="scanner-laser" style="position: absolute; left: 24px; right: 24px; height: 2px; background: linear-gradient(90deg, transparent, #6366f1, #06b6d4, #6366f1, transparent); box-shadow: 0 0 15px #6366f1; pointer-events: none; animation: scanLaserAnim 2.4s ease-in-out infinite;"></div>
+            
+            <div id="cameraLoadingHint" style="position: absolute; color: #fff; font-size: 0.85rem; font-weight: 500; display: flex; align-items: center; gap: 8px;">
+              <span class="spinner" style="width: 18px; height: 18px; border: 2px solid rgba(255,255,255,0.3); border-top-color: #fff; border-radius: 50%; animation: spin 0.8s linear infinite;"></span>
+              Starting camera...
+            </div>
+          </div>
+
+          <!-- Bottom Control Bar -->
+          <div style="width: 100%; max-width: 440px; display: flex; flex-direction: column; align-items: center; gap: 14px; z-index: 10;">
+            <p style="color: rgba(255,255,255,0.7); font-size: 0.8rem; margin: 0; text-align: center;">Align document inside frame and tap Capture</p>
+            <div style="display: flex; align-items: center; justify-content: center; gap: 24px; width: 100%;">
+              <button type="button" id="useGalleryFallbackBtn" style="background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); color: #fff; padding: 10px 18px; border-radius: 24px; font-size: 0.8rem; cursor: pointer;">Files / Upload</button>
+              
+              <!-- Shutter Button -->
+              <button type="button" id="cameraShutterBtn" style="width: 72px; height: 72px; border-radius: 50%; background: #fff; border: 5px solid rgba(255,255,255,0.4); display: flex; align-items: center; justify-content: center; cursor: pointer; box-shadow: 0 0 24px rgba(255,255,255,0.5); transition: transform 0.15s ease;" title="Take Photo">
+                <div style="width: 52px; height: 52px; border-radius: 50%; background: linear-gradient(135deg, #6366f1, #4f46e5);"></div>
+              </button>
+
+              <div style="width: 80px;"></div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    `;
+
+    const videoEl = document.getElementById('cameraScannerVideo');
+    const loadingHint = document.getElementById('cameraLoadingHint');
+    const closeBtn = document.getElementById('closeCameraScannerBtn');
+    const flipBtn = document.getElementById('flipCameraBtn');
+    const shutterBtn = document.getElementById('cameraShutterBtn');
+    const galleryFallbackBtn = document.getElementById('useGalleryFallbackBtn');
+
+    const startCameraStream = async (facing) => {
+      stopStream();
+      if (loadingHint) loadingHint.style.display = 'flex';
+      try {
+        stream = await navigator.mediaDevices.getUserMedia({
+          video: {
+            facingMode: { ideal: facing },
+            width: { ideal: 1920 },
+            height: { ideal: 1080 },
+          },
+          audio: false,
+        });
+        if (videoEl) {
+          videoEl.srcObject = stream;
+          await videoEl.play();
+          if (loadingHint) loadingHint.style.display = 'none';
+        }
+      } catch (err) {
+        console.warn('[Camera] getUserMedia error, falling back to input:', err);
+        triggerNativeFallback();
+      }
+    };
+
+    await startCameraStream(currentFacingMode);
+
+    const closeScanner = () => {
+      stopStream();
+      document.body.classList.remove('modal-open');
+      modalsContainer.innerHTML = '';
+    };
+
+    if (closeBtn) closeBtn.addEventListener('click', closeScanner);
+    if (galleryFallbackBtn) {
+      galleryFallbackBtn.addEventListener('click', () => {
+        triggerNativeFallback();
+      });
+    }
+
+    if (flipBtn) {
+      flipBtn.addEventListener('click', async () => {
+        currentFacingMode = currentFacingMode === 'environment' ? 'user' : 'environment';
+        await startCameraStream(currentFacingMode);
+      });
+    }
+
+    if (shutterBtn) {
+      shutterBtn.addEventListener('click', () => {
+        shutterBtn.style.transform = 'scale(0.9)';
+        setTimeout(() => { shutterBtn.style.transform = 'scale(1)'; }, 150);
+
+        if (!videoEl || !videoEl.videoWidth) {
+          triggerNativeFallback();
+          return;
+        }
+
+        const canvas = document.createElement('canvas');
+        canvas.width = videoEl.videoWidth;
+        canvas.height = videoEl.videoHeight;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(videoEl, 0, 0, canvas.width, canvas.height);
+
+        canvas.toBlob((blob) => {
+          if (!blob) {
+            triggerNativeFallback();
+            return;
+          }
+          const scannedFile = new File([blob], `Scanned_Doc_${Date.now()}.jpg`, { type: 'image/jpeg' });
+          closeScanner();
+          renderUploadModal();
+          
+          // Populate scanned file into upload modal
+          setTimeout(() => {
+            const fileInput = document.getElementById('docFile');
+            if (fileInput) {
+              const dt = new DataTransfer();
+              dt.items.add(scannedFile);
+              fileInput.files = dt.files;
+              fileInput.dispatchEvent(new Event('change', { bubbles: true }));
+            }
+          }, 100);
+        }, 'image/jpeg', 0.92);
+      });
+    }
   }
 
   function escapeHtml(str) {
@@ -2201,6 +2736,7 @@ const DocUI = (() => {
     renderDocCard,
     renderFavCard,
     renderUploadModal,
+    openCameraScannerModal,
     renderEditModal,
     renderCreateFolderModal,
     renderEditFolderModal,
@@ -2213,6 +2749,7 @@ const DocUI = (() => {
     renderSettingsSheet,
     renderVaultsSheet,
     renderExpiryTrackerModal,
+    setupVaultaCustomSelect,
     loadPdfJsLibrary,
     initVaultaDatePicker,
     showToast,
@@ -2220,3 +2757,4 @@ const DocUI = (() => {
     formatBytes,
   };
 })();
+

@@ -368,9 +368,24 @@ const DocApp = (() => {
   }
 
   function bindBackButton() {
-    const backBtn = document.getElementById('backToHome');
+    const backBtn = document.getElementById('backToHome') || document.getElementById('vaultBackBtn');
     if (backBtn) {
-      backBtn.addEventListener('click', () => navigate('home'));
+      backBtn.addEventListener('click', () => {
+        if (state.currentFolderId) {
+          const folder = DocUI.getFolder(state.currentFolderId);
+          state.currentFolderId = folder ? folder.parentId : null;
+          renderCurrentScreen();
+        } else {
+          navigate('home');
+        }
+      });
+    }
+
+    const heroBadge = document.getElementById('vaultHeroBadge');
+    if (heroBadge) {
+      heroBadge.addEventListener('click', () => {
+        DocUI.renderSecurityModal();
+      });
     }
   }
 
@@ -463,12 +478,16 @@ const DocApp = (() => {
   async function handleQuickAction(action) {
     switch (action) {
       case 'scan': {
-        const directCam = document.getElementById('directCameraInput');
-        if (directCam) {
-          window.SecurityModule?.suppressLock(45000);
-          directCam.click();
+        window.SecurityModule?.suppressLock(60000);
+        if (DocUI && typeof DocUI.openCameraScannerModal === 'function') {
+          await DocUI.openCameraScannerModal();
         } else {
-          openUploadModal({ autoCamera: true });
+          const directCam = document.getElementById('directCameraInput');
+          if (directCam) {
+            directCam.click();
+          } else {
+            openUploadModal({ autoCamera: true });
+          }
         }
         break;
       }
@@ -1686,6 +1705,9 @@ const DocApp = (() => {
     const previewRemove = document.getElementById('previewRemove');
 
     DocUI.initVaultaDatePicker('docExpiry_container', 'docExpiry', '');
+    const vaultCustom = DocUI.setupVaultaCustomSelect ? DocUI.setupVaultaCustomSelect('docVault', 'vault') : null;
+    const catCustom = DocUI.setupVaultaCustomSelect ? DocUI.setupVaultaCustomSelect('docCategory', 'category') : null;
+    const folderCustom = DocUI.setupVaultaCustomSelect ? DocUI.setupVaultaCustomSelect('docFolder', 'folder') : null;
 
     const closeModal = () => {
       state.selectedFile = null;
@@ -1827,6 +1849,8 @@ const DocApp = (() => {
           if (firstOption) firstOption.selected = true;
         }
         if (folderSelect) folderSelect.value = '';
+        if (catCustom) catCustom.refresh();
+        if (folderCustom) folderCustom.refresh();
         updateCustomVisibility();
         updateFolderVisibility();
       });
@@ -2297,6 +2321,9 @@ const DocApp = (() => {
     const vaultSelect = document.getElementById('editDocVault');
 
     DocUI.initVaultaDatePicker('editDocExpiry_container', 'editDocExpiry', doc.expiryDate || '');
+    const editVaultCustom = DocUI.setupVaultaCustomSelect ? DocUI.setupVaultaCustomSelect('editDocVault', 'vault') : null;
+    const editCatCustom = DocUI.setupVaultaCustomSelect ? DocUI.setupVaultaCustomSelect('editDocCategory', 'category') : null;
+    const editFolderCustom = DocUI.setupVaultaCustomSelect ? DocUI.setupVaultaCustomSelect('editDocFolder', 'folder') : null;
 
     const closeModal = () => {
       document.body.classList.remove('modal-open');
@@ -2374,6 +2401,8 @@ const DocApp = (() => {
         if (personalFolders) personalFolders.style.display = 'none';
         if (officialFolders) officialFolders.style.display = '';
       }
+      if (editCatCustom) editCatCustom.refresh();
+      if (editFolderCustom) editFolderCustom.refresh();
       updateEditCustomVisibility();
       updateEditFolderVisibility();
     });
