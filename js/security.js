@@ -48,8 +48,6 @@
   const SecurityModule = {
     
     isSecurityEnabled() {
-      const explicit = localStorage.getItem(STORAGE_KEYS.ENABLED);
-      if (explicit !== null) return explicit === 'true';
       return this.hasPasscode() || this.isBiometricsEnabled();
     },
 
@@ -59,6 +57,14 @@
 
     isBiometricsEnabled() {
       return localStorage.getItem(STORAGE_KEYS.BIOMETRIC_ENABLED) === 'true' && !!localStorage.getItem(STORAGE_KEYS.BIOMETRIC_CRED_ID);
+    },
+
+    removePasscode() {
+      localStorage.removeItem(STORAGE_KEYS.PIN_HASH);
+      localStorage.removeItem(STORAGE_KEYS.PIN_LEN);
+      localStorage.removeItem(STORAGE_KEYS.ENABLED);
+      localStorage.removeItem(STORAGE_KEYS.BIOMETRIC_ENABLED);
+      localStorage.removeItem(STORAGE_KEYS.BIOMETRIC_CRED_ID);
     },
 
     getBiometricsStatus() {

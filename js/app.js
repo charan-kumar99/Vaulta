@@ -448,7 +448,7 @@ const DocApp = (() => {
   async function handleQuickAction(action) {
     switch (action) {
       case 'scan': {
-        openUploadModal({ autoBrowse: true });
+        openUploadModal({ autoCamera: true });
         break;
       }
       case 'upload': {
@@ -1627,6 +1627,7 @@ const DocApp = (() => {
   }
 
   function openUploadModal(prefill = {}) {
+    document.body.classList.add('modal-open');
     const modals = modalsContainer();
     const defaultVault = prefill.vault || state.currentVault || 'personal';
     modals.innerHTML = DocUI.renderUploadModal(defaultVault, state.currentFolderId, prefill);
@@ -1644,14 +1645,22 @@ const DocApp = (() => {
         catSelect.dispatchEvent(new Event('change'));
       }
     }
-    if (prefill.autoBrowse) {
+    if (prefill.autoCamera) {
+      setTimeout(() => {
+        const cam = document.getElementById('cameraInput');
+        if (cam) {
+          window.SecurityModule?.suppressLock(25000);
+          cam.click();
+        }
+      }, 120);
+    } else if (prefill.autoBrowse) {
       setTimeout(() => {
         const fileInput = document.getElementById('fileInput');
         if (fileInput) {
           window.SecurityModule?.suppressLock(25000);
           fileInput.click();
         }
-      }, 150);
+      }, 120);
     }
   }
 
@@ -1662,6 +1671,9 @@ const DocApp = (() => {
     const submitBtn = document.getElementById('uploadSubmit');
     const dropZone = document.getElementById('dropZone');
     const fileInput = document.getElementById('fileInput');
+    const cameraInput = document.getElementById('cameraInput');
+    const btnCamera = document.getElementById('btnCameraScan');
+    const btnBrowse = document.getElementById('btnFileBrowse');
     const vaultSelect = document.getElementById('docVault');
     const previewRemove = document.getElementById('previewRemove');
 
@@ -1670,40 +1682,95 @@ const DocApp = (() => {
     const closeModal = () => {
       state.selectedFile = null;
       window.SecurityModule?.clearLockSuppression();
-      modal.remove();
+      document.body.classList.remove('modal-open');
+      const modals = modalsContainer();
+      if (modals) modals.innerHTML = '';
+      if (modal) modal.remove();
     };
 
-    closeBtn.addEventListener('click', closeModal);
-    cancelBtn.addEventListener('click', closeModal);
-    modal.addEventListener('click', (e) => {
-      if (e.target === modal) closeModal();
-    });
+    if (closeBtn) {
+      closeBtn.addEventListener('click', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        closeModal();
+      });
+    }
 
-    dropZone.addEventListener('click', () => {
-      window.SecurityModule?.suppressLock(25000);
-      fileInput.click();
-    });
+    if (cancelBtn) {
+      cancelBtn.addEventListener('click', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        closeModal();
+      });
+    }
 
-    dropZone.addEventListener('dragover', (e) => {
-      e.preventDefault();
-      dropZone.classList.add('drag-over');
-    });
+    if (modal) {
+      modal.addEventListener('click', (e) => {
+        if (e.target === modal) {
+          e.preventDefault();
+          closeModal();
+        }
+      });
+    }
 
-    dropZone.addEventListener('dragleave', () => {
-      dropZone.classList.remove('drag-over');
-    });
+    const onFilePicked = (file) => {
+      if (!file) return;
+      handleFileSelect(file);
+    };
 
-    dropZone.addEventListener('drop', (e) => {
-      e.preventDefault();
-      dropZone.classList.remove('drag-over');
+    if (fileInput) {
+      fileInput.addEventListener('change', (e) => {
+        if (e.target.files && e.target.files.length > 0) onFilePicked(e.target.files[0]);
+      });
+    }
 
-      const files = e.dataTransfer.files;
-      if (files.length > 0) handleFileSelect(files[0]);
-    });
+    if (cameraInput) {
+      cameraInput.addEventListener('change', (e) => {
+        if (e.target.files && e.target.files.length > 0) onFilePicked(e.target.files[0]);
+      });
+    }
 
-    fileInput.addEventListener('change', (e) => {
-      if (e.target.files.length > 0) handleFileSelect(e.target.files[0]);
-    });
+    if (btnCamera && cameraInput) {
+      btnCamera.addEventListener('click', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        window.SecurityModule?.suppressLock(25000);
+        cameraInput.click();
+      });
+    }
+
+    if (btnBrowse && fileInput) {
+      btnBrowse.addEventListener('click', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        window.SecurityModule?.suppressLock(25000);
+        fileInput.click();
+      });
+    }
+
+    if (dropZone && fileInput) {
+      dropZone.addEventListener('click', (e) => {
+        if (e.target.closest('#btnCameraScan') || e.target.closest('#btnFileBrowse')) return;
+        window.SecurityModule?.suppressLock(25000);
+        fileInput.click();
+      });
+
+      dropZone.addEventListener('dragover', (e) => {
+        e.preventDefault();
+        dropZone.classList.add('drag-over');
+      });
+
+      dropZone.addEventListener('dragleave', () => {
+        dropZone.classList.remove('drag-over');
+      });
+
+      dropZone.addEventListener('drop', (e) => {
+        e.preventDefault();
+        dropZone.classList.remove('drag-over');
+        const files = e.dataTransfer.files;
+        if (files.length > 0) onFilePicked(files[0]);
+      });
+    }
 
     if (previewRemove) {
       previewRemove.addEventListener('click', (e) => {
@@ -2227,6 +2294,7 @@ const DocApp = (() => {
     const doc = await DocDB.getDocument(docId);
     if (!doc) return;
 
+    document.body.classList.add('modal-open');
     const modals = modalsContainer();
     modals.innerHTML = DocUI.renderEditModal(doc);
 
@@ -2242,13 +2310,37 @@ const DocApp = (() => {
 
     DocUI.initVaultaDatePicker('editDocExpiry_container', 'editDocExpiry', doc.expiryDate || '');
 
-    const closeModal = () => modal.remove();
+    const closeModal = () => {
+      document.body.classList.remove('modal-open');
+      const modals = modalsContainer();
+      if (modals) modals.innerHTML = '';
+      if (modal) modal.remove();
+    };
 
-    closeBtn.addEventListener('click', closeModal);
-    cancelBtn.addEventListener('click', closeModal);
-    modal.addEventListener('click', (e) => {
-      if (e.target === modal) closeModal();
-    });
+    if (closeBtn) {
+      closeBtn.addEventListener('click', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        closeModal();
+      });
+    }
+
+    if (cancelBtn) {
+      cancelBtn.addEventListener('click', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        closeModal();
+      });
+    }
+
+    if (modal) {
+      modal.addEventListener('click', (e) => {
+        if (e.target === modal) {
+          e.preventDefault();
+          closeModal();
+        }
+      });
+    }
 
     const catSelect = document.getElementById('editDocCategory');
     const customGroup = document.getElementById('editCustomCategoryGroup');

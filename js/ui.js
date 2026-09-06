@@ -733,11 +733,23 @@ const DocUI = (() => {
           </div>
           <div class="modal-body">
             <!-- Drop Zone -->
-            <div class="drop-zone" id="dropZone">
-              <div class="drop-icon anim-float">📁</div>
-              <p class="drop-text">Drag & drop your file here</p>
-              <p class="drop-subtext">or <span class="drop-browse">click to browse</span></p>
-              <p class="drop-subtext" style="margin-top: var(--space-2); font-size: var(--font-size-xs);">Supports images (JPG, PNG), PDF, and Excel (XLS, XLSX, CSV)</p>
+            <div class="drop-zone" id="dropZone" style="text-align: center; padding: 22px 16px; margin-bottom: 16px; cursor: pointer;">
+              <div class="drop-icon anim-float" style="font-size: 2.2rem; margin-bottom: 6px;">📁</div>
+              <p class="drop-text" style="font-weight: 700; font-size: 1rem; margin-bottom: 4px; color: var(--color-text-primary);">Upload or Scan Document</p>
+              <p class="drop-subtext" style="font-size: 0.8rem; color: var(--color-text-secondary); margin-bottom: 14px;">Supports Camera Photos, Images (JPG, PNG), PDF & Excel</p>
+              
+              <div style="display: flex; gap: 10px; justify-content: center; flex-wrap: wrap;">
+                <button type="button" class="btn btn-primary" id="btnCameraScan" style="display: inline-flex; align-items: center; gap: 8px; padding: 10px 18px; font-weight: 600; border-radius: var(--radius-lg); font-size: 0.88rem;">
+                  <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path><circle cx="12" cy="13" r="4"></circle></svg>
+                  <span>📷 Scan with Camera</span>
+                </button>
+                <button type="button" class="btn btn-secondary" id="btnFileBrowse" style="display: inline-flex; align-items: center; gap: 8px; padding: 10px 18px; font-weight: 600; border-radius: var(--radius-lg); font-size: 0.88rem;">
+                  <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line></svg>
+                  <span>📁 Browse Files / PDF</span>
+                </button>
+              </div>
+
+              <input type="file" id="cameraInput" accept="image/*" capture="environment" style="display:none;" />
               <input type="file" id="fileInput" accept="image/*,.pdf,.xls,.xlsx,.csv,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,text/csv" style="display:none;" />
             </div>
 
@@ -900,8 +912,8 @@ const DocUI = (() => {
             </div>
           </div>
           <div class="modal-footer">
-            <button class="btn btn-secondary" id="editCancel">Cancel</button>
-            <button class="btn btn-primary" id="editSubmit" data-doc-id="${doc.id}">
+            <button class="btn btn-secondary" id="editCancel" type="button" style="min-width: 90px;">Cancel</button>
+            <button class="btn btn-primary" id="editSubmit" data-doc-id="${doc.id}" type="button" style="flex: 1; padding: 12px 18px; font-weight: 700; background: var(--gradient-accent); font-size: 0.92rem;">
               <span class="btn-text">💾 Save Changes</span>
             </button>
           </div>
@@ -1320,22 +1332,6 @@ const DocUI = (() => {
           <div class="modal-body" style="padding-top: var(--space-3);">
             <div style="font-size: 0.72rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: var(--color-text-tertiary); margin-bottom: 8px; padding-left: 4px;">Access Protection</div>
             <div class="settings-card-group">
-              <div class="settings-row-item">
-                <div class="settings-icon-tile tile-violet">
-                  <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
-                </div>
-                <div class="settings-item-body">
-                  <div style="display: flex; align-items: center; gap: 8px;">
-                    <span class="settings-item-title">App Lock Protection</span>
-                    <span class="settings-pill-badge ${isSecEnabled ? 'pill-active' : 'pill-inactive'}">${isSecEnabled ? 'ACTIVE' : 'OFF'}</span>
-                  </div>
-                  <div class="settings-item-subtitle">${isSecEnabled ? 'Requires PIN or Biometrics on launch' : 'Vault opens immediately without prompt'}</div>
-                </div>
-                <button type="button" class="btn ${isSecEnabled ? 'btn-secondary' : 'btn-primary'} btn-sm" id="toggleAppLockBtn">
-                  ${isSecEnabled ? 'Disable' : 'Enable'}
-                </button>
-              </div>
-
               <div class="settings-row-item" style="flex-direction: column; align-items: stretch; gap: 10px;">
                 <div style="display: flex; align-items: center; gap: var(--space-3); width: 100%;">
                   <div class="settings-icon-tile tile-cyan">
@@ -1346,11 +1342,18 @@ const DocUI = (() => {
                       <span class="settings-item-title">Passcode PIN</span>
                       <span class="settings-pill-badge ${hasPin ? 'pill-active' : 'pill-inactive'}">${hasPin ? 'CONFIGURED' : 'NOT SET'}</span>
                     </div>
-                    <div class="settings-item-subtitle">${hasPin ? '4 to 6 digit security code' : 'Required to activate lock protection'}</div>
+                    <div class="settings-item-subtitle">${hasPin ? 'App lock is active with security PIN' : 'Set a PIN code to lock the app'}</div>
                   </div>
-                  <button type="button" class="btn btn-secondary btn-sm" id="setPinBtn">
-                    ${hasPin ? 'Change' : 'Set PIN'}
-                  </button>
+                  <div style="display: flex; gap: 6px;">
+                    <button type="button" class="btn btn-secondary btn-sm" id="setPinBtn">
+                      ${hasPin ? 'Change' : 'Set PIN'}
+                    </button>
+                    ${hasPin ? `
+                      <button type="button" class="btn btn-ghost btn-sm" id="removePinBtn" style="color: var(--color-danger); font-size: 0.8rem; padding: 4px 8px;" title="Remove Passcode PIN">
+                        ✕
+                      </button>
+                    ` : ''}
+                  </div>
                 </div>
                 <div id="pinInputGroup" style="display: none; background: var(--color-bg-tertiary); padding: 12px; border-radius: var(--radius-lg); border: 1px solid var(--color-border);">
                   <input type="password" id="newPinInput" maxlength="6" pattern="[0-9]*" inputmode="numeric" placeholder="Enter 4 to 6 digit PIN" class="form-input" style="margin-bottom: 8px; width: 100%;">
@@ -1369,7 +1372,7 @@ const DocUI = (() => {
                   </div>
                   <div class="settings-item-subtitle">${bioStatusText}</div>
                 </div>
-                <button type="button" class="btn btn-secondary btn-sm" id="toggleBioBtn" ${(!isBioSupported || !isSecEnabled) ? 'disabled' : ''}>
+                <button type="button" class="btn btn-secondary btn-sm" id="toggleBioBtn" ${!isBioSupported ? 'disabled' : ''}>
                   ${isBioEnabled ? 'Disable' : 'Enable'}
                 </button>
               </div>
@@ -1395,28 +1398,17 @@ const DocUI = (() => {
     if (closeBtn) closeBtn.addEventListener('click', closeModal);
     if (backdrop) backdrop.addEventListener('click', (e) => { if (e.target === backdrop) closeModal(); });
 
-    const toggleLockBtn = document.getElementById('toggleAppLockBtn');
-    if (toggleLockBtn) {
-      toggleLockBtn.addEventListener('click', async () => {
-        if (!isSecEnabled) {
-          if (!window.SecurityModule.hasPasscode()) {
-            showToast('Please set a Passcode PIN first', 'warning');
-            const pinGrp = document.getElementById('pinInputGroup');
-            if (pinGrp) pinGrp.style.display = 'block';
-            return;
-          }
-          window.SecurityModule.setSecurityEnabled(true);
-          showToast('🔒 App Lock Enabled', 'success');
-        } else {
-          window.SecurityModule.setSecurityEnabled(false);
-          showToast('🔓 App Lock Disabled', 'info');
-        }
+    const setPinBtn = document.getElementById('setPinBtn');
+    const removePinBtn = document.getElementById('removePinBtn');
+    const pinGroup = document.getElementById('pinInputGroup');
+
+    if (removePinBtn) {
+      removePinBtn.addEventListener('click', () => {
+        window.SecurityModule.removePasscode();
+        showToast('🔓 Passcode PIN removed & App Lock turned off', 'info');
         renderSecurityModal();
       });
     }
-
-    const setPinBtn = document.getElementById('setPinBtn');
-    const pinGroup = document.getElementById('pinInputGroup');
     if (setPinBtn && pinGroup) {
       setPinBtn.addEventListener('click', () => {
         pinGroup.style.display = pinGroup.style.display === 'none' ? 'block' : 'none';

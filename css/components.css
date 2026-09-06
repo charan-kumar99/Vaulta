@@ -2933,6 +2933,11 @@ body.preview-open .bottom-nav {
   .header-btn.mobile-hidden {
     display: none !important;
   }
+
+  body.modal-open .bottom-nav,
+  body.preview-open .bottom-nav {
+    display: none !important;
+  }
 }
 
 /* ============================================
@@ -2940,6 +2945,11 @@ body.preview-open .bottom-nav {
    ============================================ */
 
 @media (max-width: 768px) {
+  body.modal-open .bottom-nav,
+  body.preview-open .bottom-nav {
+    display: none !important;
+  }
+
   .modal-content {
     border-radius: 20px 20px 0 0;
     max-height: 85vh;
@@ -2964,7 +2974,22 @@ body.preview-open .bottom-nav {
     -webkit-overflow-scrolling: touch !important;
     touch-action: pan-y !important;
     overscroll-behavior-y: contain;
-    padding-bottom: calc(115px + env(safe-area-inset-bottom, 0px)) !important;
+    padding-bottom: calc(30px + env(safe-area-inset-bottom, 0px)) !important;
+  }
+
+  .modal-footer {
+    flex-shrink: 0 !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: flex-end !important;
+    gap: 10px !important;
+    padding: 14px 16px calc(14px + env(safe-area-inset-bottom, 0px)) 16px !important;
+    background: var(--color-bg-secondary) !important;
+    border-top: 1px solid var(--color-border) !important;
+    position: relative !important;
+    z-index: 100 !important;
+    width: 100% !important;
+    box-sizing: border-box !important;
   }
 
   .modal-content::before {

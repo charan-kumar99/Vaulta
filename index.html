@@ -22,9 +22,9 @@
   <link rel="icon" type="image/png" sizes="32x32" href="icons/favicon-32x32.png" />
   <link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png" />
 
-  <link rel="stylesheet" href="css/index.css?v=50" />
-  <link rel="stylesheet" href="css/animations.css?v=50" />
-  <link rel="stylesheet" href="css/components.css?v=50" />
+  <link rel="stylesheet" href="css/index.css?v=55" />
+  <link rel="stylesheet" href="css/animations.css?v=55" />
+  <link rel="stylesheet" href="css/components.css?v=55" />
 </head>
 <body>
 
@@ -119,12 +119,12 @@
     </button>
   </nav>
 
-  <script src="js/db.js?v=50"></script>
-  <script src="js/search.js?v=50"></script>
-  <script src="js/share.js?v=50"></script>
-  <script src="js/ui.js?v=50"></script>
-  <script src="js/security.js?v=50"></script>
-  <script src="js/app.js?v=50"></script>
+  <script src="js/db.js?v=55"></script>
+  <script src="js/search.js?v=55"></script>
+  <script src="js/share.js?v=55"></script>
+  <script src="js/ui.js?v=55"></script>
+  <script src="js/security.js?v=55"></script>
+  <script src="js/app.js?v=55"></script>
 
   <script>
     document.addEventListener('DOMContentLoaded', () => {
@@ -143,12 +143,22 @@
         });
       }
 
-      document.addEventListener('visibilitychange', () => {
-        if (document.hidden && window.SecurityModule && window.SecurityModule.isSecurityEnabled()) {
+      const triggerLockIfActive = () => {
+        if (window.SecurityModule && window.SecurityModule.isSecurityEnabled()) {
           if (!window.SecurityModule.isLockSuppressed()) {
             window.SecurityModule.lockApp();
           }
         }
+      };
+
+      document.addEventListener('visibilitychange', () => {
+        if (document.hidden) {
+          triggerLockIfActive();
+        }
+      });
+
+      window.addEventListener('blur', () => {
+        triggerLockIfActive();
       });
 
       const backupBtn = document.getElementById('backupBtn');
@@ -176,7 +186,7 @@
           }
         });
 
-        navigator.serviceWorker.register('sw.js?v=50')
+        navigator.serviceWorker.register('sw.js?v=55')
           .then((reg) => {
             if (reg) reg.update();
           })
