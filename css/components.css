@@ -2708,6 +2708,7 @@ body.preview-open .bottom-nav {
   background: var(--color-bg-tertiary);
   border: 1px solid var(--color-border);
   margin-bottom: 8px;
+  touch-action: pan-y;
 }
 
 .storage-cat-info {
@@ -2913,7 +2914,7 @@ body.preview-open .bottom-nav {
     -webkit-overflow-scrolling: touch !important;
     touch-action: pan-y !important;
     overscroll-behavior-y: contain;
-    padding-bottom: calc(96px + env(safe-area-inset-bottom, 0px)) !important;
+    padding-bottom: calc(115px + env(safe-area-inset-bottom, 0px)) !important;
   }
 
   .modal-content::before {

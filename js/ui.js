@@ -1694,7 +1694,7 @@ const DocUI = (() => {
             </div>
 
             <h4 style="font-size: 0.9rem; font-weight: 700; margin-bottom: 10px; color: var(--color-text-primary);">Category Breakdown</h4>
-            <div style="max-height: 220px; overflow-y: auto;">
+            <div class="storage-cat-list" style="display: flex; flex-direction: column; gap: 8px; touch-action: pan-y;">
               ${categoryList || '<p style="font-size: 0.85rem; color: var(--color-text-secondary); text-align: center;">No document category data</p>'}
             </div>
           </div>
@@ -1708,6 +1708,8 @@ const DocUI = (() => {
 
     if (closeBtn) closeBtn.addEventListener('click', closeModal);
     if (backdrop) backdrop.addEventListener('click', (e) => { if (e.target === backdrop) closeModal(); });
+
+    bindSheetDragDismiss(backdrop);
   }
 
   function renderSettingsSheet() {
