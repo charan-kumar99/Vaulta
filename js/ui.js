@@ -1279,7 +1279,6 @@ const DocUI = (() => {
     const isSecEnabled = window.SecurityModule ? window.SecurityModule.isSecurityEnabled() : false;
     const hasPin = window.SecurityModule ? window.SecurityModule.hasPasscode() : false;
     const isBioEnabled = window.SecurityModule ? window.SecurityModule.isBiometricsEnabled() : false;
-    const isScreenSecEnabled = localStorage.getItem('vaulta_screen_security') !== 'disabled';
     
     let isBioSupported = false;
     let bioStatusText = '';
@@ -1373,26 +1372,6 @@ const DocUI = (() => {
                 <button type="button" class="btn btn-secondary btn-sm" id="toggleBioBtn" ${(!isBioSupported || !isSecEnabled) ? 'disabled' : ''}>
                   ${isBioEnabled ? 'Disable' : 'Enable'}
                 </button>
-              </div>
-            </div>
-
-            <div style="font-size: 0.72rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: var(--color-text-tertiary); margin-bottom: 8px; padding-left: 4px; margin-top: 14px;">Privacy & Anti-Capture</div>
-            <div class="settings-card-group">
-              <div class="settings-row-item">
-                <div class="settings-icon-tile tile-amber">
-                  <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg>
-                </div>
-                <div class="settings-item-body">
-                  <div style="display: flex; align-items: center; gap: 8px;">
-                    <span class="settings-item-title">Screen Security & Anti-Capture</span>
-                    <span class="settings-pill-badge ${isScreenSecEnabled ? 'pill-active' : 'pill-inactive'}">${isScreenSecEnabled ? 'ACTIVE' : 'DISABLED (TEST)'}</span>
-                  </div>
-                  <div class="settings-item-subtitle">Blocks screenshots, task-switcher previews & recording (5 taps on logo toggles test mode)</div>
-                </div>
-                <button type="button" class="btn ${isScreenSecEnabled ? 'btn-secondary' : 'btn-primary'} btn-sm" id="toggleScreenSecBtn">
-                  ${isScreenSecEnabled ? 'Disable' : 'Enable'}
-                </button>
-              </div>
             </div>
 
             ${isSecEnabled ? `
@@ -1475,21 +1454,6 @@ const DocUI = (() => {
             showToast(err.message || 'Biometric setup failed', 'error');
           }
         }
-      });
-    }
-
-    const toggleScreenSecBtn = document.getElementById('toggleScreenSecBtn');
-    if (toggleScreenSecBtn) {
-      toggleScreenSecBtn.addEventListener('click', () => {
-        const currentlyEnabled = localStorage.getItem('vaulta_screen_security') !== 'disabled';
-        const nextState = currentlyEnabled ? 'disabled' : 'enabled';
-        localStorage.setItem('vaulta_screen_security', nextState);
-        if (nextState === 'disabled') {
-          showToast('🔓 Screen Security disabled (Screenshots allowed for testing)', 'warning');
-        } else {
-          showToast('🛡️ Screen Security active (Screenshots blocked)', 'success');
-        }
-        renderSecurityModal();
       });
     }
 
@@ -1773,7 +1737,7 @@ const DocUI = (() => {
                 </div>
                 <div class="settings-item-body">
                   <span class="settings-item-title">Security & App Lock</span>
-                  <span class="settings-item-subtitle">PIN passcode, biometric sensor & anti-capture</span>
+                  <span class="settings-item-subtitle">PIN passcode & biometric sensor</span>
                 </div>
                 <span class="settings-chevron" style="font-size: 1.2rem; opacity: 0.5; font-weight: 300;">›</span>
               </button>
