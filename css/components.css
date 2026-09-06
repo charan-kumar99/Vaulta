@@ -2894,10 +2894,26 @@ body.preview-open .bottom-nav {
     max-height: 85vh;
     max-height: 85dvh;
     border-bottom: none;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    touch-action: pan-y;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .modal-header {
+    flex-shrink: 0;
+    padding: var(--space-4) var(--space-5);
   }
 
   .modal-overlay .modal-body {
-    padding-bottom: calc(94px + env(safe-area-inset-bottom, 0px)) !important;
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow-y: auto !important;
+    -webkit-overflow-scrolling: touch !important;
+    touch-action: pan-y !important;
+    overscroll-behavior-y: contain;
+    padding-bottom: calc(96px + env(safe-area-inset-bottom, 0px)) !important;
   }
 
   .modal-content::before {
@@ -3174,6 +3190,7 @@ body.preview-open .bottom-nav {
   border-radius: var(--radius-xl);
   overflow: hidden;
   margin-bottom: var(--space-4);
+  touch-action: pan-y;
 }
 
 .settings-row-item {
@@ -3191,6 +3208,8 @@ body.preview-open .bottom-nav {
   text-align: left;
   cursor: pointer;
   color: inherit;
+  touch-action: pan-y;
+  -webkit-tap-highlight-color: transparent;
 }
 
 .settings-row-item:last-child {
