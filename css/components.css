@@ -17,12 +17,16 @@
   justify-content: space-between;
   max-width: 1200px;
   margin: 0 auto;
+  flex-wrap: nowrap;
+  gap: var(--space-2);
 }
 
 .app-header .logo {
   display: flex;
   align-items: center;
-  gap: var(--space-3);
+  gap: 10px;
+  min-width: 0;
+  flex-shrink: 1;
 }
 
 .app-header .logo-icon {
@@ -36,6 +40,24 @@
   font-size: 18px;
   color: white;
   box-shadow: var(--shadow-glow-accent);
+}
+
+.app-header .logo-mark {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition: transform var(--transition-spring);
+}
+
+.app-header .logo:hover .logo-mark {
+  transform: scale(1.12) rotate(-3deg);
+}
+
+.app-header .logo-v-svg {
+  display: block;
+  width: 32px;
+  height: 32px;
 }
 
 .app-header .logo-text {
@@ -77,6 +99,47 @@
   background: var(--color-accent-primary);
   color: white;
   box-shadow: var(--shadow-glow-accent);
+}
+
+.security-status-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 10px;
+  font-weight: 600;
+  color: #10b981;
+  background: rgba(16, 185, 129, 0.1);
+  border: 1px solid rgba(16, 185, 129, 0.25);
+  padding: 2px 8px;
+  border-radius: var(--radius-full);
+  margin-left: var(--space-2);
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+}
+
+.security-status-badge .status-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #10b981;
+  box-shadow: 0 0 6px #10b981;
+  animation: pulse 2s infinite;
+}
+
+.install-pwa-btn {
+  width: auto !important;
+  padding: 0 12px;
+  gap: 6px;
+  font-size: 12px !important;
+  font-weight: 600;
+  background: rgba(99, 102, 241, 0.15);
+  border: 1px solid rgba(99, 102, 241, 0.35);
+  color: var(--color-accent-primary) !important;
+  border-radius: var(--radius-full) !important;
+}
+
+.install-pwa-btn:hover {
+  background: rgba(99, 102, 241, 0.25);
 }
 
 .back-btn {
@@ -138,8 +201,23 @@
   transition: color var(--transition-fast);
 }
 
+.search-icon-svg {
+  position: absolute;
+  left: var(--space-4);
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--color-text-tertiary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+  transition: color var(--transition-fast);
+}
+
 .search-bar:focus ~ .search-icon,
-.search-container:focus-within .search-icon {
+.search-container:focus-within .search-icon,
+.search-bar:focus ~ .search-icon-svg,
+.search-container:focus-within .search-icon-svg {
   color: var(--color-accent-primary);
 }
 
@@ -169,23 +247,347 @@
 }
 
 .vaults-grid {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  margin-bottom: var(--space-6);
+}
+
+.vault-hero-card {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  padding: 18px 22px;
+  border-radius: var(--radius-2xl);
+  cursor: pointer;
+  overflow: hidden;
+  transition: transform var(--transition-spring), box-shadow var(--transition-fast), border-color var(--transition-fast);
+  background: var(--color-bg-glass);
+  backdrop-filter: var(--glass-blur) var(--glass-saturate);
+  -webkit-backdrop-filter: var(--glass-blur) var(--glass-saturate);
+  border: 1px solid var(--color-border);
+  min-height: 84px;
+}
+
+.vault-hero-card:hover {
+  transform: translateY(-2px);
+}
+
+.vault-hero-card:active {
+  transform: scale(0.985);
+}
+
+.vault-hero-card.personal {
+  border-color: rgba(99, 102, 241, 0.3);
+  box-shadow: 0 4px 20px rgba(99, 102, 241, 0.08);
+}
+
+.vault-hero-card.personal:hover {
+  border-color: rgba(99, 102, 241, 0.5);
+  box-shadow: 0 8px 30px rgba(99, 102, 241, 0.2);
+}
+
+.vault-hero-card.official {
+  border-color: rgba(14, 165, 233, 0.3);
+  box-shadow: 0 4px 20px rgba(14, 165, 233, 0.08);
+}
+
+.vault-hero-card.official:hover {
+  border-color: rgba(14, 165, 233, 0.5);
+  box-shadow: 0 8px 30px rgba(14, 165, 233, 0.2);
+}
+
+.vault-hero-badge {
+  width: 48px;
+  height: 48px;
+  border-radius: var(--radius-xl);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition: transform var(--transition-spring);
+}
+
+.vault-hero-card.personal .vault-hero-badge {
+  background: linear-gradient(135deg, rgba(99, 102, 241, 0.3), rgba(168, 85, 247, 0.25));
+  color: #a5b4fc;
+  border: 1px solid rgba(99, 102, 241, 0.35);
+  box-shadow: 0 4px 14px rgba(99, 102, 241, 0.25);
+}
+
+.vault-hero-card.official .vault-hero-badge {
+  background: linear-gradient(135deg, rgba(14, 165, 233, 0.3), rgba(20, 184, 166, 0.25));
+  color: #7dd3fc;
+  border: 1px solid rgba(14, 165, 233, 0.35);
+  box-shadow: 0 4px 14px rgba(14, 165, 233, 0.25);
+}
+
+.vault-hero-card:hover .vault-hero-badge {
+  transform: scale(1.08);
+}
+
+.vault-hero-body {
+  flex: 1;
+  min-width: 0;
+}
+
+.vault-hero-header {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin-bottom: 3px;
+}
+
+.vault-hero-title {
+  font-size: 1.05rem;
+  font-weight: var(--font-weight-bold);
+  color: var(--color-text-primary);
+  letter-spacing: -0.01em;
+  margin: 0;
+}
+
+.vault-hero-tag {
+  font-size: 9px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  padding: 2px 7px;
+  border-radius: var(--radius-full);
+  background: rgba(99, 102, 241, 0.15);
+  color: #818cf8;
+  border: 1px solid rgba(99, 102, 241, 0.25);
+}
+
+.vault-hero-tag.official-tag {
+  background: rgba(14, 165, 233, 0.15);
+  color: #38bdf8;
+  border: 1px solid rgba(14, 165, 233, 0.25);
+}
+
+.vault-hero-subtitle {
+  font-size: 0.78rem;
+  color: var(--color-text-tertiary);
+  margin: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  line-height: 1.3;
+}
+
+.vault-hero-meta {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  flex-shrink: 0;
+}
+
+.vault-count-badge {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--color-text-secondary);
+  background: var(--color-bg-tertiary);
+  padding: 4px 9px;
+  border-radius: var(--radius-full);
+  border: 1px solid var(--color-border);
+}
+
+.vault-hero-arrow {
+  font-size: 20px;
+  line-height: 1;
+  color: var(--color-text-tertiary);
+  transition: transform var(--transition-fast), color var(--transition-fast);
+}
+
+.vault-hero-card:hover .vault-hero-arrow {
+  transform: translateX(3px);
+  color: var(--color-text-primary);
+}
+
+/* Quick Actions Bar */
+.quick-actions-bar {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-  gap: var(--space-6);
-  margin-bottom: var(--space-10);
+  grid-template-columns: repeat(4, 1fr);
+  gap: 10px;
+  margin-bottom: var(--space-6);
+}
+
+.quick-action-pill {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 12px 6px;
+  background: var(--color-bg-glass);
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-xl);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  color: var(--color-text-secondary);
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.quick-action-pill:hover {
+  background: var(--color-bg-tertiary);
+  border-color: rgba(255, 255, 255, 0.15);
+  transform: translateY(-2px);
+  color: var(--color-text-primary);
+}
+
+.quick-action-pill:active {
+  transform: scale(0.95);
+}
+
+.quick-pill-icon {
+  width: 36px;
+  height: 36px;
+  border-radius: var(--radius-lg);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: transform var(--transition-spring);
+}
+
+.quick-pill-icon.icon-cyan {
+  background: rgba(6, 182, 212, 0.15);
+  color: #22d3ee;
+  border: 1px solid rgba(6, 182, 212, 0.25);
+}
+
+.quick-pill-icon.icon-indigo {
+  background: rgba(99, 102, 241, 0.15);
+  color: #818cf8;
+  border: 1px solid rgba(99, 102, 241, 0.25);
+}
+
+.quick-pill-icon.icon-amber {
+  background: rgba(245, 158, 11, 0.15);
+  color: #fbbf24;
+  border: 1px solid rgba(245, 158, 11, 0.25);
+}
+
+.quick-pill-icon.icon-rose {
+  background: rgba(244, 63, 94, 0.15);
+  color: #fb7185;
+  border: 1px solid rgba(244, 63, 94, 0.25);
+}
+
+.quick-action-pill:hover .quick-pill-icon {
+  transform: scale(1.1);
+}
+
+.quick-pill-label {
+  font-size: 11px;
+  font-weight: var(--font-weight-medium);
+  letter-spacing: 0.01em;
+}
+
+/* Quick Start Onboarding Card */
+.quick-start-card {
+  background: linear-gradient(145deg, rgba(99, 102, 241, 0.08), rgba(14, 165, 233, 0.04));
+  border: 1px dashed rgba(99, 102, 241, 0.35);
+  border-radius: var(--radius-2xl);
+  padding: 22px 18px;
+  margin: var(--space-4) 0;
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.15);
+}
+
+.quick-start-header {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  margin-bottom: var(--space-4);
+}
+
+.quick-start-sparkle {
+  font-size: 26px;
+  line-height: 1;
+}
+
+.quick-start-title {
+  font-size: 1.05rem;
+  font-weight: var(--font-weight-bold);
+  color: var(--color-text-primary);
+  margin: 0 0 2px 0;
+}
+
+.quick-start-desc {
+  font-size: 0.8rem;
+  color: var(--color-text-tertiary);
+  margin: 0;
+}
+
+.template-chips-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 10px;
+}
+
+.template-chip {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 14px;
+  background: var(--color-bg-glass);
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-xl);
+  color: var(--color-text-primary);
+  font-size: 12px;
+  font-weight: var(--font-weight-semibold);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  text-align: left;
+  user-select: none;
+}
+
+.template-chip:hover {
+  background: var(--color-bg-tertiary);
+  border-color: var(--color-accent-primary);
+  color: var(--color-accent-primary);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(99, 102, 241, 0.2);
+}
+
+.template-chip:active {
+  transform: scale(0.97);
+}
+
+.template-chip .chip-plus {
+  font-weight: 700;
+  font-size: 14px;
+  color: var(--color-accent-primary);
+}
+
+.section-icon-svg {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  margin-right: 6px;
+  vertical-align: middle;
+  color: var(--color-accent-primary);
+}
+
+.section-count-badge {
+  font-size: 11px;
+  color: var(--color-text-tertiary);
+  font-weight: var(--font-weight-medium);
+  background: var(--color-bg-tertiary);
+  padding: 2px 8px;
+  border-radius: var(--radius-full);
 }
 
 .vault-card {
   position: relative;
-  padding: var(--space-8);
   border-radius: var(--radius-2xl);
   cursor: pointer;
   overflow: hidden;
   transition: all var(--transition-base);
-  min-height: 200px;
-  display: flex;
-  flex-direction: column;
-  justify-content: space-between;
 }
 
 .vault-card::before {
@@ -1647,50 +2049,41 @@
   }
 
   .vaults-grid {
-    grid-template-columns: repeat(2, 1fr);
-    gap: var(--space-3);
-    margin-bottom: var(--space-6);
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    margin-bottom: var(--space-5);
   }
 
-  .vault-card {
-    min-height: 125px;
-    padding: var(--space-4);
+  .vault-hero-card {
+    padding: 14px 16px;
     border-radius: var(--radius-xl);
+    min-height: 76px;
+    gap: var(--space-3);
   }
 
-  .vault-card .vault-icon {
-    width: 40px;
-    height: 40px;
-    font-size: 18px;
-    margin-bottom: var(--space-2);
+  .vault-hero-badge {
+    width: 42px;
+    height: 42px;
     border-radius: var(--radius-lg);
   }
 
-  .vault-card .vault-title {
-    font-size: 1.1rem;
-    margin-bottom: 2px;
+  .vault-hero-badge svg {
+    width: 20px;
+    height: 20px;
   }
 
-  .vault-card .vault-desc {
-    font-size: var(--font-size-xs);
-    margin-bottom: var(--space-3);
-    line-height: 1.3;
+  .vault-hero-title {
+    font-size: 0.98rem;
   }
 
-  .vault-card .vault-count {
-    font-size: var(--font-size-xs);
+  .vault-hero-subtitle {
+    font-size: 0.72rem;
   }
 
-  .vault-card .vault-count span {
-    font-size: 1.25rem;
-  }
-
-  .vault-card .vault-arrow {
-    bottom: var(--space-3);
-    right: var(--space-3);
-    width: 30px;
-    height: 30px;
-    font-size: 13px;
+  .vault-count-badge {
+    font-size: 10px;
+    padding: 3px 7px;
   }
 
   .documents-grid {
@@ -1819,50 +2212,30 @@
   }
 
   .vaults-grid {
-    grid-template-columns: repeat(2, 1fr);
+    display: flex;
+    flex-direction: column;
     gap: 10px;
     margin-bottom: var(--space-4);
   }
 
-  .vault-card {
-    min-height: 115px;
-    padding: 12px 10px;
+  .vault-hero-card {
+    padding: 12px 14px;
     border-radius: var(--radius-lg);
+    min-height: 72px;
   }
 
-  .vault-card .vault-icon {
-    width: 32px;
-    height: 32px;
-    font-size: 16px;
-    margin-bottom: 4px;
-    border-radius: var(--radius-md);
+  .vault-hero-badge {
+    width: 38px;
+    height: 38px;
   }
 
-  .vault-card .vault-title {
-    font-size: 0.95rem;
-    margin-bottom: 2px;
+  .vault-hero-badge svg {
+    width: 18px;
+    height: 18px;
   }
 
-  .vault-card .vault-desc {
-    font-size: 0.68rem;
-    margin-bottom: 6px;
-    line-height: 1.2;
-  }
-
-  .vault-card .vault-count {
-    font-size: 0.68rem;
-  }
-
-  .vault-card .vault-count span {
-    font-size: 1.1rem;
-  }
-
-  .vault-card .vault-arrow {
-    bottom: 8px;
-    right: 8px;
-    width: 26px;
-    height: 26px;
-    font-size: 11px;
+  .template-chips-grid {
+    grid-template-columns: 1fr;
   }
 
   .section-header {
@@ -2063,16 +2436,23 @@
 }
 
 .lock-app-icon {
-  width: 56px;
-  height: 56px;
+  width: 72px;
+  height: 72px;
   margin: 0 auto var(--space-3);
-  border-radius: var(--radius-xl);
-  background: var(--gradient-accent);
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 28px;
-  box-shadow: var(--shadow-glow);
+  background: transparent;
+  box-shadow: none;
+  border-radius: 0;
+  overflow: visible;
+}
+
+.lock-app-icon .lock-icon-img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  filter: drop-shadow(0 6px 20px rgba(0, 210, 255, 0.4));
 }
 
 .lock-title {
@@ -2183,6 +2563,19 @@
 .biometric-btn:hover {
   background: rgba(99, 102, 241, 0.2);
   border-color: var(--color-accent-primary);
+}
+
+.biometric-btn.pulse-active {
+  animation: bioPulse 1.5s infinite;
+  border-color: var(--color-accent-primary);
+  background: rgba(99, 102, 241, 0.25);
+  box-shadow: 0 0 15px rgba(99, 102, 241, 0.4);
+}
+
+@keyframes bioPulse {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.02); }
+  100% { transform: scale(1); }
 }
 
 .lock-card.shake {
@@ -2312,4 +2705,344 @@
   height: 10px;
   border-radius: var(--radius-full);
 }
-
+
+/* ============================================
+   Bottom Navigation Bar
+   ============================================ */
+
+.bottom-nav {
+  display: none;
+}
+
+@media (max-width: 768px) {
+  .bottom-nav {
+    display: flex;
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 64px;
+    background: var(--color-bg-glass);
+    backdrop-filter: var(--glass-blur) var(--glass-saturate);
+    -webkit-backdrop-filter: var(--glass-blur) var(--glass-saturate);
+    border-top: 1px solid var(--color-border);
+    z-index: 998;
+    align-items: stretch;
+    justify-content: space-around;
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+    box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.15);
+  }
+
+  .bottom-nav-tab {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    flex: 1;
+    gap: 3px;
+    color: var(--color-text-tertiary);
+    font-size: 10px;
+    font-weight: var(--font-weight-medium);
+    letter-spacing: 0.02em;
+    padding: 6px 0;
+    position: relative;
+    transition: color var(--transition-fast);
+    -webkit-tap-highlight-color: transparent;
+    user-select: none;
+    cursor: pointer;
+    border: none;
+    background: none;
+  }
+
+  .bottom-nav-tab .nav-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 24px;
+    height: 24px;
+    line-height: 1;
+    transition: transform var(--transition-fast);
+  }
+
+  .bottom-nav-tab .nav-icon svg {
+    stroke: currentColor;
+    transition: stroke var(--transition-fast);
+  }
+
+  .bottom-nav-tab .nav-label {
+    font-size: 10px;
+    line-height: 1;
+    white-space: nowrap;
+  }
+
+  .bottom-nav-tab.active {
+    color: var(--color-accent-primary);
+  }
+
+  .bottom-nav-tab.active .nav-icon {
+    transform: scale(1.12);
+  }
+
+  .bottom-nav-tab.active .nav-icon svg {
+    stroke: var(--color-accent-primary);
+    filter: drop-shadow(0 2px 8px rgba(99, 102, 241, 0.5));
+  }
+
+  .bottom-nav-tab:active .nav-icon {
+    transform: scale(0.9);
+  }
+
+  /* Center FAB tab */
+  .bottom-nav-fab {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex: 1;
+    position: relative;
+    cursor: pointer;
+    border: none;
+    background: none;
+    -webkit-tap-highlight-color: transparent;
+    padding: 0;
+  }
+
+  .bottom-nav-fab .fab-center {
+    width: 54px;
+    height: 54px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 50%, #ec4899 100%);
+    color: #ffffff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 8px 24px rgba(99, 102, 241, 0.55), 0 0 14px rgba(139, 92, 246, 0.35);
+    border: 2px solid rgba(255, 255, 255, 0.25);
+    position: absolute;
+    top: -18px;
+    transition: transform var(--transition-spring), box-shadow var(--transition-fast);
+  }
+
+  .bottom-nav-fab .fab-center svg {
+    stroke: #ffffff;
+    filter: drop-shadow(0 1px 3px rgba(0, 0, 0, 0.3));
+  }
+
+  .bottom-nav-fab:active .fab-center {
+    transform: scale(0.9);
+    box-shadow: 0 4px 16px rgba(99, 102, 241, 0.4);
+  }
+
+  .bottom-nav-fab:active .fab-center {
+    transform: scale(0.9);
+    box-shadow: 0 4px 16px rgba(99, 102, 241, 0.4);
+  }
+
+  /* Hide the old inline FAB on mobile when bottom nav is present */
+  .fab {
+    display: none !important;
+  }
+
+  /* Add bottom padding to main content so it's not hidden behind nav */
+  .container {
+    padding-bottom: 80px;
+  }
+
+  /* Toast above bottom nav */
+  .toast-container {
+    bottom: 80px !important;
+  }
+
+  /* Header: slim on mobile — hide utility buttons moved to bottom nav */
+  .header-btn.mobile-hidden {
+    display: none !important;
+  }
+}
+
+/* ============================================
+   Bottom Sheet Modals (Mobile Enhancement)
+   ============================================ */
+
+@media (max-width: 768px) {
+  .modal-content {
+    border-radius: 20px 20px 0 0;
+    max-height: 85vh;
+    max-height: 85dvh;
+  }
+
+  .modal-content::before {
+    content: '';
+    display: block;
+    width: 40px;
+    height: 4px;
+    background: var(--color-text-tertiary);
+    border-radius: var(--radius-full);
+    margin: 10px auto 0;
+    opacity: 0.5;
+  }
+
+  .modal-overlay.active {
+    animation: sheetOverlayIn 250ms ease-out forwards;
+  }
+
+  .modal-overlay.active .modal-content {
+    animation: sheetSlideUp 350ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  }
+
+  .modal-overlay.sheet-exit {
+    animation: fadeOut 200ms ease-in forwards;
+  }
+
+  .modal-overlay.sheet-exit .modal-content {
+    animation: sheetSlideDown 250ms ease-in forwards;
+  }
+}
+
+@keyframes sheetOverlayIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes sheetSlideUp {
+  from { transform: translateY(100%); }
+  to { transform: translateY(0); }
+}
+
+@keyframes sheetSlideDown {
+  from { transform: translateY(0); }
+  to { transform: translateY(100%); }
+}
+
+/* ============================================
+   Settings Bottom Sheet
+   ============================================ */
+
+.settings-sheet-list {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.settings-sheet-item {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  padding: 14px var(--space-4);
+  border-radius: var(--radius-lg);
+  color: var(--color-text-primary);
+  font-size: var(--font-size-base);
+  font-weight: var(--font-weight-medium);
+  cursor: pointer;
+  transition: background var(--transition-fast);
+  border: none;
+  background: none;
+  width: 100%;
+  text-align: left;
+}
+
+.settings-sheet-item:hover,
+.settings-sheet-item:active {
+  background: var(--color-bg-tertiary);
+}
+
+.settings-sheet-item .settings-icon {
+  font-size: 22px;
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--color-bg-tertiary);
+  border-radius: var(--radius-lg);
+  flex-shrink: 0;
+}
+
+.settings-sheet-item .settings-label {
+  flex: 1;
+}
+
+.settings-sheet-item .settings-chevron {
+  color: var(--color-text-tertiary);
+  font-size: 14px;
+}
+
+/* ============================================
+   Swipe Actions on Doc Cards (Mobile)
+   ============================================ */
+
+.doc-card-swipe-wrapper {
+  position: relative;
+  overflow: hidden;
+  border-radius: inherit;
+}
+
+.doc-swipe-actions {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  display: flex;
+  align-items: stretch;
+  z-index: 1;
+}
+
+.doc-swipe-actions-left {
+  right: 0;
+  flex-direction: row;
+}
+
+.doc-swipe-actions-right {
+  left: 0;
+  flex-direction: row;
+}
+
+.swipe-action-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 70px;
+  gap: 4px;
+  border: none;
+  cursor: pointer;
+  font-size: 20px;
+  color: #ffffff;
+  font-weight: var(--font-weight-semibold);
+}
+
+.swipe-action-btn .swipe-label {
+  font-size: 9px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  font-weight: var(--font-weight-bold);
+}
+
+.swipe-action-btn.swipe-delete {
+  background: linear-gradient(135deg, #ef4444, #dc2626);
+}
+
+.swipe-action-btn.swipe-share {
+  background: linear-gradient(135deg, #6366f1, #818cf8);
+}
+
+.swipe-action-btn.swipe-fav {
+  background: linear-gradient(135deg, #f59e0b, #d97706);
+}
+
+.doc-card-inner {
+  position: relative;
+  z-index: 2;
+  background: var(--color-bg-secondary);
+  transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  border-radius: inherit;
+}
+
+.doc-card-inner.swiping {
+  transition: none;
+}
+
+/* On mobile, hide hover-only quick actions since we use swipe */
+@media (max-width: 768px) {
+  .doc-quick-actions {
+    display: none !important;
+  }
+}
+

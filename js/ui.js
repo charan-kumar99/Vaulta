@@ -305,78 +305,133 @@ const DocUI = (() => {
     container.innerHTML = `
       <div class="container page-enter">
         <!-- Search Bar -->
-        <div class="search-container" style="margin-top: var(--space-8);">
-          <input type="text" class="search-bar" id="globalSearch" placeholder="Search all documents..." autocomplete="off" />
-          <span class="search-icon">🔍</span>
+        <div class="search-container" style="margin-top: var(--space-4); margin-bottom: var(--space-5);">
+          <span class="search-icon-svg">
+            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+          </span>
+          <input type="text" class="search-bar" id="globalSearch" placeholder="Search ID cards, certificates, files..." autocomplete="off" />
           <button class="search-clear" id="searchClear" aria-label="Clear search">✕</button>
         </div>
 
         <!-- Search Results (hidden by default) -->
         <div id="searchResults" style="display:none; margin-bottom: var(--space-8);">
           <div class="section-header">
-            <h2 class="section-title"><span class="section-icon">🔍</span> Search Results</h2>
+            <h2 class="section-title">
+              <span class="section-icon-svg">
+                <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+              </span> Search Results
+            </h2>
             <button class="section-action" id="clearSearch">Clear</button>
           </div>
           <div class="documents-grid anim-stagger" id="searchResultsGrid"></div>
           <div id="searchEmptyState" style="display:none;">
             <div class="empty-state">
-              <div class="empty-icon">🔎</div>
+              <div class="empty-icon-svg">
+                <svg viewBox="0 0 24 24" width="36" height="36" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+              </div>
               <h3 class="empty-title">No results found</h3>
               <p class="empty-desc">Try a different search term</p>
             </div>
           </div>
         </div>
 
-        <!-- Vault Cards -->
+        <!-- Home Content -->
         <div id="homeContent">
+          <!-- Stacked Hero Vault Cards -->
           <div class="vaults-grid">
-            <div class="vault-card personal" id="vaultPersonal" role="button" tabindex="0" aria-label="Open Personal Vault">
-              <div>
-                <div class="vault-icon">🔐</div>
-                <h2 class="vault-title">Personal Vault</h2>
-                <p class="vault-desc">Aadhar, PAN, Passbook & more</p>
+            <div class="vault-card vault-hero-card personal" id="vaultPersonal" role="button" tabindex="0" aria-label="Open Personal Vault">
+              <div class="vault-hero-badge">
+                <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
               </div>
-              <div class="vault-count">
-                <span>${personalCount}</span> document${personalCount !== 1 ? 's' : ''}
+              <div class="vault-hero-body">
+                <div class="vault-hero-header">
+                  <h2 class="vault-hero-title">Personal Vault</h2>
+                  <span class="vault-hero-tag">Private</span>
+                </div>
+                <p class="vault-hero-subtitle">Aadhaar, PAN, Passport, Health & Family</p>
               </div>
-              <div class="vault-arrow">→</div>
+              <div class="vault-hero-meta">
+                <span class="vault-count-badge">${personalCount} docs</span>
+                <span class="vault-hero-arrow">›</span>
+              </div>
             </div>
 
-            <div class="vault-card official" id="vaultOfficial" role="button" tabindex="0" aria-label="Open Official Vault">
-              <div>
-                <div class="vault-icon">💼</div>
-                <h2 class="vault-title">Official Vault</h2>
-                <p class="vault-desc">Offer Letters, Experience & more</p>
+            <div class="vault-card vault-hero-card official" id="vaultOfficial" role="button" tabindex="0" aria-label="Open Official Vault">
+              <div class="vault-hero-badge">
+                <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="20" height="14" rx="2" ry="2"></rect><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"></path></svg>
               </div>
-              <div class="vault-count">
-                <span>${officialCount}</span> document${officialCount !== 1 ? 's' : ''}
+              <div class="vault-hero-body">
+                <div class="vault-hero-header">
+                  <h2 class="vault-hero-title">Official Vault</h2>
+                  <span class="vault-hero-tag official-tag">Work & Tax</span>
+                </div>
+                <p class="vault-hero-subtitle">Offer Letters, Experience, Tax & Payslips</p>
               </div>
-              <div class="vault-arrow">→</div>
+              <div class="vault-hero-meta">
+                <span class="vault-count-badge">${officialCount} docs</span>
+                <span class="vault-hero-arrow">›</span>
+              </div>
             </div>
+          </div>
+
+          <!-- Quick Actions Shortcut Bar -->
+          <div class="quick-actions-bar">
+            <button class="quick-action-pill" data-quick-action="scan" title="Scan Document">
+              <div class="quick-pill-icon icon-cyan">
+                <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path><circle cx="12" cy="13" r="4"></circle></svg>
+              </div>
+              <span class="quick-pill-label">Scan ID</span>
+            </button>
+            <button class="quick-action-pill" data-quick-action="upload" title="Upload File">
+              <div class="quick-pill-icon icon-indigo">
+                <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
+              </div>
+              <span class="quick-pill-label">Upload</span>
+            </button>
+            <button class="quick-action-pill" data-quick-action="favorites" title="View Starred Documents">
+              <div class="quick-pill-icon icon-amber">
+                <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg>
+              </div>
+              <span class="quick-pill-label">Starred</span>
+            </button>
+            <button class="quick-action-pill" data-quick-action="expiring" title="View Expiring Soon">
+              <div class="quick-pill-icon icon-rose">
+                <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
+              </div>
+              <span class="quick-pill-label">Expiring</span>
+            </button>
           </div>
 
           <!-- Favorites Section -->
           ${favoriteDocs.length > 0 ? `
             <div class="section-header">
-              <h2 class="section-title"><span class="section-icon">⭐</span> Favorites</h2>
+              <h2 class="section-title">
+                <span class="section-icon-svg" style="color: #f59e0b;">
+                  <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg>
+                </span> Starred Documents
+              </h2>
             </div>
             <div class="favorites-row">
               ${favoriteDocs.map((doc) => renderFavCard(doc)).join('')}
             </div>
           ` : ''}
 
-          <!-- All Documents Section -->
+          <!-- All Documents Section Header -->
           <div class="section-header">
-            <h2 class="section-title"><span class="section-icon">📄</span> All Documents</h2>
-            <span style="font-size: var(--font-size-xs); color: var(--color-text-tertiary); font-weight: var(--font-weight-medium);">${allDocs.length} total</span>
+            <h2 class="section-title">
+              <span class="section-icon-svg">
+                <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
+              </span> All Documents
+            </h2>
+            <span class="section-count-badge">${allDocs.length} total</span>
           </div>
 
-          <!-- Category Chips Filter (shows only categories that have uploaded documents) -->
+          <!-- Category Chips Filter -->
           <div class="category-chips" id="homeCategoryChips" style="margin-bottom: var(--space-4);">
             ${categories.map((cat) => `
               <button class="category-chip ${(activeCategory.toLowerCase() === cat.name.toLowerCase() || (activeCategory === 'all' && cat.name === 'All')) ? 'active' : ''}"
                       data-category="${cat.name === 'All' ? 'all' : cat.name}">
-                ${cat.icon} ${escapeHtml(cat.name)}
+                ${escapeHtml(cat.name)}
               </button>
             `).join('')}
           </div>
@@ -385,11 +440,49 @@ const DocUI = (() => {
             <div class="documents-grid anim-stagger">
               ${docsToRender.map((doc) => renderDocCard(doc)).join('')}
             </div>
+          ` : allDocs.length === 0 ? `
+            <!-- Interactive Quick Start Onboarding Card (Eliminates empty void) -->
+            <div class="quick-start-card anim-fade-in">
+              <div class="quick-start-header">
+                <div class="quick-start-sparkle">✨</div>
+                <div>
+                  <h3 class="quick-start-title">Quick Start Suggestions</h3>
+                  <p class="quick-start-desc">Tap any essential document to add it in seconds:</p>
+                </div>
+              </div>
+              <div class="template-chips-grid">
+                <button class="template-chip" data-template-name="Aadhaar Card" data-template-category="Identity" data-template-vault="personal">
+                  <span class="chip-plus">+</span> Aadhaar Card
+                </button>
+                <button class="template-chip" data-template-name="PAN Card" data-template-category="Identity" data-template-vault="personal">
+                  <span class="chip-plus">+</span> PAN Card
+                </button>
+                <button class="template-chip" data-template-name="Driving License" data-template-category="Identity" data-template-vault="personal">
+                  <span class="chip-plus">+</span> Driving License
+                </button>
+                <button class="template-chip" data-template-name="Passport" data-template-category="Identity" data-template-vault="personal">
+                  <span class="chip-plus">+</span> Passport
+                </button>
+                <button class="template-chip" data-template-name="Offer Letter" data-template-category="Work" data-template-vault="official">
+                  <span class="chip-plus">+</span> Offer Letter
+                </button>
+                <button class="template-chip" data-template-name="Vehicle RC / Insurance" data-template-category="Finance" data-template-vault="personal">
+                  <span class="chip-plus">+</span> Vehicle RC / Insurance
+                </button>
+              </div>
+              <div style="margin-top: var(--space-4); text-align: center;">
+                <button class="btn btn-primary" id="emptyUploadBtn" style="padding: 10px 24px;">
+                  <span>+ Custom Document Upload</span>
+                </button>
+              </div>
+            </div>
           ` : `
             <div class="empty-state">
-              <div class="empty-icon anim-float">📂</div>
-              <h3 class="empty-title">${activeCategory !== 'all' ? 'No documents in this category' : 'Welcome to Vaulta!'}</h3>
-              <p class="empty-desc">${activeCategory !== 'all' ? 'Try selecting a different category filter.' : 'Start by uploading your first document. Tap the + button in the bottom right to get started.'}</p>
+              <div class="empty-icon-svg">
+                <svg viewBox="0 0 24 24" width="36" height="36" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+              </div>
+              <h3 class="empty-title">No documents in this category</h3>
+              <p class="empty-desc">Try selecting a different filter above.</p>
               <button class="btn btn-primary" id="emptyUploadBtn">
                 <span class="btn-text">+ Upload Document</span>
               </button>
@@ -443,36 +536,53 @@ const DocUI = (() => {
 
     return `
       <div class="doc-card ${selectMode ? 'select-mode' : ''}" draggable="true" data-doc-id="${doc.id}" data-vault="${doc.vault}" data-action="${selectMode ? 'toggle-select' : 'preview'}">
-        ${selectCheckbox}
-        <div class="doc-quick-actions">
-          <button class="quick-act-btn" data-doc-id="${doc.id}" data-action="preview" title="Quick Preview">👁️</button>
-          <button class="quick-act-btn" data-doc-id="${doc.id}" data-action="share" title="Download & Share">📥</button>
-          <button class="quick-act-btn" data-doc-id="${doc.id}" data-action="favorite" title="Toggle Favorite">${doc.isFavorite ? '★' : '☆'}</button>
-        </div>
-        <div class="doc-thumbnail">${thumbContent}</div>
-        <div class="doc-actions">
-          <button class="doc-action-btn favorite ${doc.isFavorite ? 'active' : ''}"
-                  data-doc-id="${doc.id}" data-action="favorite"
-                  aria-label="${doc.isFavorite ? 'Remove from favorites' : 'Add to favorites'}"
-                  title="${doc.isFavorite ? 'Remove from favorites' : 'Add to favorites'}">
-            ${doc.isFavorite ? '★' : '☆'}
-          </button>
-          <button class="doc-action-btn" data-doc-id="${doc.id}" data-action="share"
-                  aria-label="Share document" title="Share">
-            ↗
-          </button>
-        </div>
-        <div class="doc-info">
-          <div class="doc-name" title="${escapeHtml(doc.name)}">${escapeHtml(doc.name)}</div>
-          <div style="display: flex; flex-wrap: wrap; gap: 4px; align-items: center; margin-bottom: var(--space-2);">
-            <span class="doc-category-badge" style="background: ${getCategoryColor(doc.category)}15; color: ${getCategoryColor(doc.category)};">
-              ${getCategoryIcon(doc.category, doc.vault)} ${escapeHtml(doc.category)}
-            </span>
-            ${expiryBadge}
-            ${doc.folder ? `<span class="doc-folder-badge">📁 ${escapeHtml(doc.folder)}</span>` : ''}
-            ${(doc.tags || []).slice(0, 3).map((tag) => `<span class="doc-tag-badge">#${escapeHtml(tag)}</span>`).join('')}
+        <div class="doc-card-swipe-wrapper">
+          <div class="doc-swipe-actions doc-swipe-actions-right">
+            <button class="swipe-action-btn swipe-share" data-doc-id="${doc.id}" data-swipe-action="share">
+              ↗<span class="swipe-label">Share</span>
+            </button>
+            <button class="swipe-action-btn swipe-fav" data-doc-id="${doc.id}" data-swipe-action="favorite">
+              ${doc.isFavorite ? '★' : '☆'}<span class="swipe-label">${doc.isFavorite ? 'Unfav' : 'Fav'}</span>
+            </button>
           </div>
-          <div class="doc-date">${formatDate(doc.createdAt)}</div>
+          <div class="doc-card-inner">
+            ${selectCheckbox}
+            <div class="doc-quick-actions">
+              <button class="quick-act-btn" data-doc-id="${doc.id}" data-action="preview" title="Quick Preview">👁️</button>
+              <button class="quick-act-btn" data-doc-id="${doc.id}" data-action="share" title="Download & Share">📥</button>
+              <button class="quick-act-btn" data-doc-id="${doc.id}" data-action="favorite" title="Toggle Favorite">${doc.isFavorite ? '★' : '☆'}</button>
+            </div>
+            <div class="doc-thumbnail">${thumbContent}</div>
+            <div class="doc-actions">
+              <button class="doc-action-btn favorite ${doc.isFavorite ? 'active' : ''}"
+                      data-doc-id="${doc.id}" data-action="favorite"
+                      aria-label="${doc.isFavorite ? 'Remove from favorites' : 'Add to favorites'}"
+                      title="${doc.isFavorite ? 'Remove from favorites' : 'Add to favorites'}">
+                ${doc.isFavorite ? '★' : '☆'}
+              </button>
+              <button class="doc-action-btn" data-doc-id="${doc.id}" data-action="share"
+                      aria-label="Share document" title="Share">
+                ↗
+              </button>
+            </div>
+            <div class="doc-info">
+              <div class="doc-name" title="${escapeHtml(doc.name)}">${escapeHtml(doc.name)}</div>
+              <div style="display: flex; flex-wrap: wrap; gap: 4px; align-items: center; margin-bottom: var(--space-2);">
+                <span class="doc-category-badge" style="background: ${getCategoryColor(doc.category)}15; color: ${getCategoryColor(doc.category)};">
+                  ${getCategoryIcon(doc.category, doc.vault)} ${escapeHtml(doc.category)}
+                </span>
+                ${expiryBadge}
+                ${doc.folder ? `<span class="doc-folder-badge">📁 ${escapeHtml(doc.folder)}</span>` : ''}
+                ${(doc.tags || []).slice(0, 3).map((tag) => `<span class="doc-tag-badge">#${escapeHtml(tag)}</span>`).join('')}
+              </div>
+              <div class="doc-date">${formatDate(doc.createdAt)}</div>
+            </div>
+          </div>
+          <div class="doc-swipe-actions doc-swipe-actions-left">
+            <button class="swipe-action-btn swipe-delete" data-doc-id="${doc.id}" data-swipe-action="delete">
+              🗑<span class="swipe-label">Delete</span>
+            </button>
+          </div>
         </div>
       </div>
     `;
@@ -607,11 +717,12 @@ const DocUI = (() => {
     return labels[sortBy] || 'Sort';
   }
 
-  function renderUploadModal(defaultVault = 'personal', selectedFolderId = null) {
+  function renderUploadModal(defaultVault = 'personal', selectedFolderId = null, prefill = {}) {
     const personalCats = getAllCategories('personal').filter((c) => c.name !== 'All');
     const officialCats = getAllCategories('official').filter((c) => c.name !== 'All');
     const personalFolders = getAllFoldersFlat('personal');
     const officialFolders = getAllFoldersFlat('official');
+    const resolvedVault = prefill.vault || defaultVault || 'personal';
 
     return `
       <div class="modal-overlay active modal-overlay-enter" id="uploadModal">
@@ -638,25 +749,25 @@ const DocUI = (() => {
             <!-- Form Fields -->
             <div class="form-group">
               <label class="form-label" for="docName">Document Name *</label>
-              <input type="text" class="form-input" id="docName" placeholder="e.g. Aadhar Card Front" />
+              <input type="text" class="form-input" id="docName" placeholder="e.g. Aadhaar Card Front" value="${escapeHtml(prefill.name || '')}" />
             </div>
 
             <div class="form-row">
               <div class="form-group">
                 <label class="form-label" for="docVault">Vault *</label>
                 <select class="form-select" id="docVault">
-                  <option value="personal" ${defaultVault === 'personal' ? 'selected' : ''}>🔐 Personal</option>
-                  <option value="official" ${defaultVault === 'official' ? 'selected' : ''}>💼 Official</option>
+                  <option value="personal" ${resolvedVault === 'personal' ? 'selected' : ''}>🔐 Personal</option>
+                  <option value="official" ${resolvedVault === 'official' ? 'selected' : ''}>💼 Official</option>
                 </select>
               </div>
               <div class="form-group">
                 <label class="form-label" for="docCategory">Category *</label>
                 <select class="form-select" id="docCategory">
-                  <optgroup label="Personal" id="personalCatGroup" ${defaultVault !== 'personal' ? 'style="display:none;"' : ''}>
-                    ${personalCats.map((c) => `<option value="${c.name}">${c.icon} ${c.name}</option>`).join('')}
+                  <optgroup label="Personal" id="personalCatGroup" ${resolvedVault !== 'personal' ? 'style="display:none;"' : ''}>
+                    ${personalCats.map((c) => `<option value="${c.name}" ${(prefill.category && prefill.category.toLowerCase() === c.name.toLowerCase()) ? 'selected' : ''}>${c.icon} ${c.name}</option>`).join('')}
                   </optgroup>
-                  <optgroup label="Official" id="officialCatGroup" ${defaultVault !== 'official' ? 'style="display:none;"' : ''}>
-                    ${officialCats.map((c) => `<option value="${c.name}">${c.icon} ${c.name}</option>`).join('')}
+                  <optgroup label="Official" id="officialCatGroup" ${resolvedVault !== 'official' ? 'style="display:none;"' : ''}>
+                    ${officialCats.map((c) => `<option value="${c.name}" ${(prefill.category && prefill.category.toLowerCase() === c.name.toLowerCase()) ? 'selected' : ''}>${c.icon} ${c.name}</option>`).join('')}
                   </optgroup>
                 </select>
               </div>
@@ -1154,16 +1265,30 @@ const DocUI = (() => {
     const isBioEnabled = window.SecurityModule ? window.SecurityModule.isBiometricsEnabled() : false;
     
     let isBioSupported = false;
-    try {
-      if (window.SecurityModule && typeof window.SecurityModule.isBiometricsSupported === 'function') {
-        isBioSupported = await Promise.race([
-          window.SecurityModule.isBiometricsSupported(),
-          new Promise((resolve) => setTimeout(() => resolve(false), 500))
-        ]);
-      }
-    } catch (e) {
-      console.warn('[Security] Biometrics check error:', e);
+    let bioStatusText = '';
+
+    const statusObj = window.SecurityModule && typeof window.SecurityModule.getBiometricsStatus === 'function'
+      ? window.SecurityModule.getBiometricsStatus()
+      : { supported: true, message: '' };
+
+    if (!statusObj.supported) {
       isBioSupported = false;
+      bioStatusText = statusObj.message || 'Not supported on this browser';
+    } else {
+      try {
+        if (window.SecurityModule && typeof window.SecurityModule.isBiometricsSupported === 'function') {
+          isBioSupported = await Promise.race([
+            window.SecurityModule.isBiometricsSupported(),
+            new Promise((resolve) => setTimeout(() => resolve(false), 3000))
+          ]);
+        }
+      } catch (e) {
+        console.warn('[Security] Biometrics check error:', e);
+        isBioSupported = false;
+      }
+      bioStatusText = isBioSupported
+        ? (isBioEnabled ? '🖐️ Biometrics enabled' : 'Device supported')
+        : 'Device / Windows Hello sensor not detected';
     }
 
     modalsContainer.innerHTML = `
@@ -1203,8 +1328,8 @@ const DocUI = (() => {
             <div class="setting-item" style="display: flex; align-items: center; justify-content: space-between; padding: 14px 0; border-bottom: 1px solid var(--color-border);">
               <div>
                 <strong style="display: block; font-size: 0.95rem; color: var(--color-text-primary);">Fingerprint / Face ID / Windows Hello</strong>
-                <span style="font-size: 0.78rem; color: var(--color-text-secondary);">
-                  ${isBioSupported ? (isBioEnabled ? '🖐️ Biometrics enabled' : 'Device supported') : 'Not supported on this browser'}
+                <span style="font-size: 0.78rem; color: var(--color-text-secondary); max-width: 250px; display: block;">
+                  ${bioStatusText}
                 </span>
               </div>
               <button type="button" class="btn btn-secondary btn-sm" id="toggleBioBtn" ${(!isBioSupported || !isSecEnabled) ? 'disabled' : ''}>
@@ -1547,6 +1672,219 @@ const DocUI = (() => {
     if (backdrop) backdrop.addEventListener('click', (e) => { if (e.target === backdrop) closeModal(); });
   }
 
+  function renderSettingsSheet() {
+    const modalsContainer = document.getElementById('modals');
+    if (!modalsContainer) return;
+
+    const theme = document.documentElement.getAttribute('data-theme');
+    const themeLabel = theme === 'dark' ? 'Light Mode' : 'Dark Mode';
+    const themeIcon = theme === 'dark' ? '☀️' : '🌙';
+
+    modalsContainer.innerHTML = `
+      <div class="modal-overlay active" id="settingsSheetOverlay">
+        <div class="modal-content" style="max-width: 480px;" role="dialog" aria-modal="true" aria-labelledby="settingsSheetTitle">
+          <div class="modal-header">
+            <h2 class="modal-title" id="settingsSheetTitle">⚙️ Settings</h2>
+            <button class="modal-close" id="closeSettingsSheetBtn" aria-label="Close">✕</button>
+          </div>
+          <div class="modal-body" style="padding-top: var(--space-2);">
+            <div class="settings-sheet-list">
+              <button class="settings-sheet-item" id="settingsSecurityBtn">
+                <span class="settings-icon">🔒</span>
+                <span class="settings-label">Security & App Lock</span>
+                <span class="settings-chevron">›</span>
+              </button>
+              <button class="settings-sheet-item" id="settingsBackupBtn">
+                <span class="settings-icon">💾</span>
+                <span class="settings-label">Export Backup</span>
+                <span class="settings-chevron">›</span>
+              </button>
+              <button class="settings-sheet-item" id="settingsStorageBtn">
+                <span class="settings-icon">📊</span>
+                <span class="settings-label">Storage Analytics</span>
+                <span class="settings-chevron">›</span>
+              </button>
+              <button class="settings-sheet-item" id="settingsNotifyBtn">
+                <span class="settings-icon">🔔</span>
+                <span class="settings-label">Notifications</span>
+                <span class="settings-chevron">›</span>
+              </button>
+              <button class="settings-sheet-item" id="settingsThemeBtn">
+                <span class="settings-icon">${themeIcon}</span>
+                <span class="settings-label">${themeLabel}</span>
+                <span class="settings-chevron">›</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    `;
+
+    const closeBtn = document.getElementById('closeSettingsSheetBtn');
+    const backdrop = document.getElementById('settingsSheetOverlay');
+    const closeSheet = () => {
+      modalsContainer.innerHTML = '';
+      if (window.DocApp && typeof window.DocApp.syncActiveTab === 'function') {
+        window.DocApp.syncActiveTab();
+      }
+    };
+
+    if (closeBtn) closeBtn.addEventListener('click', closeSheet);
+    if (backdrop) backdrop.addEventListener('click', (e) => { if (e.target === backdrop) closeSheet(); });
+
+    const securityBtn = document.getElementById('settingsSecurityBtn');
+    if (securityBtn) securityBtn.addEventListener('click', () => { closeSheet(); renderSecurityModal(); });
+
+    const backupBtn = document.getElementById('settingsBackupBtn');
+    if (backupBtn) backupBtn.addEventListener('click', () => {
+      closeSheet();
+      if (window.DocShare && typeof window.DocShare.exportDataPackage === 'function') {
+        window.DocShare.exportDataPackage();
+      } else {
+        showToast('Backup feature initialized', 'info');
+      }
+    });
+
+    const storageBtn = document.getElementById('settingsStorageBtn');
+    if (storageBtn) storageBtn.addEventListener('click', () => { closeSheet(); renderStorageAnalyticsModal(); });
+
+    const notifyBtn = document.getElementById('settingsNotifyBtn');
+    if (notifyBtn) notifyBtn.addEventListener('click', () => {
+      closeSheet();
+      if (window.DocApp && typeof window.DocApp.requestNotificationPermission === 'function') {
+        window.DocApp.requestNotificationPermission();
+      }
+    });
+
+    const themeBtn = document.getElementById('settingsThemeBtn');
+    if (themeBtn) themeBtn.addEventListener('click', () => {
+      closeSheet();
+      if (window.DocApp && typeof window.DocApp.toggleTheme === 'function') {
+        window.DocApp.toggleTheme();
+      }
+    });
+
+    bindSheetDragDismiss(backdrop);
+  }
+
+  async function renderVaultsSheet() {
+    const modalsContainer = document.getElementById('modals');
+    if (!modalsContainer) return;
+
+    let personalCount = 0;
+    let officialCount = 0;
+    try {
+      const counts = await (window.DocDB || DocDB).getCounts();
+      personalCount = counts.personal || 0;
+      officialCount = counts.official || 0;
+    } catch (e) {
+      console.warn('[UI] Could not fetch vault counts:', e);
+    }
+
+    modalsContainer.innerHTML = `
+      <div class="modal-overlay active" id="vaultsSheetOverlay">
+        <div class="modal-content" style="max-width: 480px;" role="dialog" aria-modal="true" aria-labelledby="vaultsSheetTitle">
+          <div class="modal-header">
+            <h2 class="modal-title" id="vaultsSheetTitle">📁 Choose Vault</h2>
+            <button class="modal-close" id="closeVaultsSheetBtn" aria-label="Close">✕</button>
+          </div>
+          <div class="modal-body" style="padding-top: var(--space-2);">
+            <div class="settings-sheet-list">
+              <button class="settings-sheet-item" id="vaultPersonalBtn">
+                <span class="settings-icon">🔐</span>
+                <span class="settings-label">Personal Vault <span style="font-size: 0.78rem; color: var(--color-text-tertiary); margin-left: 6px;">${personalCount} docs</span></span>
+                <span class="settings-chevron">›</span>
+              </button>
+              <button class="settings-sheet-item" id="vaultOfficialBtn">
+                <span class="settings-icon">💼</span>
+                <span class="settings-label">Official Vault <span style="font-size: 0.78rem; color: var(--color-text-tertiary); margin-left: 6px;">${officialCount} docs</span></span>
+                <span class="settings-chevron">›</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    `;
+
+    const closeBtn = document.getElementById('closeVaultsSheetBtn');
+    const backdrop = document.getElementById('vaultsSheetOverlay');
+    const closeSheet = () => {
+      modalsContainer.innerHTML = '';
+      if (window.DocApp && typeof window.DocApp.syncActiveTab === 'function') {
+        window.DocApp.syncActiveTab();
+      }
+    };
+
+    if (closeBtn) closeBtn.addEventListener('click', closeSheet);
+    if (backdrop) backdrop.addEventListener('click', (e) => { if (e.target === backdrop) closeSheet(); });
+
+    const personalBtn = document.getElementById('vaultPersonalBtn');
+    if (personalBtn) personalBtn.addEventListener('click', () => {
+      closeSheet();
+      if (window.DocApp && typeof window.DocApp.navigate === 'function') {
+        window.DocApp.navigate('vault', 'personal');
+      }
+    });
+
+    const officialBtn = document.getElementById('vaultOfficialBtn');
+    if (officialBtn) officialBtn.addEventListener('click', () => {
+      closeSheet();
+      if (window.DocApp && typeof window.DocApp.navigate === 'function') {
+        window.DocApp.navigate('vault', 'official');
+      }
+    });
+
+    bindSheetDragDismiss(backdrop);
+  }
+
+  function bindSheetDragDismiss(overlayEl) {
+    if (!overlayEl) return;
+    const content = overlayEl.querySelector('.modal-content');
+    if (!content) return;
+
+    let startY = 0;
+    let currentY = 0;
+    let isDragging = false;
+
+    content.addEventListener('touchstart', (e) => {
+      const touch = e.touches[0];
+      const rect = content.getBoundingClientRect();
+      if (touch.clientY - rect.top > 40) return;
+      startY = touch.clientY;
+      isDragging = true;
+      content.style.transition = 'none';
+    }, { passive: true });
+
+    content.addEventListener('touchmove', (e) => {
+      if (!isDragging) return;
+      currentY = e.touches[0].clientY;
+      const diff = currentY - startY;
+      if (diff > 0) {
+        content.style.transform = `translateY(${diff}px)`;
+      }
+    }, { passive: true });
+
+    content.addEventListener('touchend', () => {
+      if (!isDragging) return;
+      isDragging = false;
+      content.style.transition = '';
+      const diff = currentY - startY;
+      if (diff > 100) {
+        const modalsContainer = document.getElementById('modals');
+        if (modalsContainer) {
+          modalsContainer.innerHTML = '';
+          if (window.DocApp && typeof window.DocApp.syncActiveTab === 'function') {
+            window.DocApp.syncActiveTab();
+          }
+        }
+      } else {
+        content.style.transform = '';
+      }
+      startY = 0;
+      currentY = 0;
+    }, { passive: true });
+  }
+
   function escapeHtml(str) {
     const div = document.createElement('div');
     div.textContent = str || '';
@@ -1585,6 +1923,8 @@ const DocUI = (() => {
     renderShareAsModal,
     renderSecurityModal,
     renderStorageAnalyticsModal,
+    renderSettingsSheet,
+    renderVaultsSheet,
     loadPdfJsLibrary,
     initVaultaDatePicker,
     showToast,

@@ -59,16 +59,51 @@
       return localStorage.getItem(STORAGE_KEYS.BIOMETRIC_ENABLED) === 'true' && !!localStorage.getItem(STORAGE_KEYS.BIOMETRIC_CRED_ID);
     },
 
-    async isBiometricsSupported() {
-      if (window.PublicKeyCredential && typeof PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable === 'function') {
-        try {
-          return await PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable();
-        } catch (e) {
-          console.warn('[Security] WebAuthn support check failed:', e);
-          return false;
-        }
+    getBiometricsStatus() {
+      if (window.location.protocol === 'file:') {
+        return {
+          supported: false,
+          reason: 'file_protocol',
+          message: 'Not supported on file:// protocol. Open via local server (http://localhost:...)'
+        };
       }
-      return false;
+      if (/^(?:[0-9]{1,3}\.){3}[0-9]{1,3}$/.test(window.location.hostname)) {
+        return {
+          supported: false,
+          reason: 'ip_address',
+          message: 'WebAuthn requires http://localhost:... instead of an IP address'
+        };
+      }
+      if (!window.isSecureContext) {
+        return {
+          supported: false,
+          reason: 'insecure_context',
+          message: 'WebAuthn requires a secure context (HTTPS or localhost)'
+        };
+      }
+      if (!window.PublicKeyCredential || typeof PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable !== 'function') {
+        return {
+          supported: false,
+          reason: 'unsupported_browser',
+          message: 'Biometrics / WebAuthn not supported by this browser'
+        };
+      }
+      return {
+        supported: true,
+        reason: 'ok',
+        message: 'Device supported'
+      };
+    },
+
+    async isBiometricsSupported() {
+      const status = this.getBiometricsStatus();
+      if (!status.supported) return false;
+      try {
+        return await PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable();
+      } catch (e) {
+        console.warn('[Security] WebAuthn support check failed:', e);
+        return false;
+      }
     },
 
     getPinLength() {
@@ -143,13 +178,19 @@
       localStorage.setItem(STORAGE_KEYS.ENABLED, enabled ? 'true' : 'false');
       if (!enabled) {
         localStorage.setItem(STORAGE_KEYS.BIOMETRIC_ENABLED, 'false');
+      } else if (localStorage.getItem(STORAGE_KEYS.BIOMETRIC_CRED_ID)) {
+        localStorage.setItem(STORAGE_KEYS.BIOMETRIC_ENABLED, 'true');
       }
     },
 
     async registerBiometric() {
+      const status = this.getBiometricsStatus();
+      if (!status.supported) {
+        throw new Error(status.message);
+      }
       const supported = await this.isBiometricsSupported();
       if (!supported) {
-        throw new Error('Biometric authentication is not supported or enabled on this device.');
+        throw new Error('Biometric authentication (Fingerprint / Face ID / Windows Hello) is not configured or available on this device.');
       }
 
       const challenge = new Uint8Array(32);
@@ -158,12 +199,16 @@
       const userId = new Uint8Array(16);
       crypto.getRandomValues(userId);
 
+      const rp = {
+        name: 'Vaulta App'
+      };
+      if (window.location.hostname && !/^(?:[0-9]{1,3}\.){3}[0-9]{1,3}$/.test(window.location.hostname)) {
+        rp.id = window.location.hostname;
+      }
+
       const publicKeyCredentialCreationOptions = {
         challenge: challenge,
-        rp: {
-          name: 'Vaulta App',
-          id: window.location.hostname
-        },
+        rp: rp,
         user: {
           id: userId,
           name: 'Vaulta User',
@@ -224,6 +269,10 @@
         timeout: 60000
       };
 
+      if (window.location.hostname && !/^(?:[0-9]{1,3}\.){3}[0-9]{1,3}$/.test(window.location.hostname)) {
+        publicKeyCredentialRequestOptions.rpId = window.location.hostname;
+      }
+
       try {
         const assertion = await navigator.credentials.get({
           publicKey: publicKeyCredentialRequestOptions
@@ -249,6 +298,9 @@
     unlockApp() {
       _isLocked = false;
       this.hideLockOverlay();
+      if (navigator.vibrate) {
+        try { navigator.vibrate([20, 30, 20]); } catch (_) {}
+      }
       if (window.DocUI && typeof window.DocUI.showToast === 'function') {
         window.DocUI.showToast('🔓 Vault Unlocked', 'success');
       }
@@ -277,7 +329,9 @@
       overlay.innerHTML = `
         <div class="lock-card glass-panel">
           <div class="lock-header">
-            <div class="lock-app-icon">⚡</div>
+            <div class="lock-app-icon">
+              <img src="icons/icon-192.png" alt="Vaulta Icon" class="lock-icon-img" />
+            </div>
             <h2 class="lock-title">Vaulta Locked</h2>
             <p class="lock-subtitle">Enter your Passcode or use Biometrics to access your files</p>
             <p class="lock-error-msg" id="lockErrorMsg" style="display:none; color: var(--color-danger); font-size: 0.82rem; font-weight: 600; margin-top: 8px; animation: fadeIn 0.3s;"></p>
@@ -345,6 +399,9 @@
     async handlePinInput(digit) {
       const pinLen = this.getPinLength();
       if (_currentPinInput.length < pinLen) {
+        if (navigator.vibrate) {
+          try { navigator.vibrate(12); } catch (_) {}
+        }
         _currentPinInput += digit;
         this.updatePinDisplay();
 
@@ -360,6 +417,9 @@
     },
 
     triggerPinError() {
+      if (navigator.vibrate) {
+        try { navigator.vibrate([40, 60, 40]); } catch (_) {}
+      }
       const card = document.querySelector('.lock-card');
       const errorMsg = document.getElementById('lockErrorMsg');
       const dots = document.querySelectorAll('#pinDisplay .pin-dot');
@@ -383,10 +443,26 @@
       }, 400);
     },
 
-    async triggerBiometricUnlock() {
-      const success = await this.authenticateBiometric();
-      if (success) {
-        this.unlockApp();
+    async triggerBiometricUnlock(isUserInitiated = false) {
+      const bioBtn = document.getElementById('bioUnlockBtn');
+      if (bioBtn) {
+        bioBtn.classList.add('pulse-active');
+      }
+      try {
+        const success = await this.authenticateBiometric();
+        if (success) {
+          this.unlockApp();
+        } else if (isUserInitiated) {
+          if (window.DocUI && typeof window.DocUI.showToast === 'function') {
+            window.DocUI.showToast('Biometric prompt cancelled or not recognized. Try again or use PIN.', 'warning');
+          }
+        }
+      } catch (e) {
+        console.warn('[Security] Biometric unlock error:', e);
+      } finally {
+        if (bioBtn) {
+          bioBtn.classList.remove('pulse-active');
+        }
       }
     },
 
@@ -402,6 +478,9 @@
       const clearBtn = overlay.querySelector('#keypadClear');
       if (clearBtn) {
         clearBtn.addEventListener('click', () => {
+          if (navigator.vibrate) {
+            try { navigator.vibrate(10); } catch (_) {}
+          }
           _currentPinInput = '';
           this.updatePinDisplay();
         });
@@ -410,6 +489,9 @@
       const backBtn = overlay.querySelector('#keypadBack');
       if (backBtn) {
         backBtn.addEventListener('click', () => {
+          if (navigator.vibrate) {
+            try { navigator.vibrate(10); } catch (_) {}
+          }
           if (_currentPinInput.length > 0) {
             _currentPinInput = _currentPinInput.slice(0, -1);
             this.updatePinDisplay();
@@ -420,7 +502,7 @@
       const bioBtn = overlay.querySelector('#bioUnlockBtn');
       if (bioBtn) {
         bioBtn.addEventListener('click', () => {
-          this.triggerBiometricUnlock();
+          this.triggerBiometricUnlock(true);
         });
       }
 

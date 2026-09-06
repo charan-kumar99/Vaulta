@@ -18,6 +18,26 @@ const DocApp = (() => {
   const mainContainer = () => document.getElementById('app');
   const modalsContainer = () => document.getElementById('modals');
 
+  function triggerHaptic(pattern = 15) {
+    if (navigator.vibrate) {
+      try {
+        navigator.vibrate(pattern);
+      } catch (_) {}
+    }
+  }
+
+  let activeSwipedInner = null;
+  let wasSwiping = false;
+
+  function closeActiveSwiped() {
+    if (activeSwipedInner) {
+      activeSwipedInner.style.transform = '';
+      activeSwipedInner.classList.remove('swiping');
+      delete activeSwipedInner.dataset.swipedOffset;
+      activeSwipedInner = null;
+    }
+  }
+
   async function init() {
     
     await DocDB.open();
@@ -26,6 +46,14 @@ const DocApp = (() => {
     document.documentElement.setAttribute('data-theme', savedTheme);
 
     window.addEventListener('hashchange', handleRoute);
+
+    bindBottomNav();
+
+    document.addEventListener('click', (e) => {
+      if (activeSwipedInner && !e.target.closest('.doc-card-swipe-wrapper')) {
+        closeActiveSwiped();
+      }
+    });
 
     handleRoute();
 
@@ -167,6 +195,7 @@ const DocApp = (() => {
       state.activeCategory = 'all';
       state.homeActiveCategory = 'all';
       state.searchQuery = '';
+      updateActiveTab('home');
       renderCurrentScreen();
     } else if (hash.startsWith('#vault/')) {
       const vault = hash.replace('#vault/', '');
@@ -176,6 +205,7 @@ const DocApp = (() => {
         state.currentFolderId = null;
         state.activeCategory = 'all';
         state.searchQuery = '';
+        updateActiveTab('vaults');
         renderCurrentScreen();
       }
     }
@@ -288,6 +318,8 @@ const DocApp = (() => {
     bindBulkSelect();
     bindLongPressToSelect();
     bindSecretSyncEvents();
+    bindSwipeGestures();
+    bindBottomNav();
   }
 
   function bindHomeCategoryChips() {
@@ -390,6 +422,59 @@ const DocApp = (() => {
     }
   }
 
+  async function handleDeleteDoc(docId) {
+    try {
+      const doc = await DocDB.getDocument(docId);
+      openDeleteConfirm(docId, doc ? doc.name : 'Document');
+    } catch (err) {
+      console.error('Failed to get document for delete:', err);
+    }
+  }
+
+  async function handleQuickAction(action) {
+    switch (action) {
+      case 'scan': {
+        openUploadModal({ autoBrowse: true });
+        break;
+      }
+      case 'upload': {
+        openUploadModal();
+        break;
+      }
+      case 'favorites': {
+        if (state.currentScreen !== 'home') {
+          await navigate('home');
+        }
+        const favSection = document.querySelector('.favorites-row');
+        if (favSection) {
+          favSection.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        } else {
+          DocUI.showToast('No starred documents yet. Tap the star icon on any document to add it to Starred!', 'info');
+        }
+        break;
+      }
+      case 'expiring': {
+        try {
+          const docs = await DocDB.getAllDocuments();
+          const expiringDocs = docs.filter((d) => {
+            if (!d.expiryDate || typeof DocDB.getExpiryStatus !== 'function') return false;
+            const exp = DocDB.getExpiryStatus(d.expiryDate);
+            return exp.status === 'expired' || exp.status === 'expiring-soon';
+          });
+          if (expiringDocs.length > 0) {
+            DocUI.showToast(`⚠️ ${expiringDocs.length} document${expiringDocs.length > 1 ? 's' : ''} expiring soon or expired.`, 'warning', 3000);
+            DocUI.renderStorageAnalyticsModal();
+          } else {
+            DocUI.showToast('🟢 All documents are up to date! None expiring soon.', 'success');
+          }
+        } catch (e) {
+          DocUI.showToast('No expiring documents found.', 'info');
+        }
+        break;
+      }
+    }
+  }
+
   function handleClick(e) {
     if (isLongPressTriggered) {
       isLongPressTriggered = false;
@@ -398,10 +483,48 @@ const DocApp = (() => {
       return;
     }
 
-    const target = e.target.closest('[data-action]');
+    if (wasSwiping) {
+      e.preventDefault();
+      e.stopPropagation();
+      return;
+    }
+
+    if (activeSwipedInner) {
+      const isSwipeBtn = e.target.closest('.swipe-action-btn');
+      closeActiveSwiped();
+      if (!isSwipeBtn) {
+        e.preventDefault();
+        e.stopPropagation();
+        return;
+      }
+    }
+
+    const quickPill = e.target.closest('.quick-action-pill');
+    if (quickPill) {
+      e.preventDefault();
+      e.stopPropagation();
+      triggerHaptic(15);
+      const action = quickPill.dataset.quickAction;
+      handleQuickAction(action);
+      return;
+    }
+
+    const templateChip = e.target.closest('.template-chip');
+    if (templateChip) {
+      e.preventDefault();
+      e.stopPropagation();
+      triggerHaptic(15);
+      const name = templateChip.dataset.templateName || '';
+      const category = templateChip.dataset.templateCategory || '';
+      const vault = templateChip.dataset.templateVault || 'personal';
+      openUploadModal({ name, category, vault, autoBrowse: true });
+      return;
+    }
+
+    const target = e.target.closest('[data-action], [data-swipe-action]');
     if (!target) return;
 
-    const action = target.dataset.action;
+    const action = target.dataset.action || target.dataset.swipeAction;
     const docId = target.dataset.docId;
 
     e.stopPropagation();
@@ -411,15 +534,243 @@ const DocApp = (() => {
         openPreview(docId);
         break;
       case 'favorite':
+        triggerHaptic(15);
         toggleFavorite(docId);
         break;
       case 'share':
+        triggerHaptic(15);
         shareDoc(docId);
         break;
+      case 'delete':
+        triggerHaptic(20);
+        handleDeleteDoc(docId);
+        break;
       case 'toggle-select':
+        triggerHaptic(15);
         handleToggleSelect(docId);
         break;
     }
+  }
+
+  function bindSwipeGestures() {
+    const container = mainContainer();
+    if (!container || container.dataset.swipeBound === 'true') return;
+    container.dataset.swipeBound = 'true';
+
+    let touchStartX = 0;
+    let touchStartY = 0;
+    let currentDx = 0;
+    let currentDy = 0;
+    let isHorizontalSwipe = false;
+    let isGestureDetermined = false;
+    let targetCardInner = null;
+    let hasHapticFired = false;
+
+    container.addEventListener('touchstart', (e) => {
+      if (state.selectMode) return;
+      const touch = e.touches[0];
+      if (!touch) return;
+
+      const actionBtn = e.target.closest('.swipe-action-btn');
+      if (actionBtn) return;
+
+      const inner = e.target.closest('.doc-card-inner');
+      const card = e.target.closest('.doc-card');
+
+      if (activeSwipedInner && activeSwipedInner !== inner) {
+        closeActiveSwiped();
+      }
+
+      if (!inner || !card) return;
+
+      touchStartX = touch.clientX;
+      touchStartY = touch.clientY;
+      currentDx = 0;
+      currentDy = 0;
+      isHorizontalSwipe = false;
+      isGestureDetermined = false;
+      hasHapticFired = false;
+      targetCardInner = inner;
+    }, { passive: true });
+
+    container.addEventListener('touchmove', (e) => {
+      if (!targetCardInner || state.selectMode) return;
+      const touch = e.touches[0];
+      if (!touch) return;
+
+      currentDx = touch.clientX - touchStartX;
+      currentDy = touch.clientY - touchStartY;
+
+      if (!isGestureDetermined) {
+        if (Math.abs(currentDx) > 8 || Math.abs(currentDy) > 8) {
+          isGestureDetermined = true;
+          if (Math.abs(currentDx) > Math.abs(currentDy)) {
+            isHorizontalSwipe = true;
+            wasSwiping = true;
+            targetCardInner.classList.add('swiping');
+          } else {
+            isHorizontalSwipe = false;
+            targetCardInner = null;
+            return;
+          }
+        } else {
+          return;
+        }
+      }
+
+      if (!isHorizontalSwipe) return;
+
+      if (e.cancelable) {
+        e.preventDefault();
+      }
+
+      let tx = currentDx;
+      if (activeSwipedInner === targetCardInner && targetCardInner.dataset.swipedOffset) {
+        tx += parseFloat(targetCardInner.dataset.swipedOffset);
+      }
+
+      if (tx < -75) {
+        tx = -75 - Math.pow(Math.abs(tx + 75), 0.7);
+      } else if (tx > 145) {
+        tx = 145 + Math.pow(tx - 145, 0.7);
+      }
+
+      if (!hasHapticFired) {
+        if (tx < -45 || tx > 60) {
+          triggerHaptic(15);
+          hasHapticFired = true;
+        }
+      } else if (tx > -35 && tx < 45) {
+        hasHapticFired = false;
+      }
+
+      targetCardInner.style.transform = `translateX(${tx}px)`;
+    }, { passive: false });
+
+    container.addEventListener('touchend', () => {
+      if (!targetCardInner) return;
+
+      targetCardInner.classList.remove('swiping');
+
+      if (!isHorizontalSwipe) {
+        targetCardInner = null;
+        return;
+      }
+
+      let tx = currentDx;
+      if (activeSwipedInner === targetCardInner && targetCardInner.dataset.swipedOffset) {
+        tx += parseFloat(targetCardInner.dataset.swipedOffset);
+      }
+
+      if (tx < -45) {
+        targetCardInner.style.transform = 'translateX(-70px)';
+        targetCardInner.dataset.swipedOffset = '-70';
+        activeSwipedInner = targetCardInner;
+        triggerHaptic(15);
+      } else if (tx > 50) {
+        targetCardInner.style.transform = 'translateX(140px)';
+        targetCardInner.dataset.swipedOffset = '140';
+        activeSwipedInner = targetCardInner;
+        triggerHaptic(15);
+      } else {
+        targetCardInner.style.transform = '';
+        delete targetCardInner.dataset.swipedOffset;
+        if (activeSwipedInner === targetCardInner) {
+          activeSwipedInner = null;
+        }
+      }
+
+      targetCardInner = null;
+      isHorizontalSwipe = false;
+      isGestureDetermined = false;
+
+      setTimeout(() => {
+        wasSwiping = false;
+      }, 250);
+    }, { passive: true });
+
+    container.addEventListener('touchcancel', () => {
+      if (targetCardInner) {
+        targetCardInner.classList.remove('swiping');
+        targetCardInner.style.transform = '';
+        delete targetCardInner.dataset.swipedOffset;
+        if (activeSwipedInner === targetCardInner) {
+          activeSwipedInner = null;
+        }
+        targetCardInner = null;
+      }
+      isHorizontalSwipe = false;
+      isGestureDetermined = false;
+      wasSwiping = false;
+    }, { passive: true });
+  }
+
+  function bindBottomNav() {
+    const bottomNav = document.getElementById('bottomNav');
+    if (!bottomNav || bottomNav.dataset.bound === 'true') return;
+    bottomNav.dataset.bound = 'true';
+
+    bottomNav.addEventListener('click', (e) => {
+      const btn = e.target.closest('[data-nav]');
+      if (!btn) return;
+
+      const navTarget = btn.dataset.nav;
+      triggerHaptic(15);
+
+      switch (navTarget) {
+        case 'home':
+          navigate('home');
+          updateActiveTab('home');
+          break;
+        case 'vaults':
+          DocUI.renderVaultsSheet();
+          updateActiveTab('vaults');
+          break;
+        case 'upload':
+          triggerHaptic(20);
+          openUploadModal();
+          break;
+        case 'search': {
+          updateActiveTab('search');
+          const searchInput = document.getElementById('globalSearch');
+          if (searchInput) {
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+            searchInput.focus();
+            searchInput.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          } else {
+            navigate('home');
+            setTimeout(() => {
+              const input = document.getElementById('globalSearch');
+              if (input) {
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+                input.focus();
+              }
+            }, 100);
+          }
+          break;
+        }
+        case 'settings':
+          DocUI.renderSettingsSheet();
+          updateActiveTab('settings');
+          break;
+      }
+    });
+  }
+
+  function updateActiveTab(activeName) {
+    if (!activeName) return;
+    const tabs = document.querySelectorAll('.bottom-nav-tab');
+    tabs.forEach((tab) => {
+      if (tab.dataset.nav === activeName) {
+        tab.classList.add('active');
+      } else {
+        tab.classList.remove('active');
+      }
+    });
+  }
+
+  function syncActiveTab() {
+    updateActiveTab(state.currentScreen === 'vault' ? 'vaults' : 'home');
   }
 
   function bindVaultCards() {
@@ -1232,12 +1583,30 @@ const DocApp = (() => {
     }
   }
 
-  function openUploadModal() {
+  function openUploadModal(prefill = {}) {
     const modals = modalsContainer();
-    const defaultVault = state.currentVault || 'personal';
-    modals.innerHTML = DocUI.renderUploadModal(defaultVault);
+    const defaultVault = prefill.vault || state.currentVault || 'personal';
+    modals.innerHTML = DocUI.renderUploadModal(defaultVault, state.currentFolderId, prefill);
 
     bindUploadModalEvents();
+
+    if (prefill.name) {
+      const nameInput = document.getElementById('docName');
+      if (nameInput) nameInput.value = prefill.name;
+    }
+    if (prefill.category) {
+      const catSelect = document.getElementById('docCategory');
+      if (catSelect) {
+        catSelect.value = prefill.category;
+        catSelect.dispatchEvent(new Event('change'));
+      }
+    }
+    if (prefill.autoBrowse) {
+      setTimeout(() => {
+        const fileInput = document.getElementById('fileInput');
+        if (fileInput) fileInput.click();
+      }, 150);
+    }
   }
 
   function bindUploadModalEvents() {
@@ -2145,6 +2514,8 @@ const DocApp = (() => {
     exportBackup,
     openUploadModal,
     requestNotificationPermission,
+    updateActiveTab,
+    syncActiveTab,
   };
 })();
 

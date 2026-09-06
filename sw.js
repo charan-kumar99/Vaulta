@@ -1,8 +1,9 @@
-const CACHE_NAME = 'vaulta-v37';
+const CACHE_NAME = 'vaulta-v41';
 const ASSETS_TO_CACHE = [
   './',
   './index.html',
   './manifest.json',
+  './favicon.ico',
   './css/index.css',
   './css/animations.css',
   './css/components.css',
@@ -13,7 +14,11 @@ const ASSETS_TO_CACHE = [
   './js/security.js',
   './js/app.js',
   './icons/icon-192.png',
-  './icons/icon-512.png'
+  './icons/icon-512.png',
+  './icons/icon-maskable-512.png',
+  './icons/apple-touch-icon.png',
+  './icons/favicon-32x32.png',
+  './icons/favicon.ico'
 ];
 
 self.addEventListener('install', (event) => {

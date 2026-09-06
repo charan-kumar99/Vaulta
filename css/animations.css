@@ -242,6 +242,22 @@
   animation: progressFill 1s ease-out forwards;
 }
 
+@keyframes slideUpSheet {
+  from { transform: translateY(100%); opacity: 0.5; }
+  to { transform: translateY(0); opacity: 1; }
+}
+
+@keyframes slideDownSheet {
+  from { transform: translateY(0); opacity: 1; }
+  to { transform: translateY(100%); opacity: 0; }
+}
+
+@keyframes navPulse {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.18); }
+  100% { transform: scale(1.1); }
+}
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,
