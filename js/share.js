@@ -278,10 +278,19 @@ const DocShare = (() => {
       }
     }
 
+    async function saveSingleDoc(docRecord) {
+      const database = await DocDB.open();
+      return new Promise((resolve, reject) => {
+        const tx = database.transaction('documents', 'readwrite');
+        const store = tx.objectStore('documents');
+        const req = store.put(docRecord);
+        req.onsuccess = () => resolve();
+        req.onerror = (e) => reject(e.target.error || new Error('Failed to save document'));
+        tx.onabort = (e) => reject(e.target.error || new Error('Transaction aborted'));
+      });
+    }
+
     let importedDocsCount = 0;
-    const database = await DocDB.open();
-    const tx = database.transaction('documents', 'readwrite');
-    const store = tx.objectStore('documents');
 
     if (Array.isArray(metadataList) && metadataList.length > 0) {
       for (const meta of metadataList) {
@@ -350,11 +359,8 @@ const DocShare = (() => {
           updatedAt: Date.now(),
         };
 
-        await new Promise((res, rej) => {
-          const req = store.put(docRecord);
-          req.onsuccess = () => { importedDocsCount++; res(); };
-          req.onerror = (e) => rej(e.target.error);
-        });
+        await saveSingleDoc(docRecord);
+        importedDocsCount++;
       }
     } else {
       // Fallback: scan all files in zip if no vaulta_metadata.json was included
@@ -424,11 +430,8 @@ const DocShare = (() => {
           updatedAt: Date.now(),
         };
 
-        await new Promise((res, rej) => {
-          const req = store.put(docRecord);
-          req.onsuccess = () => { importedDocsCount++; res(); };
-          req.onerror = (e) => rej(e.target.error);
-        });
+        await saveSingleDoc(docRecord);
+        importedDocsCount++;
       }
     }
 

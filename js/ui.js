@@ -2454,7 +2454,7 @@ const DocUI = (() => {
                 <div class="settings-item-body">
                   <div style="display: flex; align-items: center; gap: 8px;">
                     <span class="settings-item-title">What's New & Updates</span>
-                    <span class="settings-pill-badge pill-active">v69 LATEST</span>
+                    <span class="settings-pill-badge pill-active">v70 LATEST</span>
                   </div>
                   <span class="settings-item-subtitle">Release notes, changelog & feature history</span>
                 </div>
@@ -2587,6 +2587,26 @@ const DocUI = (() => {
 
   // ── Updates & Changelog Data ──
   const VAULTA_UPDATES = [
+    {
+      version: 'v70',
+      tag: 'Backup & Restore',
+      date: 'September 12, 2026',
+      title: 'Resilient Backup Ingestion & Transaction Fix',
+      badge: 'FIX',
+      summary: 'Eliminated IndexedDB transaction timeout error during backup restoration by utilizing isolated atomic transactions for every imported document.',
+      details: {
+        features: [
+          'Atomic Document Ingestion: Every document in the backup .zip is written in an independent atomic database transaction, completely preventing transaction finished/timeout errors.',
+          'Seamless Large Backup Restore: Restores backups of any size with many documents, high-res images, and large PDFs without interruption.',
+          'Cross-Device Reliability: Flawlessly imports and restores your phone documents onto your laptop.'
+        ],
+        improvements: [
+          'Isolated per-record IndexedDB transactions for both ZIP restore and SecretSync packages.',
+          'Safe script initialization checks.'
+        ],
+        dataSafety: 'Guaranteed 100% data integrity with AES-256 local encryption.'
+      }
+    },
     {
       version: 'v69',
       tag: 'Backup & Restore',

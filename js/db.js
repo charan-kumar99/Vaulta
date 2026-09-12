@@ -451,7 +451,6 @@ window.DocDB = (() => {
       localStorage.setItem('vaulta_custom_categories', JSON.stringify({ personal: personalCats, official: officialCats }));
     }
 
-    const store = await getStore('readwrite');
     let count = 0;
 
     for (const doc of packageObj.documents) {
@@ -480,7 +479,10 @@ window.DocDB = (() => {
         updatedAt: Date.now(),
       };
 
+      const database = await open();
       await new Promise((res, rej) => {
+        const tx = database.transaction(STORE_NAME, 'readwrite');
+        const store = tx.objectStore(STORE_NAME);
         const req = store.put(docToStore);
         req.onsuccess = () => { count++; res(); };
         req.onerror = (event) => rej(event.target.error);
