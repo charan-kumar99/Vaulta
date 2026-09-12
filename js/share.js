@@ -194,6 +194,247 @@ const DocShare = (() => {
     return { success: true };
   }
 
+  async function importBackup(file) {
+    if (!file) throw new Error('No backup file selected');
+
+    const fileNameLower = (file.name || '').toLowerCase();
+    const isZip = fileNameLower.endsWith('.zip') || (file.type && (file.type.includes('zip') || file.type.includes('octet-stream')));
+
+    // If it's a JSON or .vaulta sync file, use importSecretSyncPackage directly
+    if (!isZip && (fileNameLower.endsWith('.json') || fileNameLower.endsWith('.vaulta') || (file.type && file.type.includes('json')))) {
+      const text = await file.text();
+      const packageObj = JSON.parse(text);
+      if (typeof DocDB !== 'undefined' && typeof DocDB.importSecretSyncPackage === 'function') {
+        return await DocDB.importSecretSyncPackage(packageObj);
+      }
+      throw new Error('Database module is not available to restore JSON package');
+    }
+
+    // Ensure JSZip library is loaded
+    if (typeof JSZip === 'undefined') {
+      await loadScript('https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js');
+    }
+
+    let zip;
+    try {
+      zip = await JSZip.loadAsync(file);
+    } catch (zipErr) {
+      try {
+        const text = await file.text();
+        const packageObj = JSON.parse(text);
+        if (typeof DocDB !== 'undefined' && typeof DocDB.importSecretSyncPackage === 'function') {
+          return await DocDB.importSecretSyncPackage(packageObj);
+        }
+      } catch (_) {}
+      throw new Error('Could not read ZIP archive: ' + zipErr.message);
+    }
+
+    // 1. Restore nested folders
+    let restoredFoldersCount = 0;
+    const foldersEntry = zip.file('folders.json') || zip.file('Folders.json');
+    if (foldersEntry) {
+      try {
+        const foldersText = await foldersEntry.async('text');
+        const backupFolders = JSON.parse(foldersText);
+        if (Array.isArray(backupFolders)) {
+          const currentFolders = JSON.parse(localStorage.getItem('vaulta_nested_folders_v2') || '[]');
+          const folderMap = new Map();
+          currentFolders.forEach((f) => folderMap.set(f.id, f));
+          backupFolders.forEach((f) => folderMap.set(f.id, f));
+          localStorage.setItem('vaulta_nested_folders_v2', JSON.stringify(Array.from(folderMap.values())));
+          restoredFoldersCount = backupFolders.length;
+        }
+      } catch (e) {
+        console.warn('[Backup Import] Failed to restore folders:', e);
+      }
+    }
+
+    // 2. Restore custom categories
+    const catsEntry = zip.file('categories.json') || zip.file('Categories.json');
+    if (catsEntry) {
+      try {
+        const catsText = await catsEntry.async('text');
+        const backupCats = JSON.parse(catsText);
+        if (backupCats) {
+          const currentCats = JSON.parse(localStorage.getItem('vaulta_custom_categories') || '{"personal":[],"official":[]}');
+          const personalCats = Array.from(new Set([...(currentCats.personal || []), ...(backupCats.personal || [])]));
+          const officialCats = Array.from(new Set([...(currentCats.official || []), ...(backupCats.official || [])]));
+          localStorage.setItem('vaulta_custom_categories', JSON.stringify({ personal: personalCats, official: officialCats }));
+        }
+      } catch (e) {
+        console.warn('[Backup Import] Failed to restore categories:', e);
+      }
+    }
+
+    // 3. Process documents
+    let metadataList = null;
+    const metaEntry = zip.file('vaulta_metadata.json') || zip.file('metadata.json');
+    if (metaEntry) {
+      try {
+        const metaText = await metaEntry.async('text');
+        metadataList = JSON.parse(metaText);
+      } catch (e) {
+        console.warn('[Backup Import] Failed to parse vaulta_metadata.json:', e);
+      }
+    }
+
+    let importedDocsCount = 0;
+    const database = await DocDB.open();
+    const tx = database.transaction('documents', 'readwrite');
+    const store = tx.objectStore('documents');
+
+    if (Array.isArray(metadataList) && metadataList.length > 0) {
+      for (const meta of metadataList) {
+        const docFileName = meta.fileName || `${meta.name}.bin`;
+        const candidatePaths = [
+          meta.vault === 'official' ? `Official/${docFileName}` : `Personal/${docFileName}`,
+          `Personal/${docFileName}`,
+          `Official/${docFileName}`,
+          docFileName,
+          `${meta.name}.bin`,
+        ];
+
+        let fileEntry = null;
+        for (const p of candidatePaths) {
+          fileEntry = zip.file(p);
+          if (fileEntry) break;
+        }
+
+        if (!fileEntry) {
+          const allKeys = Object.keys(zip.files);
+          const lowerName = docFileName.toLowerCase();
+          const matchKey = allKeys.find((k) => !zip.files[k].dir && k.toLowerCase().endsWith(lowerName));
+          if (matchKey) fileEntry = zip.file(matchKey);
+        }
+
+        let fileBlob = null;
+        if (fileEntry) {
+          const arrayBuffer = await fileEntry.async('arraybuffer');
+          fileBlob = new Blob([arrayBuffer], { type: meta.fileType || 'application/octet-stream' });
+        }
+
+        let fileToSave = fileBlob;
+        let isEncrypted = false;
+        let encAlgo = null;
+        let encryptedAt = null;
+
+        if (window.SecurityModule && typeof window.SecurityModule.isEncryptionEnabled === 'function' && window.SecurityModule.isEncryptionEnabled()) {
+          try {
+            if (fileBlob) {
+              fileToSave = await window.SecurityModule.encryptBlob(fileBlob, meta.fileType || fileBlob.type);
+              isEncrypted = true;
+              encAlgo = 'AES-GCM-256';
+              encryptedAt = Date.now();
+            }
+          } catch (encErr) {
+            console.warn('[DocDB] Encryption fallback during import:', encErr);
+          }
+        }
+
+        let thumbnail = meta.thumbnail || null;
+        if (!thumbnail && fileBlob && (meta.fileType || '').startsWith('image/')) {
+          try {
+            if (typeof DocDB.generateThumbnail === 'function') {
+              thumbnail = await DocDB.generateThumbnail(fileBlob);
+            }
+          } catch (_) {}
+        }
+
+        const docRecord = {
+          ...meta,
+          fileData: fileToSave,
+          thumbnail: thumbnail,
+          isEncrypted: isEncrypted || meta.isEncrypted || false,
+          encAlgo: encAlgo || meta.encAlgo || null,
+          encryptedAt: encryptedAt || meta.encryptedAt || null,
+          updatedAt: Date.now(),
+        };
+
+        await new Promise((res, rej) => {
+          const req = store.put(docRecord);
+          req.onsuccess = () => { importedDocsCount++; res(); };
+          req.onerror = (e) => rej(e.target.error);
+        });
+      }
+    } else {
+      // Fallback: scan all files in zip if no vaulta_metadata.json was included
+      const allKeys = Object.keys(zip.files);
+      for (const key of allKeys) {
+        const entry = zip.files[key];
+        if (entry.dir) continue;
+        if (key === 'folders.json' || key === 'categories.json' || key === 'vaulta_metadata.json' || key.startsWith('__MACOSX')) continue;
+
+        const parts = key.split('/');
+        const rawFileName = parts[parts.length - 1];
+        const isOfficial = key.toLowerCase().startsWith('official/');
+        const extMatch = rawFileName.match(/\.([^.]+)$/);
+        const ext = extMatch ? extMatch[1].toLowerCase() : '';
+        const name = rawFileName.replace(/\.[^.]+$/, '').replace(/[_-]/g, ' ');
+
+        let fileType = 'application/octet-stream';
+        if (['jpg', 'jpeg'].includes(ext)) fileType = 'image/jpeg';
+        else if (ext === 'png') fileType = 'image/png';
+        else if (ext === 'webp') fileType = 'image/webp';
+        else if (ext === 'pdf') fileType = 'application/pdf';
+
+        const arrayBuf = await entry.async('arraybuffer');
+        const fileBlob = new Blob([arrayBuf], { type: fileType });
+
+        let fileToSave = fileBlob;
+        let isEncrypted = false;
+        let encAlgo = null;
+        let encryptedAt = null;
+
+        if (window.SecurityModule && typeof window.SecurityModule.isEncryptionEnabled === 'function' && window.SecurityModule.isEncryptionEnabled()) {
+          try {
+            fileToSave = await window.SecurityModule.encryptBlob(fileBlob, fileType);
+            isEncrypted = true;
+            encAlgo = 'AES-GCM-256';
+            encryptedAt = Date.now();
+          } catch (_) {}
+        }
+
+        let thumbnail = null;
+        if (fileType.startsWith('image/')) {
+          try {
+            if (typeof DocDB.generateThumbnail === 'function') {
+              thumbnail = await DocDB.generateThumbnail(fileBlob);
+            }
+          } catch (_) {}
+        }
+
+        const docRecord = {
+          id: 'doc_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9),
+          vault: isOfficial ? 'official' : 'personal',
+          name: name || rawFileName,
+          category: 'All',
+          folderId: null,
+          folder: null,
+          tags: [],
+          fileData: fileToSave,
+          fileType,
+          fileName: rawFileName,
+          thumbnail,
+          expiryDate: null,
+          isFavorite: false,
+          isEncrypted,
+          encAlgo,
+          encryptedAt,
+          createdAt: Date.now(),
+          updatedAt: Date.now(),
+        };
+
+        await new Promise((res, rej) => {
+          const req = store.put(docRecord);
+          req.onsuccess = () => { importedDocsCount++; res(); };
+          req.onerror = (e) => rej(e.target.error);
+        });
+      }
+    }
+
+    return { documentCount: importedDocsCount, folderCount: restoredFoldersCount };
+  }
+
   function loadScript(src) {
     return new Promise((resolve, reject) => {
       
@@ -413,14 +654,18 @@ const DocShare = (() => {
   }
 
   return {
+    init: () => {},
     shareDocument,
     shareDocumentAs,
     downloadDocument,
     shareMultiple,
     exportBackup,
+    importBackup,
     canNativeShare,
     getAvailableFormats,
     convertFile,
     downloadFile,
   };
 })();
+
+window.DocShare = DocShare;

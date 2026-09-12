@@ -22,9 +22,9 @@
   <link rel="icon" type="image/png" sizes="32x32" href="icons/favicon-32x32.png" />
   <link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png" />
 
-  <link rel="stylesheet" href="css/index.css?v=68" />
-  <link rel="stylesheet" href="css/animations.css?v=68" />
-  <link rel="stylesheet" href="css/components.css?v=68" />
+  <link rel="stylesheet" href="css/index.css?v=69" />
+  <link rel="stylesheet" href="css/animations.css?v=69" />
+  <link rel="stylesheet" href="css/components.css?v=69" />
 </head>
 <body>
 
@@ -73,6 +73,10 @@
         <button class="header-btn mobile-hidden" id="backupBtn" title="Export Backup" aria-label="Export backup">
           <svg class="btn-svg" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path><polyline points="17 21 17 13 7 13 7 21"></polyline><polyline points="7 3 7 8 15 8"></polyline></svg>
         </button>
+        <button class="header-btn mobile-hidden" id="headerRestoreBtn" title="Restore / Import Backup (.zip)" aria-label="Restore backup">
+          <svg class="btn-svg" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+        </button>
+        <input type="file" id="headerRestoreFileInput" accept=".zip,application/zip,application/x-zip-compressed,.json,.vaulta,.vault" style="display: none;" />
         <button class="header-btn" id="themeToggle" title="Toggle theme" aria-label="Toggle dark/light theme">
           <svg class="btn-svg" id="themeToggleIcon" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"></circle><line x1="12" y1="1" x2="12" y2="3"></line><line x1="12" y1="21" x2="12" y2="23"></line><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line><line x1="1" y1="12" x2="3" y2="12"></line><line x1="21" y1="12" x2="23" y2="12"></line><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line></svg>
         </button>
@@ -143,12 +147,12 @@
   </div>
 
 
-  <script src="js/db.js?v=68"></script>
-  <script src="js/search.js?v=68"></script>
-  <script src="js/share.js?v=68"></script>
-  <script src="js/ui.js?v=68"></script>
-  <script src="js/security.js?v=68"></script>
-  <script src="js/app.js?v=68"></script>
+  <script src="js/db.js?v=69"></script>
+  <script src="js/search.js?v=69"></script>
+  <script src="js/share.js?v=69"></script>
+  <script src="js/ui.js?v=69"></script>
+  <script src="js/security.js?v=69"></script>
+  <script src="js/app.js?v=69"></script>
 
   <script>
     document.addEventListener('DOMContentLoaded', () => {
@@ -158,7 +162,7 @@
         window.SecurityModule.init();
       }
 
-      if (window.DocShare) {
+      if (window.DocShare && typeof window.DocShare.init === 'function') {
         window.DocShare.init();
       }
 
@@ -235,7 +239,7 @@
       document.getElementById('themeToggle').textContent = theme === 'dark' ? '☀️' : '🌙';
 
       if ('serviceWorker' in navigator) {
-        const CURRENT_APP_VERSION = 'v68';
+        const CURRENT_APP_VERSION = 'v69';
         let refreshing = false;
         let waitingWorker = null;
 

@@ -1335,9 +1335,9 @@ const DocUI = (() => {
 
               <div class="drop-zone" id="secretSyncDropZone" style="padding: var(--space-4); text-align: center; cursor: pointer;">
                 <div style="font-size: 1.8rem; margin-bottom: 4px;">📥</div>
-                <p class="drop-text" style="font-size: var(--font-size-sm); font-weight: var(--font-weight-semibold);">Select or Drag & Drop Sync File (.json / .vaulta)</p>
-                <p class="drop-subtext" style="font-size: var(--font-size-xs);">To import PC data into this device</p>
-                <input type="file" id="secretSyncFileInput" accept=".json,.vaulta,.vault,.vaulta.json,.txt,application/json,text/plain,*/*" style="display:none;" />
+                <p class="drop-text" style="font-size: var(--font-size-sm); font-weight: var(--font-weight-semibold);">Select or Drag & Drop Backup File (.zip / .json / .vaulta)</p>
+                <p class="drop-subtext" style="font-size: var(--font-size-xs);">To import phone or PC data into this device</p>
+                <input type="file" id="secretSyncFileInput" accept=".zip,application/zip,application/x-zip-compressed,.json,.vaulta,.vault,.vaulta.json,.txt,application/json,text/plain,*/*" style="display:none;" />
               </div>
             </div>
           </div>
@@ -2407,6 +2407,18 @@ const DocUI = (() => {
                 <span class="settings-chevron" style="font-size: 1.2rem; opacity: 0.5; font-weight: 300;">›</span>
               </button>
 
+              <button class="settings-row-item" id="settingsRestoreBtn">
+                <div class="settings-icon-tile tile-teal" style="background: rgba(20, 184, 166, 0.15); color: #14b8a6;">
+                  <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+                </div>
+                <div class="settings-item-body">
+                  <span class="settings-item-title">Restore / Import Backup</span>
+                  <span class="settings-item-subtitle">Restore phone documents from backup archive (.zip / .json)</span>
+                </div>
+                <span class="settings-chevron" style="font-size: 1.2rem; opacity: 0.5; font-weight: 300;">›</span>
+              </button>
+              <input type="file" id="settingsRestoreFileInput" accept=".zip,application/zip,application/x-zip-compressed,.json,.vaulta,.vault" style="display: none;" />
+
               <button class="settings-row-item" id="settingsStorageBtn">
                 <div class="settings-icon-tile tile-cyan">
                   <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"></line><line x1="12" y1="20" x2="12" y2="4"></line><line x1="6" y1="20" x2="6" y2="14"></line></svg>
@@ -2442,7 +2454,7 @@ const DocUI = (() => {
                 <div class="settings-item-body">
                   <div style="display: flex; align-items: center; gap: 8px;">
                     <span class="settings-item-title">What's New & Updates</span>
-                    <span class="settings-pill-badge pill-active">v68 LATEST</span>
+                    <span class="settings-pill-badge pill-active">v69 LATEST</span>
                   </div>
                   <span class="settings-item-subtitle">Release notes, changelog & feature history</span>
                 </div>
@@ -2507,6 +2519,39 @@ const DocUI = (() => {
       }
     });
 
+    const restoreBtn = document.getElementById('settingsRestoreBtn');
+    const restoreFileInput = document.getElementById('settingsRestoreFileInput');
+    if (restoreBtn && restoreFileInput) {
+      restoreBtn.addEventListener('click', () => {
+        restoreFileInput.click();
+      });
+
+      restoreFileInput.addEventListener('change', async (e) => {
+        if (e.target.files && e.target.files.length > 0) {
+          const file = e.target.files[0];
+          closeSheet();
+          const app = window.DocApp || (typeof DocApp !== 'undefined' ? DocApp : null);
+          if (app && typeof app.importBackup === 'function') {
+            await app.importBackup(file);
+          } else if (window.DocShare && typeof window.DocShare.importBackup === 'function') {
+            try {
+              showToast('⏳ Reading and restoring backup...', 'info', 4000);
+              const result = await window.DocShare.importBackup(file);
+              showToast(`✅ Successfully restored ${result.documentCount} document(s) & ${result.folderCount} folder(s)!`, 'success', 6000);
+              if (app && typeof app.renderCurrentScreen === 'function') {
+                await app.renderCurrentScreen();
+              } else {
+                window.location.reload();
+              }
+            } catch (err) {
+              showToast('Failed to restore backup: ' + (err.message || 'Unknown error'), 'error', 6000);
+            }
+          }
+          restoreFileInput.value = '';
+        }
+      });
+    }
+
     const storageBtn = document.getElementById('settingsStorageBtn');
     if (storageBtn) storageBtn.addEventListener('click', () => { closeSheet(); renderStorageAnalyticsModal(); });
 
@@ -2542,6 +2587,26 @@ const DocUI = (() => {
 
   // ── Updates & Changelog Data ──
   const VAULTA_UPDATES = [
+    {
+      version: 'v69',
+      tag: 'Backup & Restore',
+      date: 'September 12, 2026',
+      title: 'Full ZIP Backup Restore & Cross-Device Sync',
+      badge: 'NEW',
+      summary: 'Easily import and restore phone backup archives (.zip or .json) onto your laptop with one click, restoring all documents, folders, and categories automatically.',
+      details: {
+        features: [
+          'Restore / Import Backup (.zip): Select your phone-exported Vaulta_Backup_*.zip file on your laptop to restore all documents, files, folders, and categories instantly.',
+          'Header Quick Restore on Laptop: Click the new Restore button in the top laptop header bar to pick your phone backup without digging through menus.',
+          'Dual Format Support: Seamlessly restores both binary .zip backup archives and .json / .vaulta sync packages.'
+        ],
+        improvements: [
+          'Automatic AES-256 local re-encryption for all imported documents.',
+          'Fuzzy filename matching and resilient fallback document recovery for any zip structure.'
+        ],
+        dataSafety: 'Zero data overwrite risk: preserves document IDs and nested folder structure without duplication.'
+      }
+    },
     {
       version: 'v68',
       tag: 'Navigation & Settings',

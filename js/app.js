@@ -1628,6 +1628,18 @@ const DocApp = (() => {
       backupBtn.addEventListener('click', () => openSecretSyncModal());
     }
 
+    const headerRestoreBtn = document.getElementById('headerRestoreBtn');
+    const headerRestoreFileInput = document.getElementById('headerRestoreFileInput');
+    if (headerRestoreBtn && headerRestoreFileInput) {
+      headerRestoreBtn.addEventListener('click', () => headerRestoreFileInput.click());
+      headerRestoreFileInput.addEventListener('change', async (e) => {
+        if (e.target.files && e.target.files.length > 0) {
+          await importBackup(e.target.files[0]);
+          headerRestoreFileInput.value = '';
+        }
+      });
+    }
+
     let badgeClickCount = 0;
     let badgeClickTimer = null;
     const badgeEl = document.querySelector('.security-status-badge');
@@ -1720,17 +1732,14 @@ const DocApp = (() => {
     async function handleSyncFileImport(file) {
       if (!file) return;
       try {
-        DocUI.showToast('Importing Vaulta sync file...', 'info');
-        const text = await file.text();
-        const packageObj = JSON.parse(text);
-
-        const result = await DocDB.importSecretSyncPackage(packageObj);
+        DocUI.showToast('⏳ Reading and restoring backup archive...', 'info', 4000);
+        const result = await DocShare.importBackup(file);
         closeModal();
         await renderCurrentScreen();
-        DocUI.showToast(`✅ Successfully restored ${result.documentCount} document(s) & ${result.folderCount} folder(s)!`, 'success', 5000);
+        DocUI.showToast(`✅ Successfully restored ${result.documentCount} document(s) & ${result.folderCount} folder(s)!`, 'success', 6000);
       } catch (err) {
         console.error('Import failed:', err);
-        DocUI.showToast('Failed to import file. Make sure it is a valid Vaulta backup (.json or .vaulta).', 'error');
+        DocUI.showToast('Failed to import backup: ' + (err.message || 'Invalid backup file'), 'error', 6000);
       }
     }
   }
@@ -2750,6 +2759,21 @@ const DocApp = (() => {
     }
   }
 
+  async function importBackup(file) {
+    if (!file) return;
+    try {
+      DocUI.showToast('⏳ Reading and restoring backup archive...', 'info', 4000);
+      const result = await DocShare.importBackup(file);
+      await renderCurrentScreen();
+      DocUI.showToast(`✅ Successfully restored ${result.documentCount} document(s) & ${result.folderCount} folder(s)!`, 'success', 6000);
+      return result;
+    } catch (error) {
+      console.error('Import failed:', error);
+      DocUI.showToast('Failed to restore backup: ' + (error.message || 'Unknown error'), 'error', 6000);
+      throw error;
+    }
+  }
+
   function formatFileSize(bytes) {
     if (bytes < 1024) return bytes + ' B';
     if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
@@ -2941,6 +2965,7 @@ const DocApp = (() => {
     navigate,
     toggleTheme,
     exportBackup,
+    importBackup,
     openUploadModal,
     requestNotificationPermission,
     updateActiveTab,
