@@ -1,18 +1,18 @@
-const CACHE_NAME = 'vaulta-v62';
+const CACHE_NAME = 'vaulta-v63';
 const ASSETS_TO_CACHE = [
   './',
   './index.html',
   './manifest.json',
   './favicon.ico',
-  './css/index.css?v=62',
-  './css/animations.css?v=62',
-  './css/components.css?v=62',
-  './js/db.js?v=62',
-  './js/search.js?v=62',
-  './js/share.js?v=62',
-  './js/ui.js?v=62',
-  './js/security.js?v=62',
-  './js/app.js?v=62',
+  './css/index.css?v=63',
+  './css/animations.css?v=63',
+  './css/components.css?v=63',
+  './js/db.js?v=63',
+  './js/search.js?v=63',
+  './js/share.js?v=63',
+  './js/ui.js?v=63',
+  './js/security.js?v=63',
+  './js/app.js?v=63',
   './icons/icon-192.png',
   './icons/icon-512.png',
   './icons/icon-maskable-512.png',
@@ -21,13 +21,65 @@ const ASSETS_TO_CACHE = [
   './icons/favicon.ico'
 ];
 
+// ── Temporary IndexedDB store for share-target files ──
+const SHARE_DB_NAME = 'vaulta_share_target';
+const SHARE_DB_VERSION = 1;
+const SHARE_STORE_NAME = 'pending_files';
+
+function openShareDB() {
+  return new Promise((resolve, reject) => {
+    const req = indexedDB.open(SHARE_DB_NAME, SHARE_DB_VERSION);
+    req.onupgradeneeded = (e) => {
+      const db = e.target.result;
+      if (!db.objectStoreNames.contains(SHARE_STORE_NAME)) {
+        db.createObjectStore(SHARE_STORE_NAME, { keyPath: 'id' });
+      }
+    };
+    req.onsuccess = () => resolve(req.result);
+    req.onerror = () => reject(req.error);
+  });
+}
+
+function storeSharedFile(file, title, text) {
+  return new Promise(async (resolve, reject) => {
+    try {
+      const arrayBuffer = await file.arrayBuffer();
+      const db = await openShareDB();
+      const tx = db.transaction(SHARE_STORE_NAME, 'readwrite');
+      const store = tx.objectStore(SHARE_STORE_NAME);
+      store.put({
+        id: 'latest',
+        name: file.name || 'Shared File',
+        type: file.type || 'application/octet-stream',
+        size: file.size,
+        data: arrayBuffer,
+        title: title || '',
+        text: text || '',
+        timestamp: Date.now()
+      });
+      tx.oncomplete = () => resolve();
+      tx.onerror = () => reject(tx.error);
+    } catch (err) {
+      reject(err);
+    }
+  });
+}
+
 self.addEventListener('install', (event) => {
-  self.skipWaiting();
+  // Don't skipWaiting immediately — let the app show an update banner first.
+  // The app will send a SKIP_WAITING message when the user taps "Update".
   event.waitUntil(
     caches.open(CACHE_NAME).then((cache) => {
       return cache.addAll(ASSETS_TO_CACHE);
     })
   );
+});
+
+// When the app tells us to activate, do it
+self.addEventListener('message', (event) => {
+  if (event.data && event.data.type === 'SKIP_WAITING') {
+    self.skipWaiting();
+  }
 });
 
 self.addEventListener('activate', (event) => {
@@ -43,6 +95,34 @@ self.addEventListener('activate', (event) => {
 });
 
 self.addEventListener('fetch', (event) => {
+  const url = new URL(event.request.url);
+
+  // ── Handle Share Target POST ──
+  if (event.request.method === 'POST' && url.searchParams.has('share-target')) {
+    event.respondWith(
+      (async () => {
+        try {
+          const formData = await event.request.formData();
+          const file = formData.get('file');
+          const title = formData.get('title') || '';
+          const text = formData.get('text') || '';
+
+          if (file && file.size > 0) {
+            await storeSharedFile(file, title, text);
+          }
+        } catch (err) {
+          console.error('[Vaulta SW] Share target error:', err);
+        }
+
+        // Redirect to the app with the share-target flag
+        const redirectUrl = new URL('./', self.location.origin + self.location.pathname.replace(/sw\.js.*$/, ''));
+        redirectUrl.searchParams.set('share-target', 'true');
+        return Response.redirect(redirectUrl.href, 303);
+      })()
+    );
+    return;
+  }
+
   if (event.request.method !== 'GET') return;
 
   event.respondWith(

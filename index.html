@@ -22,9 +22,9 @@
   <link rel="icon" type="image/png" sizes="32x32" href="icons/favicon-32x32.png" />
   <link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png" />
 
-  <link rel="stylesheet" href="css/index.css?v=62" />
-  <link rel="stylesheet" href="css/animations.css?v=62" />
-  <link rel="stylesheet" href="css/components.css?v=62" />
+  <link rel="stylesheet" href="css/index.css?v=63" />
+  <link rel="stylesheet" href="css/animations.css?v=63" />
+  <link rel="stylesheet" href="css/components.css?v=63" />
 </head>
 <body>
 
@@ -121,12 +121,34 @@
     </button>
   </nav>
 
-  <script src="js/db.js?v=62"></script>
-  <script src="js/search.js?v=62"></script>
-  <script src="js/share.js?v=62"></script>
-  <script src="js/ui.js?v=62"></script>
-  <script src="js/security.js?v=62"></script>
-  <script src="js/app.js?v=62"></script>
+  <!-- PWA Update Banner (hidden by default, shown when new version available) -->
+  <div id="updateBanner" class="update-banner" role="alert" aria-live="polite">
+    <div class="update-banner-inner">
+      <div class="update-banner-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+          <polyline points="7 10 12 15 17 10"></polyline>
+          <line x1="12" y1="15" x2="12" y2="3"></line>
+        </svg>
+      </div>
+      <div class="update-banner-text">
+        <div class="update-banner-title">New Update Available</div>
+        <div class="update-banner-subtitle">Tap Update to get the latest features. Your documents are safe.</div>
+      </div>
+      <div class="update-banner-actions">
+        <button class="update-btn update-btn-primary" id="updateNowBtn">Update</button>
+        <button class="update-btn update-btn-dismiss" id="updateDismissBtn" aria-label="Dismiss">&times;</button>
+      </div>
+    </div>
+  </div>
+
+
+  <script src="js/db.js?v=63"></script>
+  <script src="js/search.js?v=63"></script>
+  <script src="js/share.js?v=63"></script>
+  <script src="js/ui.js?v=63"></script>
+  <script src="js/security.js?v=63"></script>
+  <script src="js/app.js?v=63"></script>
 
   <script>
     document.addEventListener('DOMContentLoaded', () => {
@@ -183,6 +205,9 @@
 
       if ('serviceWorker' in navigator) {
         let refreshing = false;
+        let waitingWorker = null;
+
+        // When the new SW takes control, reload to apply updates
         navigator.serviceWorker.addEventListener('controllerchange', () => {
           if (!refreshing) {
             refreshing = true;
@@ -190,11 +215,63 @@
           }
         });
 
-        navigator.serviceWorker.register('sw.js?v=62')
+        // Show the update banner when a new SW is waiting
+        function showUpdateBanner(worker) {
+          waitingWorker = worker;
+          const banner = document.getElementById('updateBanner');
+          if (!banner) return;
+
+          // Show the banner with a slight delay for a smoother entrance
+          setTimeout(() => banner.classList.add('visible'), 600);
+
+          // "Update" button: tell the waiting SW to activate
+          const updateBtn = document.getElementById('updateNowBtn');
+          if (updateBtn) {
+            updateBtn.addEventListener('click', () => {
+              banner.classList.add('reloading');
+              updateBtn.textContent = 'Updating…';
+              if (waitingWorker) {
+                waitingWorker.postMessage({ type: 'SKIP_WAITING' });
+              }
+            });
+          }
+
+          // "Dismiss" button: hide the banner (update will apply on next visit)
+          const dismissBtn = document.getElementById('updateDismissBtn');
+          if (dismissBtn) {
+            dismissBtn.addEventListener('click', () => {
+              banner.classList.remove('visible');
+            });
+          }
+        }
+
+        navigator.serviceWorker.register('sw.js?v=63')
           .then((reg) => {
-            if (reg) reg.update();
+            if (!reg) return;
+
+            // If there's already a waiting worker (e.g. from a previous visit)
+            if (reg.waiting) {
+              showUpdateBanner(reg.waiting);
+              return;
+            }
+
+            // Listen for a new installing worker
+            reg.addEventListener('updatefound', () => {
+              const newWorker = reg.installing;
+              if (!newWorker) return;
+
+              newWorker.addEventListener('statechange', () => {
+                // When the new worker is installed and waiting
+                if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+                  showUpdateBanner(newWorker);
+                }
+              });
+            });
+
+            // Also check for updates periodically (every 60 minutes)
+            setInterval(() => reg.update(), 60 * 60 * 1000);
           })
-          .catch((err) => console.error(err));
+          .catch((err) => console.error('[Vaulta] SW registration failed:', err));
       }
 
       let deferredPrompt = null;

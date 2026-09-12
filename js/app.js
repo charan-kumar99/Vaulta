@@ -86,6 +86,79 @@ const DocApp = (() => {
     handleRoute();
 
     checkExpiryNotifications();
+
+    // Check if app was opened via Share Target (e.g. from WhatsApp share sheet)
+    checkShareTarget();
+  }
+
+  // ── Share Target: retrieve file stashed by service worker and open upload modal ──
+  async function checkShareTarget() {
+    try {
+      const params = new URLSearchParams(window.location.search);
+      if (!params.has('share-target')) return;
+
+      // Clean up the URL so refreshing doesn't re-trigger
+      const cleanUrl = window.location.pathname + (window.location.hash || '');
+      window.history.replaceState(null, '', cleanUrl);
+
+      // Open the share-target IndexedDB and retrieve the pending file
+      const db = await new Promise((resolve, reject) => {
+        const req = indexedDB.open('vaulta_share_target', 1);
+        req.onupgradeneeded = (e) => {
+          const database = e.target.result;
+          if (!database.objectStoreNames.contains('pending_files')) {
+            database.createObjectStore('pending_files', { keyPath: 'id' });
+          }
+        };
+        req.onsuccess = () => resolve(req.result);
+        req.onerror = () => reject(req.error);
+      });
+
+      const record = await new Promise((resolve, reject) => {
+        const tx = db.transaction('pending_files', 'readwrite');
+        const store = tx.objectStore('pending_files');
+        const getReq = store.get('latest');
+        getReq.onsuccess = () => {
+          const result = getReq.result;
+          // Delete the record after retrieving so it doesn't persist
+          store.delete('latest');
+          resolve(result || null);
+        };
+        getReq.onerror = () => reject(getReq.error);
+      });
+
+      db.close();
+
+      if (!record || !record.data) {
+        DocUI.showToast('📎 Shared file could not be loaded. Please try again.', 'error');
+        return;
+      }
+
+      // Reconstruct a File object from the stored ArrayBuffer
+      const blob = new Blob([record.data], { type: record.type });
+      const file = new File([blob], record.name, {
+        type: record.type,
+        lastModified: record.timestamp || Date.now()
+      });
+
+      // Use the shared title as document name if available, else derive from filename
+      const prefillName = record.title
+        || record.name.replace(/\.[^.]+$/, '').replace(/[_-]/g, ' ')
+        || 'Shared Document';
+
+      // Open upload modal and attach the shared file
+      openUploadModal({ name: prefillName });
+      
+      // Give the modal time to render, then inject the file
+      setTimeout(() => {
+        handleFileSelect(file);
+        DocUI.showToast('📥 Document received! Fill in the details and save.', 'success', 4000);
+      }, 150);
+
+    } catch (err) {
+      console.error('[Vaulta] Share target handling failed:', err);
+      DocUI.showToast('Failed to process shared file. Please try uploading manually.', 'error');
+    }
   }
 
   function parseStandardDate(str) {

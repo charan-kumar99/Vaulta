@@ -8,6 +8,40 @@
   "background_color": "#0b0f1a",
   "theme_color": "#0b0f1a",
   "orientation": "portrait-primary",
+  "share_target": {
+    "action": "./?share-target=true",
+    "method": "POST",
+    "enctype": "multipart/form-data",
+    "params": {
+      "title": "title",
+      "text": "text",
+      "url": "url",
+      "files": [
+        {
+          "name": "file",
+          "accept": [
+            "image/*",
+            "application/pdf",
+            "application/vnd.ms-excel",
+            "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            "text/csv",
+            ".pdf",
+            ".jpg",
+            ".jpeg",
+            ".png",
+            ".gif",
+            ".webp",
+            ".heic",
+            ".heif",
+            ".bmp",
+            ".xls",
+            ".xlsx",
+            ".csv"
+          ]
+        }
+      ]
+    }
+  },
   "icons": [
     {
       "src": "icons/icon-192.png",
