@@ -1,18 +1,18 @@
-const CACHE_NAME = 'vaulta-v63';
+const CACHE_NAME = 'vaulta-v64';
 const ASSETS_TO_CACHE = [
   './',
   './index.html',
   './manifest.json',
   './favicon.ico',
-  './css/index.css?v=63',
-  './css/animations.css?v=63',
-  './css/components.css?v=63',
-  './js/db.js?v=63',
-  './js/search.js?v=63',
-  './js/share.js?v=63',
-  './js/ui.js?v=63',
-  './js/security.js?v=63',
-  './js/app.js?v=63',
+  './css/index.css?v=64',
+  './css/animations.css?v=64',
+  './css/components.css?v=64',
+  './js/db.js?v=64',
+  './js/search.js?v=64',
+  './js/share.js?v=64',
+  './js/ui.js?v=64',
+  './js/security.js?v=64',
+  './js/app.js?v=64',
   './icons/icon-192.png',
   './icons/icon-512.png',
   './icons/icon-maskable-512.png',
@@ -66,8 +66,7 @@ function storeSharedFile(file, title, text) {
 }
 
 self.addEventListener('install', (event) => {
-  // Don't skipWaiting immediately — let the app show an update banner first.
-  // The app will send a SKIP_WAITING message when the user taps "Update".
+  self.skipWaiting();
   event.waitUntil(
     caches.open(CACHE_NAME).then((cache) => {
       return cache.addAll(ASSETS_TO_CACHE);
@@ -75,7 +74,7 @@ self.addEventListener('install', (event) => {
   );
 });
 
-// When the app tells us to activate, do it
+// When the app tells us to activate or skip waiting
 self.addEventListener('message', (event) => {
   if (event.data && event.data.type === 'SKIP_WAITING') {
     self.skipWaiting();
@@ -87,7 +86,9 @@ self.addEventListener('activate', (event) => {
     caches.keys().then((cacheNames) => {
       return Promise.all(
         cacheNames.map((cache) => {
-          return caches.delete(cache);
+          if (cache !== CACHE_NAME) {
+            return caches.delete(cache);
+          }
         })
       );
     }).then(() => self.clients.claim())

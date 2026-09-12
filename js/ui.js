@@ -2330,6 +2330,37 @@ const DocUI = (() => {
                 <span class="settings-pill-badge pill-active">${theme.toUpperCase()}</span>
               </button>
             </div>
+
+            <div style="font-size: 0.72rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: var(--color-text-tertiary); margin-top: 16px; margin-bottom: 8px; padding-left: 4px;">App & Updates</div>
+            <div class="settings-card-group">
+              <button class="settings-row-item" id="settingsUpdatesBtn">
+                <div class="settings-icon-tile tile-violet">
+                  <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+                </div>
+                <div class="settings-item-body">
+                  <div style="display: flex; align-items: center; gap: 8px;">
+                    <span class="settings-item-title">What's New & Updates</span>
+                    <span class="settings-pill-badge pill-active">v64 LATEST</span>
+                  </div>
+                  <span class="settings-item-subtitle">Release notes, changelog & feature history</span>
+                </div>
+                <span class="settings-chevron" style="font-size: 1.2rem; opacity: 0.5; font-weight: 300;">›</span>
+              </button>
+
+              <button class="settings-row-item" id="settingsIconGuideBtn">
+                <div class="settings-icon-tile tile-blue">
+                  <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"></rect><rect x="14" y="3" width="7" height="7"></rect><rect x="14" y="14" width="7" height="7"></rect><rect x="3" y="14" width="7" height="7"></rect></svg>
+                </div>
+                <div class="settings-item-body">
+                  <div style="display: flex; align-items: center; gap: 8px;">
+                    <span class="settings-item-title">Update App Icon Guide</span>
+                    <span class="settings-pill-badge" style="background: rgba(56, 189, 248, 0.15); color: #38bdf8; border: 1px solid rgba(56, 189, 248, 0.3);">NEW ICON</span>
+                  </div>
+                  <span class="settings-item-subtitle">How to get the updated icon on your home screen</span>
+                </div>
+                <span class="settings-chevron" style="font-size: 1.2rem; opacity: 0.5; font-weight: 300;">›</span>
+              </button>
+            </div>
           </div>
         </div>
       </div>
@@ -2387,6 +2418,433 @@ const DocUI = (() => {
         renderSettingsSheet();
       });
     }
+
+    const updatesBtn = document.getElementById('settingsUpdatesBtn');
+    if (updatesBtn) {
+      updatesBtn.addEventListener('click', () => {
+        closeSheet();
+        renderUpdatesModal();
+      });
+    }
+
+    const iconGuideBtn = document.getElementById('settingsIconGuideBtn');
+    if (iconGuideBtn) {
+      iconGuideBtn.addEventListener('click', () => {
+        closeSheet();
+        renderIconGuideModal();
+      });
+    }
+
+    bindSheetDragDismiss(backdrop);
+  }
+
+  // ── Updates & Changelog Data ──
+  const VAULTA_UPDATES = [
+    {
+      version: 'v64',
+      tag: 'Latest',
+      date: 'September 12, 2026',
+      title: 'WhatsApp Share Target, Update History & UI Polish',
+      badge: 'NEW',
+      summary: 'Direct WhatsApp share to Vaulta, update history with details popups in Settings, bottom nav spacing fix, and cleaner date display.',
+      details: {
+        features: [
+          'WhatsApp & External App Share Target: Share images, PDFs, and files directly from WhatsApp or any app straight into Vaulta upload screen with pre-filled document details.',
+          'What\'s New & Updates Center in Settings: Complete list of all updates with dates and tap-to-view details popup.',
+          'App Icon Reinstall Guide: Built-in instructions on refreshing your home screen icon without risking any document data.'
+        ],
+        improvements: [
+          'Update Modal Fix: Positioned cleanly above the bottom navigation bar so Home, Vaults, and Settings are always accessible.',
+          'One-tap update handling: Tap Update to dismiss instantly, apply the latest files, and reload without getting stuck.',
+          'Date Picker Polish: Removed duplicate calendar icons for a clean, single-calendar date display.'
+        ],
+        dataSafety: 'All documents and cards remain 100% offline and encrypted in local IndexedDB storage. Code updates never delete your files.'
+      }
+    },
+    {
+      version: 'v63',
+      tag: 'Major',
+      date: 'September 11, 2026',
+      title: 'Camera Scanner, Screen Privacy Shield & Zip Backup',
+      badge: 'FEATURE',
+      summary: 'In-app document camera scanner, screen switcher obfuscation, and password-protected zip backup archive.',
+      details: {
+        features: [
+          'Live Camera Scanner: Instant document scanner with torch support, front/back camera switch, and live crop guide.',
+          'Screen Privacy Shield: Automatically obfuscates sensitive documents when switching apps in Android/iOS task switcher.',
+          'Zip Backup Export: One-click export of your entire document library into an offline encrypted .zip archive.'
+        ],
+        improvements: [
+          'Modernized Vault View: Premium glassmorphic cards matching the home screen aesthetics.',
+          'Custom Date & Month Selectors: Fast year-jump and month-jump selectors.',
+          'Expiry Tracker: Real-time badges and notifications for soon-to-expire documents.'
+        ],
+        dataSafety: 'Zero cloud reliance. No account or external server needed — completely local to your device.'
+      }
+    },
+    {
+      version: 'v62',
+      tag: 'Design',
+      date: 'September 10, 2026',
+      title: 'Brand Refresh & High-Resolution App Icon',
+      badge: 'REDESIGN',
+      summary: 'New metallic cyan-blue V-shield logo, adaptive maskable home screen icon, and PWA manifest upgrade.',
+      iconGuide: true,
+      details: {
+        features: [
+          'New Brand Identity: Futuristic gradient V emblem with metallic glow.',
+          'Adaptive Maskable Icons: Full circle, squircle, and rounded square support on Android launchers.',
+          'Reinstall Guide for App Icon: Clear steps for updating home screen icons on mobile PWAs.'
+        ],
+        improvements: [
+          'Upgraded manifest.json with standalone WebAPK launcher configurations.',
+          'Enhanced dark theme contrast and typography.'
+        ],
+        dataSafety: 'Your documents are safe! Reinstalling the shortcut refreshes the icon, while all your documents remain securely saved in IndexedDB.'
+      }
+    },
+    {
+      version: 'v61',
+      tag: 'Core',
+      date: 'September 8, 2026',
+      title: 'Personal & Official Dual Vaults + Biometric App Lock',
+      badge: 'CORE',
+      summary: 'Separated Personal and Official vaults, fingerprint/PIN app lock, and instant offline document search.',
+      details: {
+        features: [
+          'Dual Vault System: Personal Vault (ID, Passport, Health) & Official Vault (Tax, Salary, Offers).',
+          'App Lock Security: PIN passcode and WebAuthn fingerprint biometric sensor unlock.',
+          'Full-Text Offline Search: Instant query filter by name, category, and date range.'
+        ],
+        improvements: [
+          'Color-coded category tags with custom SVGs.',
+          'Multi-format previewer for PDFs, images, and documents.'
+        ],
+        dataSafety: 'Device-only cryptographic security with AES-GCM local storage encryption.'
+      }
+    }
+  ];
+
+  function renderUpdatesModal() {
+    const modalsContainer = document.getElementById('modals');
+    if (!modalsContainer) return;
+    document.body.classList.add('modal-open');
+
+    const updateCardsHtml = VAULTA_UPDATES.map((upd, idx) => `
+      <div class="update-card-item" data-version="${upd.version}" style="cursor: pointer;">
+        <div class="update-card-header">
+          <div style="display: flex; align-items: center; gap: 8px;">
+            <span class="update-version-tag ${idx === 0 ? 'latest' : ''}">${upd.version}</span>
+            <span class="update-date-label">${upd.date}</span>
+          </div>
+          <span class="update-badge ${upd.badge.toLowerCase()}">${upd.badge}</span>
+        </div>
+        <div class="update-card-title">${upd.title}</div>
+        <div class="update-card-summary">${upd.summary}</div>
+        <div class="update-card-footer">
+          <span class="update-view-details">View Details & Changes ›</span>
+        </div>
+      </div>
+    `).join('');
+
+    modalsContainer.innerHTML = `
+      <div class="modal-overlay active modal-overlay-enter" id="updatesModalOverlay">
+        <div class="modal-content modal-content-enter" style="max-width: 500px;" role="dialog" aria-modal="true" aria-labelledby="updatesModalTitle">
+          <div class="modal-header">
+            <h2 class="modal-title" id="updatesModalTitle" style="display: flex; align-items: center; gap: 8px;">
+              <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color: var(--color-accent-primary);"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+              What's New & Updates
+            </h2>
+            <button class="modal-close" id="closeUpdatesModalBtn" aria-label="Close">✕</button>
+          </div>
+          <div class="modal-body" style="padding: 16px 18px 30px; max-height: 75vh; overflow-y: auto; -webkit-overflow-scrolling: touch;">
+            <!-- Current Status Box -->
+            <div class="update-current-status">
+              <div style="display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 8px;">
+                <div style="display: flex; align-items: center; gap: 10px;">
+                  <div class="update-status-icon">✨</div>
+                  <div>
+                    <div style="font-weight: 700; font-size: 0.95rem; color: var(--color-text-primary);">Vaulta v64</div>
+                    <div style="font-size: 0.76rem; color: #10b981; font-weight: 600;">● Latest Version Active</div>
+                  </div>
+                </div>
+                <button type="button" class="btn btn-secondary btn-sm" id="manualCheckUpdateBtn" style="font-size: 0.75rem; padding: 6px 12px;">Check Updates</button>
+              </div>
+              <div style="font-size: 0.78rem; color: var(--color-text-secondary); line-height: 1.4;">
+                All documents are saved offline on this device. Updates add features and improvements without altering your stored documents.
+              </div>
+            </div>
+
+            <!-- Icon update quick highlight card -->
+            <div class="update-icon-highlight-card" id="quickIconGuideBtn">
+              <div style="display: flex; align-items: center; gap: 10px;">
+                <span style="font-size: 1.3rem;">🎨</span>
+                <div style="flex: 1;">
+                  <div style="font-weight: 700; font-size: 0.86rem; color: var(--color-text-primary);">Changed App Icon?</div>
+                  <div style="font-size: 0.75rem; color: var(--color-text-secondary);">Tap to see steps to get the new icon on your phone safely.</div>
+                </div>
+                <span style="color: #38bdf8; font-weight: 700; font-size: 0.82rem;">Steps ›</span>
+              </div>
+            </div>
+
+            <div style="font-size: 0.72rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: var(--color-text-tertiary); margin: 16px 0 10px 4px;">Update History (Tap to view details)</div>
+            <div class="update-cards-list">
+              ${updateCardsHtml}
+            </div>
+          </div>
+        </div>
+      </div>
+    `;
+
+    const closeBtn = document.getElementById('closeUpdatesModalBtn');
+    const backdrop = document.getElementById('updatesModalOverlay');
+    const closeModal = () => {
+      document.body.classList.remove('modal-open');
+      modalsContainer.innerHTML = '';
+      if (window.DocApp && typeof window.DocApp.syncActiveTab === 'function') {
+        window.DocApp.syncActiveTab();
+      }
+    };
+
+    if (closeBtn) closeBtn.addEventListener('click', closeModal);
+    if (backdrop) backdrop.addEventListener('click', (e) => { if (e.target === backdrop) closeModal(); });
+
+    const checkBtn = document.getElementById('manualCheckUpdateBtn');
+    if (checkBtn) {
+      checkBtn.addEventListener('click', () => {
+        showToast('Checking for updates… 🔄', 'info');
+        if ('serviceWorker' in navigator) {
+          navigator.serviceWorker.getRegistration().then((reg) => {
+            if (reg) {
+              reg.update().then(() => {
+                setTimeout(() => {
+                  if (reg.waiting) {
+                    showToast('Update available! Updating...', 'info');
+                    reg.waiting.postMessage({ type: 'SKIP_WAITING' });
+                  } else {
+                    showToast('You are running the latest version! ✨', 'success');
+                  }
+                }, 1000);
+              }).catch(() => {
+                showToast('You are on the latest version! ✨', 'success');
+              });
+            } else {
+              showToast('Vaulta is up to date! ✨', 'success');
+            }
+          }).catch(() => {
+            showToast('Vaulta is up to date! ✨', 'success');
+          });
+        } else {
+          showToast('Vaulta is up to date! ✨', 'success');
+        }
+      });
+    }
+
+    const quickIconBtn = document.getElementById('quickIconGuideBtn');
+    if (quickIconBtn) {
+      quickIconBtn.addEventListener('click', () => {
+        renderIconGuideModal();
+      });
+    }
+
+    // Bind click on each update card
+    const cards = modalsContainer.querySelectorAll('.update-card-item');
+    cards.forEach((card) => {
+      card.addEventListener('click', () => {
+        const ver = card.dataset.version;
+        const upd = VAULTA_UPDATES.find((u) => u.version === ver);
+        if (upd) {
+          renderUpdateDetailModal(upd);
+        }
+      });
+    });
+
+    bindSheetDragDismiss(backdrop);
+  }
+
+  function renderUpdateDetailModal(upd) {
+    const modalsContainer = document.getElementById('modals');
+    if (!modalsContainer) return;
+    document.body.classList.add('modal-open');
+
+    modalsContainer.innerHTML = `
+      <div class="modal-overlay active modal-overlay-enter" id="updateDetailModalOverlay">
+        <div class="modal-content modal-content-enter" style="max-width: 480px;" role="dialog" aria-modal="true">
+          <div class="modal-header">
+            <div style="display: flex; flex-direction: column; gap: 2px;">
+              <div style="display: flex; align-items: center; gap: 8px;">
+                <span class="update-version-tag ${upd.version === 'v64' ? 'latest' : ''}">${upd.version}</span>
+                <span class="update-date-label">${upd.date}</span>
+                <span class="update-badge ${upd.badge.toLowerCase()}">${upd.badge}</span>
+              </div>
+              <h2 class="modal-title" style="font-size: 1.08rem; margin-top: 5px;">${upd.title}</h2>
+            </div>
+            <button class="modal-close" id="closeUpdateDetailBtn" aria-label="Close">✕</button>
+          </div>
+          <div class="modal-body" style="padding: 16px 18px 30px; max-height: 75vh; overflow-y: auto; -webkit-overflow-scrolling: touch;">
+            <p style="font-size: 0.86rem; color: var(--color-text-secondary); margin-bottom: 16px; line-height: 1.45;">
+              ${upd.summary}
+            </p>
+
+            <!-- Features implemented -->
+            <div class="update-detail-section">
+              <div class="update-section-title">
+                <span>🚀</span> Features Implemented
+              </div>
+              <ul class="update-bullet-list">
+                ${upd.details.features.map(f => `<li>${f}</li>`).join('')}
+              </ul>
+            </div>
+
+            <!-- Improvements & fixes -->
+            <div class="update-detail-section">
+              <div class="update-section-title">
+                <span>⚡</span> Improvements & Fixes
+              </div>
+              <ul class="update-bullet-list">
+                ${upd.details.improvements.map(imp => `<li>${imp}</li>`).join('')}
+              </ul>
+            </div>
+
+            ${upd.iconGuide ? `
+              <!-- App Icon Update Steps (requested by user) -->
+              <div class="update-icon-guide-box">
+                <div class="update-icon-guide-title">
+                  <span>📱</span> Steps to get the updated App Icon:
+                </div>
+                <ol class="update-step-list">
+                  <li><strong>Uninstall or Remove:</strong> Long-press the Vaulta icon on your phone's home screen and tap <em>Uninstall</em> or <em>Remove shortcut</em>.</li>
+                  <li><strong>Open in Browser:</strong> Open Google Chrome, Samsung Internet, or Safari and go to Vaulta.</li>
+                  <li><strong>Install Again:</strong> Tap the browser menu (<strong>⋮</strong> or Share) and choose <strong>"Install App"</strong> or <strong>"Add to Home screen"</strong>.</li>
+                  <li><strong>Done:</strong> The app will now show the new updated icon on your home screen!</li>
+                </ol>
+                <div class="update-safety-alert">
+                  <span style="font-size: 1.3rem; flex-shrink: 0;">🛡️</span>
+                  <div>
+                    <strong>Your documents are 100% safe & will NOT get deleted!</strong>
+                    <div style="font-size: 0.78rem; opacity: 0.95; margin-top: 2px;">
+                      All your documents and cards are stored in your device's persistent IndexedDB database. Reinstalling the shortcut only refreshes the launcher icon — your data is never touched.
+                    </div>
+                  </div>
+                </div>
+              </div>
+            ` : ''}
+
+            <!-- Data Safety Guarantee -->
+            <div class="update-safety-guarantee">
+              <span>🔒</span>
+              <span><strong>Data Safety Guaranteed:</strong> ${upd.details.dataSafety}</span>
+            </div>
+
+            <div style="margin-top: 20px; display: flex; gap: 10px;">
+              <button type="button" class="btn btn-secondary" style="flex: 1;" id="backToUpdatesBtn">‹ All Updates</button>
+              <button type="button" class="btn btn-primary" style="flex: 1;" id="doneUpdateDetailBtn">Close</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    `;
+
+    const closeBtn = document.getElementById('closeUpdateDetailBtn');
+    const doneBtn = document.getElementById('doneUpdateDetailBtn');
+    const backBtn = document.getElementById('backToUpdatesBtn');
+    const backdrop = document.getElementById('updateDetailModalOverlay');
+
+    const closeModal = () => {
+      document.body.classList.remove('modal-open');
+      modalsContainer.innerHTML = '';
+      if (window.DocApp && typeof window.DocApp.syncActiveTab === 'function') {
+        window.DocApp.syncActiveTab();
+      }
+    };
+
+    if (closeBtn) closeBtn.addEventListener('click', closeModal);
+    if (doneBtn) doneBtn.addEventListener('click', closeModal);
+    if (backBtn) backBtn.addEventListener('click', () => { renderUpdatesModal(); });
+    if (backdrop) backdrop.addEventListener('click', (e) => { if (e.target === backdrop) closeModal(); });
+
+    bindSheetDragDismiss(backdrop);
+  }
+
+  function renderIconGuideModal() {
+    const modalsContainer = document.getElementById('modals');
+    if (!modalsContainer) return;
+    document.body.classList.add('modal-open');
+
+    modalsContainer.innerHTML = `
+      <div class="modal-overlay active modal-overlay-enter" id="iconGuideModalOverlay">
+        <div class="modal-content modal-content-enter" style="max-width: 480px;" role="dialog" aria-modal="true">
+          <div class="modal-header">
+            <h2 class="modal-title" style="display: flex; align-items: center; gap: 8px;">
+              <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color: var(--color-accent-primary);"><rect x="3" y="3" width="7" height="7"></rect><rect x="14" y="3" width="7" height="7"></rect><rect x="14" y="14" width="7" height="7"></rect><rect x="3" y="14" width="7" height="7"></rect></svg>
+              Update App Icon Guide
+            </h2>
+            <button class="modal-close" id="closeIconGuideBtn" aria-label="Close">✕</button>
+          </div>
+          <div class="modal-body" style="padding: 16px 18px 30px; max-height: 75vh; overflow-y: auto; -webkit-overflow-scrolling: touch;">
+            <div style="text-align: center; margin-bottom: 18px;">
+              <div style="width: 60px; height: 60px; border-radius: 16px; margin: 0 auto 10px; background: linear-gradient(135deg, #00f5ff, #0062ff); display: flex; align-items: center; justify-content: center; box-shadow: 0 8px 24px rgba(0, 98, 255, 0.35);">
+                <svg viewBox="0 0 34 34" width="34" height="34" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M4 6L17 28L30 6" stroke="#ffffff" stroke-width="4.2" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+              </div>
+              <div style="font-weight: 700; font-size: 1.05rem; color: var(--color-text-primary);">New Vaulta Brand Icon</div>
+              <div style="font-size: 0.8rem; color: var(--color-text-secondary); margin-top: 2px;">Follow these steps to refresh the icon on your phone</div>
+            </div>
+
+            <!-- Steps -->
+            <div class="update-icon-guide-box">
+              <div class="update-icon-guide-title">
+                <span>📱</span> Easy 3-Step Process:
+              </div>
+              <ol class="update-step-list">
+                <li>
+                  <strong>1. Uninstall current app shortcut:</strong><br>
+                  <span style="font-size: 0.8rem; color: var(--color-text-secondary);">Long-press the Vaulta icon on your phone's home screen and tap <em>Uninstall</em> or <em>Remove</em>.</span>
+                </li>
+                <li>
+                  <strong>2. Open Vaulta in your browser:</strong><br>
+                  <span style="font-size: 0.8rem; color: var(--color-text-secondary);">Open Chrome, Samsung Internet, or Safari and navigate to Vaulta.</span>
+                </li>
+                <li>
+                  <strong>3. Tap "Install App" or "Add to Home Screen":</strong><br>
+                  <span style="font-size: 0.8rem; color: var(--color-text-secondary);">Tap the browser menu (<strong>⋮</strong> or Share icon) and choose <strong>"Install app"</strong> or <strong>"Add to Home screen"</strong>.</span>
+                </li>
+              </ol>
+
+              <!-- Safety Reassurance -->
+              <div class="update-safety-alert">
+                <span style="font-size: 1.4rem; flex-shrink: 0;">🛡️</span>
+                <div>
+                  <strong>Your documents will be there — won't get deleted!</strong>
+                  <div style="font-size: 0.8rem; opacity: 0.95; margin-top: 3px; line-height: 1.4;">
+                    Your uploaded documents and cards live in your browser's persistent IndexedDB database. Removing and reinstalling the home screen shortcut only refreshes the icon, and your documents remain 100% safe and intact.
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <button type="button" class="btn btn-primary" style="width: 100%; margin-top: 14px;" id="gotItIconGuideBtn">Got It, Thanks!</button>
+          </div>
+        </div>
+      </div>
+    `;
+
+    const closeBtn = document.getElementById('closeIconGuideBtn');
+    const gotItBtn = document.getElementById('gotItIconGuideBtn');
+    const backdrop = document.getElementById('iconGuideModalOverlay');
+
+    const closeModal = () => {
+      document.body.classList.remove('modal-open');
+      modalsContainer.innerHTML = '';
+      if (window.DocApp && typeof window.DocApp.syncActiveTab === 'function') {
+        window.DocApp.syncActiveTab();
+      }
+    };
+
+    if (closeBtn) closeBtn.addEventListener('click', closeModal);
+    if (gotItBtn) gotItBtn.addEventListener('click', closeModal);
+    if (backdrop) backdrop.addEventListener('click', (e) => { if (e.target === backdrop) closeModal(); });
 
     bindSheetDragDismiss(backdrop);
   }
@@ -2748,6 +3206,9 @@ const DocUI = (() => {
     renderStorageAnalyticsModal,
     renderSettingsSheet,
     renderVaultsSheet,
+    renderUpdatesModal,
+    renderUpdateDetailModal,
+    renderIconGuideModal,
     renderExpiryTrackerModal,
     setupVaultaCustomSelect,
     loadPdfJsLibrary,

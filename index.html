@@ -22,9 +22,9 @@
   <link rel="icon" type="image/png" sizes="32x32" href="icons/favicon-32x32.png" />
   <link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png" />
 
-  <link rel="stylesheet" href="css/index.css?v=63" />
-  <link rel="stylesheet" href="css/animations.css?v=63" />
-  <link rel="stylesheet" href="css/components.css?v=63" />
+  <link rel="stylesheet" href="css/index.css?v=64" />
+  <link rel="stylesheet" href="css/animations.css?v=64" />
+  <link rel="stylesheet" href="css/components.css?v=64" />
 </head>
 <body>
 
@@ -133,7 +133,7 @@
       </div>
       <div class="update-banner-text">
         <div class="update-banner-title">New Update Available</div>
-        <div class="update-banner-subtitle">Tap Update to get the latest features. Your documents are safe.</div>
+        <div class="update-banner-subtitle">Tap Update to get latest features. Your documents are safe.</div>
       </div>
       <div class="update-banner-actions">
         <button class="update-btn update-btn-primary" id="updateNowBtn">Update</button>
@@ -143,12 +143,12 @@
   </div>
 
 
-  <script src="js/db.js?v=63"></script>
-  <script src="js/search.js?v=63"></script>
-  <script src="js/share.js?v=63"></script>
-  <script src="js/ui.js?v=63"></script>
-  <script src="js/security.js?v=63"></script>
-  <script src="js/app.js?v=63"></script>
+  <script src="js/db.js?v=64"></script>
+  <script src="js/search.js?v=64"></script>
+  <script src="js/share.js?v=64"></script>
+  <script src="js/ui.js?v=64"></script>
+  <script src="js/security.js?v=64"></script>
+  <script src="js/app.js?v=64"></script>
 
   <script>
     document.addEventListener('DOMContentLoaded', () => {
@@ -158,13 +158,8 @@
         window.SecurityModule.init();
       }
 
-      const secBtn = document.getElementById('securityLockBtn');
-      if (secBtn) {
-        secBtn.addEventListener('click', () => {
-          if (window.DocUI && typeof window.DocUI.renderSecurityModal === 'function') {
-            window.DocUI.renderSecurityModal();
-          }
-        });
+      if (window.DocShare) {
+        window.DocShare.init();
       }
 
       const triggerLockIfActive = () => {
@@ -185,7 +180,7 @@
         triggerLockIfActive();
       });
 
-      const backupBtn = document.getElementById('backupBtn');
+      const backupBtn = document.getElementById('headerBackupBtn');
       if (backupBtn) {
         backupBtn.addEventListener('click', () => {
           if (window.DocApp && typeof window.DocApp.exportBackup === 'function') {
@@ -204,8 +199,20 @@
       document.getElementById('themeToggle').textContent = theme === 'dark' ? '☀️' : '🌙';
 
       if ('serviceWorker' in navigator) {
+        const CURRENT_APP_VERSION = 'v64';
         let refreshing = false;
         let waitingWorker = null;
+
+        // Check if we just completed an update
+        if (sessionStorage.getItem('vaulta_just_updated') === 'true') {
+          sessionStorage.removeItem('vaulta_just_updated');
+          sessionStorage.setItem('vaulta_update_handled', CURRENT_APP_VERSION);
+          setTimeout(() => {
+            if (window.DocUI && typeof window.DocUI.showToast === 'function') {
+              window.DocUI.showToast('Vaulta updated to latest version! ✨', 'success');
+            }
+          }, 600);
+        }
 
         // When the new SW takes control, reload to apply updates
         navigator.serviceWorker.addEventListener('controllerchange', () => {
@@ -217,47 +224,65 @@
 
         // Show the update banner when a new SW is waiting
         function showUpdateBanner(worker) {
+          // If already dismissed or applied in this session, do not show
+          if (sessionStorage.getItem('vaulta_update_handled') === CURRENT_APP_VERSION) return;
+
           waitingWorker = worker;
           const banner = document.getElementById('updateBanner');
           if (!banner) return;
 
+          banner.style.display = '';
           // Show the banner with a slight delay for a smoother entrance
-          setTimeout(() => banner.classList.add('visible'), 600);
+          setTimeout(() => banner.classList.add('visible'), 500);
 
-          // "Update" button: tell the waiting SW to activate
-          const updateBtn = document.getElementById('updateNowBtn');
-          if (updateBtn) {
-            updateBtn.addEventListener('click', () => {
-              banner.classList.add('reloading');
-              updateBtn.textContent = 'Updating…';
-              if (waitingWorker) {
-                waitingWorker.postMessage({ type: 'SKIP_WAITING' });
-              }
-              // Fallback: if controllerchange doesn't fire within 2s, force reload
-              setTimeout(() => {
-                if (!refreshing) {
-                  refreshing = true;
-                  window.location.reload();
+          if (banner.dataset.bound !== 'true') {
+            banner.dataset.bound = 'true';
+
+            // "Update" button: dismiss immediately, notify, and activate
+            const updateBtn = document.getElementById('updateNowBtn');
+            if (updateBtn) {
+              updateBtn.addEventListener('click', () => {
+                sessionStorage.setItem('vaulta_update_handled', CURRENT_APP_VERSION);
+                sessionStorage.setItem('vaulta_just_updated', 'true');
+                banner.classList.remove('visible');
+                setTimeout(() => { banner.style.display = 'none'; }, 300);
+
+                if (window.DocUI && typeof window.DocUI.showToast === 'function') {
+                  window.DocUI.showToast('Applying update… ✨', 'info');
                 }
-              }, 2000);
-            });
-          }
 
-          // "Dismiss" button: hide the banner (update will apply on next visit)
-          const dismissBtn = document.getElementById('updateDismissBtn');
-          if (dismissBtn) {
-            dismissBtn.addEventListener('click', () => {
-              banner.classList.remove('visible');
-            });
+                if (waitingWorker) {
+                  waitingWorker.postMessage({ type: 'SKIP_WAITING' });
+                }
+
+                // Fallback: reload page
+                setTimeout(() => {
+                  if (!refreshing) {
+                    refreshing = true;
+                    window.location.reload();
+                  }
+                }, 600);
+              });
+            }
+
+            // "Dismiss" button: hide the banner
+            const dismissBtn = document.getElementById('updateDismissBtn');
+            if (dismissBtn) {
+              dismissBtn.addEventListener('click', () => {
+                sessionStorage.setItem('vaulta_update_handled', CURRENT_APP_VERSION);
+                banner.classList.remove('visible');
+                setTimeout(() => { banner.style.display = 'none'; }, 300);
+              });
+            }
           }
         }
 
-        navigator.serviceWorker.register('sw.js?v=63')
+        navigator.serviceWorker.register('sw.js?v=64')
           .then((reg) => {
             if (!reg) return;
 
-            // If there's already a waiting worker (e.g. from a previous visit)
-            if (reg.waiting) {
+            // If there's already a waiting worker
+            if (reg.waiting && reg.waiting.state === 'installed') {
               showUpdateBanner(reg.waiting);
               return;
             }
@@ -268,14 +293,13 @@
               if (!newWorker) return;
 
               newWorker.addEventListener('statechange', () => {
-                // When the new worker is installed and waiting
                 if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
                   showUpdateBanner(newWorker);
                 }
               });
             });
 
-            // Also check for updates periodically (every 60 minutes)
+            // Check for updates periodically
             setInterval(() => reg.update(), 60 * 60 * 1000);
           })
           .catch((err) => console.error('[Vaulta] SW registration failed:', err));
