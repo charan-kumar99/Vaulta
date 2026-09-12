@@ -1815,7 +1815,7 @@ const DocUI = (() => {
       if (!isoStr) return '<span style="color: var(--color-text-tertiary); font-size: 0.82rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">Select expiry date...</span>';
       const d = new Date(isoStr);
       if (isNaN(d.getTime())) return isoStr;
-      return `<strong style="color: var(--color-accent-primary); font-size: 0.9rem;">📅 ${d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</strong>`;
+      return `<strong style="color: var(--color-accent-primary); font-size: 0.9rem;">${d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</strong>`;
     };
 
     container.innerHTML = `
