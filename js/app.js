@@ -2926,6 +2926,7 @@ const DocApp = (() => {
 
     window.VaultaScreenSec = {
       isActive: isScreenSecActive,
+      isEnabled: isScreenSecActive,
       toggle: () => {
         const current = isScreenSecActive();
         localStorage.setItem('vaulta_screen_security', current ? 'disabled' : 'enabled');
@@ -2946,6 +2947,8 @@ const DocApp = (() => {
     syncActiveTab,
   };
 })();
+
+window.DocApp = DocApp;
 
 function formatFileSize(bytes) {
   if (bytes < 1024) return bytes + ' B';

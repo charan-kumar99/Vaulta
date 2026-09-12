@@ -1433,7 +1433,11 @@ const DocUI = (() => {
     }
 
     document.body.classList.add('modal-open');
-    const isScreenSecActive = window.VaultaScreenSec ? window.VaultaScreenSec.isEnabled() : true;
+    const isScreenSecActive = window.VaultaScreenSec
+      ? (typeof window.VaultaScreenSec.isEnabled === 'function'
+          ? window.VaultaScreenSec.isEnabled()
+          : (typeof window.VaultaScreenSec.isActive === 'function' ? window.VaultaScreenSec.isActive() : true))
+      : true;
 
     modalsContainer.innerHTML = `
       <div class="modal-overlay active modal-overlay-enter" id="securityModalOverlay">
@@ -2343,7 +2347,11 @@ const DocUI = (() => {
 
     const theme = document.documentElement.getAttribute('data-theme') || 'dark';
     const themeLabel = theme === 'dark' ? 'Light Mode' : 'Dark Mode';
-    const isScreenSecActive = window.VaultaScreenSec ? window.VaultaScreenSec.isEnabled() : true;
+    const isScreenSecActive = window.VaultaScreenSec
+      ? (typeof window.VaultaScreenSec.isEnabled === 'function'
+          ? window.VaultaScreenSec.isEnabled()
+          : (typeof window.VaultaScreenSec.isActive === 'function' ? window.VaultaScreenSec.isActive() : true))
+      : true;
 
     modalsContainer.innerHTML = `
       <div class="modal-overlay active modal-overlay-enter" id="settingsSheetOverlay">
@@ -2434,7 +2442,7 @@ const DocUI = (() => {
                 <div class="settings-item-body">
                   <div style="display: flex; align-items: center; gap: 8px;">
                     <span class="settings-item-title">What's New & Updates</span>
-                    <span class="settings-pill-badge pill-active">v67 LATEST</span>
+                    <span class="settings-pill-badge pill-active">v68 LATEST</span>
                   </div>
                   <span class="settings-item-subtitle">Release notes, changelog & feature history</span>
                 </div>
@@ -2534,6 +2542,26 @@ const DocUI = (() => {
 
   // ── Updates & Changelog Data ──
   const VAULTA_UPDATES = [
+    {
+      version: 'v68',
+      tag: 'Navigation & Settings',
+      date: 'September 12, 2026',
+      title: 'Settings Opening & Direct Vault Navigation Fix',
+      badge: 'FIX',
+      summary: 'Fixed Settings sheet opening in mobile view and enabled direct vault navigation when tapping Personal Vault or Official Vault in the bottom sheet.',
+      details: {
+        features: [
+          'Direct Vault Navigation: Tapping Personal Vault or Official Vault in the Choose Vault sheet now immediately opens that vault screen and highlights the Vaults tab.',
+          'Instant Settings Access: Fixed Settings sheet initialization on mobile so tapping Settings opens smoothly with all security, theme, and update options.',
+          'Global Module Exposure: Attached DocApp and DocUI to window so all navigation and modal handlers invoke cleanly across the app.'
+        ],
+        improvements: [
+          'Guarded VaultaScreenSec call with fallback to both isEnabled() and isActive().',
+          'Clean sheet closure without tab de-sync on vault transitions.'
+        ],
+        dataSafety: 'Zero impact on documents or keys. All documents remain securely encrypted at rest.'
+      }
+    },
     {
       version: 'v67',
       tag: 'Navigation',
@@ -2829,7 +2857,7 @@ const DocUI = (() => {
           <div class="modal-header">
             <div style="display: flex; flex-direction: column; gap: 2px;">
               <div style="display: flex; align-items: center; gap: 8px;">
-                <span class="update-version-tag ${upd.version === 'v64' ? 'latest' : ''}">${upd.version}</span>
+                <span class="update-version-tag ${upd.version === VAULTA_UPDATES[0].version ? 'latest' : ''}">${upd.version}</span>
                 <span class="update-date-label">${upd.date}</span>
                 <span class="update-badge ${upd.badge.toLowerCase()}">${upd.badge}</span>
               </div>
@@ -3067,30 +3095,39 @@ const DocUI = (() => {
     document.body.classList.add('modal-open');
     const closeBtn = document.getElementById('closeVaultsSheetBtn');
     const backdrop = document.getElementById('vaultsSheetOverlay');
-    const closeSheet = () => {
+    const closeSheet = (syncTab = true) => {
       document.body.classList.remove('modal-open');
       modalsContainer.innerHTML = '';
-      if (window.DocApp && typeof window.DocApp.syncActiveTab === 'function') {
-        window.DocApp.syncActiveTab();
+      if (syncTab) {
+        const app = window.DocApp || (typeof DocApp !== 'undefined' ? DocApp : null);
+        if (app && typeof app.syncActiveTab === 'function') {
+          app.syncActiveTab();
+        }
       }
     };
 
-    if (closeBtn) closeBtn.addEventListener('click', closeSheet);
-    if (backdrop) backdrop.addEventListener('click', (e) => { if (e.target === backdrop) closeSheet(); });
+    if (closeBtn) closeBtn.addEventListener('click', () => closeSheet(true));
+    if (backdrop) backdrop.addEventListener('click', (e) => { if (e.target === backdrop) closeSheet(true); });
 
     const personalBtn = document.getElementById('vaultPersonalBtn');
     if (personalBtn) personalBtn.addEventListener('click', () => {
-      closeSheet();
-      if (window.DocApp && typeof window.DocApp.navigate === 'function') {
-        window.DocApp.navigate('vault', 'personal');
+      closeSheet(false);
+      const app = window.DocApp || (typeof DocApp !== 'undefined' ? DocApp : null);
+      if (app && typeof app.navigate === 'function') {
+        app.navigate('vault', 'personal');
+      } else {
+        window.location.hash = '#vault/personal';
       }
     });
 
     const officialBtn = document.getElementById('vaultOfficialBtn');
     if (officialBtn) officialBtn.addEventListener('click', () => {
-      closeSheet();
-      if (window.DocApp && typeof window.DocApp.navigate === 'function') {
-        window.DocApp.navigate('vault', 'official');
+      closeSheet(false);
+      const app = window.DocApp || (typeof DocApp !== 'undefined' ? DocApp : null);
+      if (app && typeof app.navigate === 'function') {
+        app.navigate('vault', 'official');
+      } else {
+        window.location.hash = '#vault/official';
       }
     });
 
@@ -3132,11 +3169,13 @@ const DocUI = (() => {
       content.style.transition = '';
       const diff = currentY - startY;
       if (diff > 100) {
+        document.body.classList.remove('modal-open');
         const modalsContainer = document.getElementById('modals');
         if (modalsContainer) {
           modalsContainer.innerHTML = '';
-          if (window.DocApp && typeof window.DocApp.syncActiveTab === 'function') {
-            window.DocApp.syncActiveTab();
+          const app = window.DocApp || (typeof DocApp !== 'undefined' ? DocApp : null);
+          if (app && typeof app.syncActiveTab === 'function') {
+            app.syncActiveTab();
           }
         }
       } else {
@@ -3374,4 +3413,6 @@ const DocUI = (() => {
     formatBytes,
   };
 })();
+
+window.DocUI = DocUI;
 
