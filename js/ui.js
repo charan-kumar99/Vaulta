@@ -2434,7 +2434,7 @@ const DocUI = (() => {
                 <div class="settings-item-body">
                   <div style="display: flex; align-items: center; gap: 8px;">
                     <span class="settings-item-title">What's New & Updates</span>
-                    <span class="settings-pill-badge pill-active">v65 LATEST</span>
+                    <span class="settings-pill-badge pill-active">v66 LATEST</span>
                   </div>
                   <span class="settings-item-subtitle">Release notes, changelog & feature history</span>
                 </div>
@@ -2534,6 +2534,26 @@ const DocUI = (() => {
 
   // ── Updates & Changelog Data ──
   const VAULTA_UPDATES = [
+    {
+      version: 'v66',
+      tag: 'Experience',
+      date: 'September 12, 2026',
+      title: 'Pull-To-Refresh Lock Fix & Session Persistence',
+      badge: 'FIX',
+      summary: 'Pulling down to refresh inside the app no longer prompts for app lock or PIN. Session authentication is preserved across in-app refreshes.',
+      details: {
+        features: [
+          'Pull-to-Refresh Gesture Awareness: Pulling down to refresh inside your vault keeps your unlocked session intact without asking for PIN or biometric unlock again.',
+          'Session State Persistence: Seamlessly reloads your documents while maintaining cryptographic session keys in memory.',
+          'Removed Aggressive Blur Locks: Window blur events from pull gestures or browser chrome no longer interrupt your workflow.'
+        ],
+        improvements: [
+          'Immediate re-authentication only when switching away from the app or opening from a fresh cold start.',
+          'Instant pull-to-refresh without disruption.'
+        ],
+        dataSafety: 'Zero security compromise. When switching away to another app or closing the app, Vaulta locks securely as always.'
+      }
+    },
     {
       version: 'v65',
       tag: 'Security',
@@ -2680,7 +2700,7 @@ const DocUI = (() => {
                 <div style="display: flex; align-items: center; gap: 10px;">
                   <div class="update-status-icon">✨</div>
                   <div>
-                    <div style="font-weight: 700; font-size: 0.95rem; color: var(--color-text-primary);">Vaulta v65</div>
+                    <div style="font-weight: 700; font-size: 0.95rem; color: var(--color-text-primary);">Vaulta v66</div>
                     <div style="font-size: 0.76rem; color: #10b981; font-weight: 600;">● Latest Version Active</div>
                   </div>
                 </div>

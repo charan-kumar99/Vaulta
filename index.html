@@ -22,9 +22,9 @@
   <link rel="icon" type="image/png" sizes="32x32" href="icons/favicon-32x32.png" />
   <link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png" />
 
-  <link rel="stylesheet" href="css/index.css?v=65" />
-  <link rel="stylesheet" href="css/animations.css?v=65" />
-  <link rel="stylesheet" href="css/components.css?v=65" />
+  <link rel="stylesheet" href="css/index.css?v=66" />
+  <link rel="stylesheet" href="css/animations.css?v=66" />
+  <link rel="stylesheet" href="css/components.css?v=66" />
 </head>
 <body>
 
@@ -143,12 +143,12 @@
   </div>
 
 
-  <script src="js/db.js?v=65"></script>
-  <script src="js/search.js?v=65"></script>
-  <script src="js/share.js?v=65"></script>
-  <script src="js/ui.js?v=65"></script>
-  <script src="js/security.js?v=65"></script>
-  <script src="js/app.js?v=65"></script>
+  <script src="js/db.js?v=66"></script>
+  <script src="js/search.js?v=66"></script>
+  <script src="js/share.js?v=66"></script>
+  <script src="js/ui.js?v=66"></script>
+  <script src="js/security.js?v=66"></script>
+  <script src="js/app.js?v=66"></script>
 
   <script>
     document.addEventListener('DOMContentLoaded', () => {
@@ -162,7 +162,46 @@
         window.DocShare.init();
       }
 
+      let isUnloadingOrRefreshing = false;
+
+      // Track unload/refresh so teardown doesn't trigger app lock
+      window.addEventListener('beforeunload', () => {
+        isUnloadingOrRefreshing = true;
+        try {
+          sessionStorage.setItem('vaulta_refreshing', 'true');
+          sessionStorage.setItem('vaulta_refresh_timestamp', Date.now().toString());
+        } catch (_) {}
+      });
+
+      window.addEventListener('pagehide', () => {
+        isUnloadingOrRefreshing = true;
+      });
+
+      // Detect pull-to-refresh drag gesture near top of page and suppress lock
+      let touchStartY = 0;
+      window.addEventListener('touchstart', (e) => {
+        if (e.touches && e.touches.length === 1) {
+          touchStartY = e.touches[0].clientY;
+        }
+      }, { passive: true });
+
+      window.addEventListener('touchmove', (e) => {
+        if (e.touches && e.touches.length === 1 && window.scrollY <= 2) {
+          const currentY = e.touches[0].clientY;
+          if (currentY - touchStartY > 20) {
+            // User is pulling down to refresh inside the app
+            if (window.SecurityModule && typeof window.SecurityModule.suppressLock === 'function') {
+              window.SecurityModule.suppressLock(20000);
+            }
+          }
+        }
+      }, { passive: true });
+
       const triggerLockIfActive = () => {
+        if (isUnloadingOrRefreshing) return;
+        try {
+          if (sessionStorage.getItem('vaulta_refreshing') === 'true') return;
+        } catch (_) {}
         if (window.SecurityModule && window.SecurityModule.isSecurityEnabled()) {
           if (!window.SecurityModule.isLockSuppressed()) {
             window.SecurityModule.lockApp();
@@ -170,14 +209,11 @@
         }
       };
 
+      // Only lock when the user actually switches away from the app / minimizes it
       document.addEventListener('visibilitychange', () => {
         if (document.hidden) {
           triggerLockIfActive();
         }
-      });
-
-      window.addEventListener('blur', () => {
-        triggerLockIfActive();
       });
 
       const backupBtn = document.getElementById('headerBackupBtn');
@@ -199,7 +235,7 @@
       document.getElementById('themeToggle').textContent = theme === 'dark' ? '☀️' : '🌙';
 
       if ('serviceWorker' in navigator) {
-        const CURRENT_APP_VERSION = 'v65';
+        const CURRENT_APP_VERSION = 'v66';
         let refreshing = false;
         let waitingWorker = null;
 
@@ -277,7 +313,7 @@
           }
         }
 
-        navigator.serviceWorker.register('sw.js?v=65')
+        navigator.serviceWorker.register('sw.js?v=66')
           .then((reg) => {
             if (!reg) return;
 

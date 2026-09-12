@@ -511,13 +511,20 @@
       _isLocked = true;
       _activePin = null;
       _activeKey = null;
-      try { sessionStorage.removeItem('vaulta_session_pin'); } catch (_) {}
+      try {
+        sessionStorage.removeItem('vaulta_session_pin');
+        sessionStorage.removeItem('vaulta_session_unlocked');
+        sessionStorage.removeItem('vaulta_refreshing');
+      } catch (_) {}
       this.showLockOverlay();
     },
 
     unlockApp() {
       _isLocked = false;
       this.hideLockOverlay();
+      try {
+        sessionStorage.setItem('vaulta_session_unlocked', 'true');
+      } catch (_) {}
       if (!_activePin) {
         try {
           const sPin = sessionStorage.getItem('vaulta_session_pin');
@@ -855,6 +862,28 @@
     async init() {
       _lockSuppressionUntil = 0;
       if (this.isSecurityEnabled()) {
+        let wasUnlocked = false;
+        let isRefreshing = false;
+        let isRecentRefresh = false;
+        try {
+          wasUnlocked = sessionStorage.getItem('vaulta_session_unlocked') === 'true';
+          isRefreshing = sessionStorage.getItem('vaulta_refreshing') === 'true';
+          const refreshTime = parseInt(sessionStorage.getItem('vaulta_refresh_timestamp') || '0', 10);
+          isRecentRefresh = refreshTime > 0 && (Date.now() - refreshTime) < 25000;
+          sessionStorage.removeItem('vaulta_refreshing');
+        } catch (_) {}
+
+        if (wasUnlocked && (isRefreshing || isRecentRefresh)) {
+          // Inside-app refresh! User was already authenticated and just refreshed/pulled-down.
+          _isLocked = false;
+          this.hideLockOverlay();
+          try {
+            const sPin = sessionStorage.getItem('vaulta_session_pin');
+            if (sPin) _activePin = sPin;
+          } catch (_) {}
+          return;
+        }
+
         this.lockApp(true);
       }
     }
