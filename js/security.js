@@ -8,12 +8,19 @@
     PIN_LEN: 'vaulta_security_pin_len',
     BIOMETRIC_ENABLED: 'vaulta_bio_enabled',
     BIOMETRIC_CRED_ID: 'vaulta_bio_cred_id',
-    ENCRYPTION_ENABLED: 'vaulta_encryption_enabled'
+    ENCRYPTION_ENABLED: 'vaulta_encryption_enabled',
+    DEVICE_VAULT_KEY: 'vaulta_device_key',
+    VAULT_SALT: 'vaulta_vault_salt'
   };
+
+  const ENC_HEADER = 'VAULTA_ENC_V1:';
+  const ENC_HEADER_BYTES = new TextEncoder().encode(ENC_HEADER);
 
   let _isLocked = false;
   let _currentPinInput = '';
   let _lockSuppressionUntil = 0;
+  let _activePin = null;
+  let _activeKey = null;
 
   async function hashString(str) {
     const encoder = new TextEncoder();
@@ -21,6 +28,30 @@
     const hashBuffer = await crypto.subtle.digest('SHA-256', data);
     const hashArray = Array.from(new Uint8Array(hashBuffer));
     return hashArray.map((b) => b.toString(16).padStart(2, '0')).join('');
+  }
+
+  function getVaultSalt() {
+    let hex = localStorage.getItem(STORAGE_KEYS.VAULT_SALT);
+    if (!hex || hex.length !== 32) {
+      const salt = crypto.getRandomValues(new Uint8Array(16));
+      hex = Array.from(salt).map((b) => b.toString(16).padStart(2, '0')).join('');
+      localStorage.setItem(STORAGE_KEYS.VAULT_SALT, hex);
+    }
+    const bytes = new Uint8Array(16);
+    for (let i = 0; i < 16; i++) {
+      bytes[i] = parseInt(hex.substr(i * 2, 2), 16);
+    }
+    return bytes;
+  }
+
+  function getDevicePassphrase() {
+    let key = localStorage.getItem(STORAGE_KEYS.DEVICE_VAULT_KEY);
+    if (!key || key.length < 32) {
+      const bytes = crypto.getRandomValues(new Uint8Array(32));
+      key = Array.from(bytes).map((b) => b.toString(16).padStart(2, '0')).join('');
+      localStorage.setItem(STORAGE_KEYS.DEVICE_VAULT_KEY, key);
+    }
+    return key;
   }
 
   async function deriveKey(pin, salt) {
@@ -46,6 +77,27 @@
     );
   }
 
+  async function getActiveEncryptionKey() {
+    if (_activeKey) return _activeKey;
+
+    let pin = _activePin;
+    if (!pin && window.SecurityModule && typeof window.SecurityModule.hasPasscode === 'function' && window.SecurityModule.hasPasscode()) {
+      try {
+        pin = sessionStorage.getItem('vaulta_session_pin');
+        if (pin) _activePin = pin;
+      } catch (_) {}
+    }
+
+    if (pin) {
+      _activeKey = await deriveKey(pin, getVaultSalt());
+      return _activeKey;
+    }
+
+    const devicePass = getDevicePassphrase();
+    _activeKey = await deriveKey(devicePass, getVaultSalt());
+    return _activeKey;
+  }
+
   const SecurityModule = {
     
     isSecurityEnabled() {
@@ -66,6 +118,9 @@
       localStorage.removeItem(STORAGE_KEYS.ENABLED);
       localStorage.removeItem(STORAGE_KEYS.BIOMETRIC_ENABLED);
       localStorage.removeItem(STORAGE_KEYS.BIOMETRIC_CRED_ID);
+      _activePin = null;
+      _activeKey = null;
+      try { sessionStorage.removeItem('vaulta_session_pin'); } catch (_) {}
     },
 
     getBiometricsStatus() {
@@ -121,44 +176,175 @@
     },
     
     isEncryptionEnabled() {
-      return localStorage.getItem(STORAGE_KEYS.ENCRYPTION_ENABLED) === 'true';
+      // Enabled by default for maximum privacy & at-rest security
+      const val = localStorage.getItem(STORAGE_KEYS.ENCRYPTION_ENABLED);
+      return val !== 'false';
     },
 
     setEncryptionEnabled(enabled) {
       localStorage.setItem(STORAGE_KEYS.ENCRYPTION_ENABLED, enabled ? 'true' : 'false');
     },
 
-    async encryptBlob(blob, pin) {
-      if (!blob || !pin) return blob;
-      const arrayBuffer = await blob.arrayBuffer();
-      const salt = crypto.getRandomValues(new Uint8Array(16));
-      const iv = crypto.getRandomValues(new Uint8Array(12));
-      const key = await deriveKey(pin, salt);
-      const encrypted = await crypto.subtle.encrypt({ name: 'AES-GCM', iv }, key, arrayBuffer);
-
-      const packed = new Uint8Array(salt.length + iv.length + encrypted.byteLength);
-      packed.set(salt, 0);
-      packed.set(iv, salt.length);
-      packed.set(new Uint8Array(encrypted), salt.length + iv.length);
-
-      return new Blob([packed], { type: 'application/octet-stream' });
+    async isBlobEncrypted(blob) {
+      if (!blob || !(blob instanceof Blob) || blob.size < ENC_HEADER_BYTES.length + 28) {
+        return false;
+      }
+      try {
+        const slice = blob.slice(0, ENC_HEADER_BYTES.length);
+        const text = await slice.text();
+        return text === ENC_HEADER;
+      } catch (_) {
+        return false;
+      }
     },
 
-    async decryptBlob(blob, pin, originalMimeType = 'application/octet-stream') {
-      if (!blob || !pin) return blob;
+    async encryptBlob(blob, targetMimeType = null) {
+      if (!blob) return blob;
+      // Prevent double encryption
+      if (await this.isBlobEncrypted(blob)) return blob;
+
+      try {
+        const arrayBuffer = await blob.arrayBuffer();
+        const salt = crypto.getRandomValues(new Uint8Array(16));
+        const iv = crypto.getRandomValues(new Uint8Array(12));
+        const key = await getActiveEncryptionKey();
+        const encrypted = await crypto.subtle.encrypt({ name: 'AES-GCM', iv }, key, arrayBuffer);
+
+        const packed = new Uint8Array(ENC_HEADER_BYTES.length + salt.length + iv.length + encrypted.byteLength);
+        packed.set(ENC_HEADER_BYTES, 0);
+        packed.set(salt, ENC_HEADER_BYTES.length);
+        packed.set(iv, ENC_HEADER_BYTES.length + salt.length);
+        packed.set(new Uint8Array(encrypted), ENC_HEADER_BYTES.length + salt.length + iv.length);
+
+        return new Blob([packed], { type: 'application/octet-stream' });
+      } catch (e) {
+        console.error('[Security] Encryption failed:', e);
+        return blob;
+      }
+    },
+
+    async decryptBlob(blob, originalMimeType = 'application/octet-stream') {
+      if (!blob) return blob;
+      const isEnc = await this.isBlobEncrypted(blob);
+      if (!isEnc) {
+        if (blob instanceof Blob && originalMimeType && blob.type !== originalMimeType && blob.type === 'application/octet-stream') {
+          return new Blob([blob], { type: originalMimeType });
+        }
+        return blob;
+      }
+
       try {
         const arrayBuffer = await blob.arrayBuffer();
         const dataView = new Uint8Array(arrayBuffer);
-        const salt = dataView.slice(0, 16);
-        const iv = dataView.slice(16, 28);
-        const ciphertext = dataView.slice(28);
+        const headerLen = ENC_HEADER_BYTES.length;
+        const salt = dataView.slice(headerLen, headerLen + 16);
+        const iv = dataView.slice(headerLen + 16, headerLen + 28);
+        const ciphertext = dataView.slice(headerLen + 28);
 
-        const key = await deriveKey(pin, salt);
+        const key = await getActiveEncryptionKey();
         const decrypted = await crypto.subtle.decrypt({ name: 'AES-GCM', iv }, key, ciphertext);
-        return new Blob([decrypted], { type: originalMimeType });
+        return new Blob([decrypted], { type: originalMimeType || 'application/octet-stream' });
       } catch (e) {
-        console.error('[Security] Blob decryption failed:', e);
-        throw new Error('Decryption failed. Incorrect passcode PIN.');
+        console.warn('[Security] Active key decryption failed, attempting device fallback key:', e);
+        try {
+          const devicePass = getDevicePassphrase();
+          const fallbackKey = await deriveKey(devicePass, getVaultSalt());
+          const arrayBuffer = await blob.arrayBuffer();
+          const dataView = new Uint8Array(arrayBuffer);
+          const headerLen = ENC_HEADER_BYTES.length;
+          const iv = dataView.slice(headerLen + 16, headerLen + 28);
+          const ciphertext = dataView.slice(headerLen + 28);
+          const decrypted = await crypto.subtle.decrypt({ name: 'AES-GCM', iv }, fallbackKey, ciphertext);
+          return new Blob([decrypted], { type: originalMimeType || 'application/octet-stream' });
+        } catch (err2) {
+          console.error('[Security] Both decryption attempts failed:', err2);
+          throw new Error('Failed to decrypt document. Passcode PIN required.');
+        }
+      }
+    },
+
+    async encryptAllExistingDocuments(onProgress) {
+      if (!window.DocDB || typeof window.DocDB.getAll !== 'function') {
+        throw new Error('Database is not ready');
+      }
+      const allDocs = await window.DocDB.getAll();
+      const total = allDocs.length;
+      let encryptedCount = 0;
+
+      for (let i = 0; i < total; i++) {
+        const meta = allDocs[i];
+        if (onProgress) {
+          onProgress({ current: i + 1, total, name: meta.name });
+        }
+        const fullDoc = await window.DocDB.getDocument(meta.id);
+        if (fullDoc && fullDoc.fileData) {
+          const isEnc = await this.isBlobEncrypted(fullDoc.fileData);
+          if (!isEnc) {
+            const encBlob = await this.encryptBlob(fullDoc.fileData, fullDoc.fileType);
+            await window.DocDB.updateDocument(meta.id, {
+              fileData: encBlob,
+              isEncrypted: true,
+              encAlgo: 'AES-GCM-256',
+              encryptedAt: Date.now()
+            });
+            encryptedCount++;
+          }
+        }
+      }
+
+      this.setEncryptionEnabled(true);
+      return { total, encryptedCount };
+    },
+
+    async decryptAllDocuments(onProgress) {
+      if (!window.DocDB || typeof window.DocDB.getAll !== 'function') {
+        throw new Error('Database is not ready');
+      }
+      const allDocs = await window.DocDB.getAll();
+      const total = allDocs.length;
+      let decryptedCount = 0;
+
+      for (let i = 0; i < total; i++) {
+        const meta = allDocs[i];
+        if (onProgress) {
+          onProgress({ current: i + 1, total, name: meta.name });
+        }
+        const fullDoc = await window.DocDB.getDocument(meta.id);
+        if (fullDoc && fullDoc.fileData) {
+          const isEnc = await this.isBlobEncrypted(fullDoc.fileData);
+          if (isEnc) {
+            const plainBlob = await this.decryptBlob(fullDoc.fileData, fullDoc.fileType);
+            await window.DocDB.updateDocument(meta.id, {
+              fileData: plainBlob,
+              isEncrypted: false,
+              encAlgo: null,
+              encryptedAt: null
+            });
+            decryptedCount++;
+          }
+        }
+      }
+
+      this.setEncryptionEnabled(false);
+      return { total, decryptedCount };
+    },
+
+    async getEncryptionStats() {
+      if (!window.DocDB || typeof window.DocDB.getAll !== 'function') {
+        return { total: 0, encrypted: 0, unencrypted: 0 };
+      }
+      try {
+        const allDocs = await window.DocDB.getAll();
+        const total = allDocs.length;
+        let encrypted = 0;
+        for (const meta of allDocs) {
+          if (meta.isEncrypted) {
+            encrypted++;
+          }
+        }
+        return { total, encrypted, unencrypted: total - encrypted };
+      } catch (_) {
+        return { total: 0, encrypted: 0, unencrypted: 0 };
       }
     },
 
@@ -170,6 +356,9 @@
       localStorage.setItem(STORAGE_KEYS.PIN_HASH, hash);
       localStorage.setItem(STORAGE_KEYS.PIN_LEN, pin.length.toString());
       localStorage.setItem(STORAGE_KEYS.ENABLED, 'true');
+      _activePin = pin;
+      try { sessionStorage.setItem('vaulta_session_pin', pin); } catch (_) {}
+      _activeKey = await deriveKey(pin, getVaultSalt());
       return true;
     },
 
@@ -177,7 +366,13 @@
       const storedHash = localStorage.getItem(STORAGE_KEYS.PIN_HASH);
       if (!storedHash) return false;
       const enteredHash = await hashString(pin);
-      return storedHash === enteredHash;
+      const valid = storedHash === enteredHash;
+      if (valid) {
+        _activePin = pin;
+        try { sessionStorage.setItem('vaulta_session_pin', pin); } catch (_) {}
+        _activeKey = await deriveKey(pin, getVaultSalt());
+      }
+      return valid;
     },
 
     setSecurityEnabled(enabled) {
@@ -314,12 +509,21 @@
       if (!this.isSecurityEnabled()) return;
       if (!force && this.isLockSuppressed()) return;
       _isLocked = true;
+      _activePin = null;
+      _activeKey = null;
+      try { sessionStorage.removeItem('vaulta_session_pin'); } catch (_) {}
       this.showLockOverlay();
     },
 
     unlockApp() {
       _isLocked = false;
       this.hideLockOverlay();
+      if (!_activePin) {
+        try {
+          const sPin = sessionStorage.getItem('vaulta_session_pin');
+          if (sPin) _activePin = sPin;
+        } catch (_) {}
+      }
       if (navigator.vibrate) {
         try { navigator.vibrate([20, 30, 20]); } catch (_) {}
       }

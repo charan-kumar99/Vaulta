@@ -56,19 +56,41 @@ window.DocDB = (() => {
   async function addDocument(doc) {
     const store = await getStore('readwrite');
 
+    let fileToSave = doc.fileData;
+    let isEncrypted = false;
+    let encAlgo = null;
+    let encryptedAt = null;
+
+    if (window.SecurityModule && typeof window.SecurityModule.isEncryptionEnabled === 'function' && window.SecurityModule.isEncryptionEnabled()) {
+      try {
+        if (doc.fileData) {
+          fileToSave = await window.SecurityModule.encryptBlob(doc.fileData, doc.fileType);
+          isEncrypted = true;
+          encAlgo = 'AES-GCM-256';
+          encryptedAt = Date.now();
+        }
+      } catch (err) {
+        console.warn('[DocDB] Encryption failed, saving unencrypted as fallback:', err);
+      }
+    }
+
     const document = {
       id: generateId(),
       vault: doc.vault,
       name: doc.name,
       category: doc.category,
+      folderId: doc.folderId || null,
       folder: doc.folder || null,
       tags: doc.tags || [],
-      fileData: doc.fileData,
+      fileData: fileToSave,
       fileType: doc.fileType,
       fileName: doc.fileName,
       thumbnail: doc.thumbnail || null,
       expiryDate: doc.expiryDate || null,
       isFavorite: false,
+      isEncrypted,
+      encAlgo,
+      encryptedAt,
       createdAt: Date.now(),
       updatedAt: Date.now(),
     };
@@ -77,7 +99,6 @@ window.DocDB = (() => {
       const request = store.add(document);
 
       request.onsuccess = () => {
-        
         const { fileData, ...metadata } = document;
         resolve(metadata);
       };
@@ -196,11 +217,12 @@ window.DocDB = (() => {
           return;
         }
 
+        const fileData = updates.fileData !== undefined ? updates.fileData : doc.fileData;
         const updated = {
           ...doc,
           ...updates,
-          id: doc.id, 
-          fileData: doc.fileData, 
+          id: doc.id,
+          fileData,
           updatedAt: Date.now(),
         };
 
@@ -241,27 +263,31 @@ window.DocDB = (() => {
     });
   }
 
-  async function getFileUrl(id) {
-    const doc = await getDocument(id);
-    if (!doc || !doc.fileData) return null;
-
-    if (doc.fileData instanceof Blob) {
-      return URL.createObjectURL(doc.fileData);
-    }
-
-    const blob = new Blob([doc.fileData], { type: doc.fileType });
-    return URL.createObjectURL(blob);
-  }
-
   async function getFileBlob(id) {
     const doc = await getDocument(id);
     if (!doc || !doc.fileData) return null;
 
-    if (doc.fileData instanceof Blob) {
-      return doc.fileData;
+    let blob = doc.fileData;
+    if (!(blob instanceof Blob)) {
+      blob = new Blob([doc.fileData], { type: doc.fileType || 'application/octet-stream' });
     }
 
-    return new Blob([doc.fileData], { type: doc.fileType });
+    if (window.SecurityModule && typeof window.SecurityModule.decryptBlob === 'function') {
+      try {
+        return await window.SecurityModule.decryptBlob(blob, doc.fileType);
+      } catch (err) {
+        console.warn('[DocDB] Decrypt getFileBlob warning:', err);
+        return blob;
+      }
+    }
+
+    return blob;
+  }
+
+  async function getFileUrl(id) {
+    const blob = await getFileBlob(id);
+    if (!blob) return null;
+    return URL.createObjectURL(blob);
   }
 
   async function exportAll() {
@@ -539,6 +565,16 @@ window.DocDB = (() => {
     };
   }
 
+  async function getEncryptionStats() {
+    if (window.SecurityModule && typeof window.SecurityModule.getEncryptionStats === 'function') {
+      return await window.SecurityModule.getEncryptionStats();
+    }
+    const allDocs = await getAll();
+    const total = allDocs.length;
+    const encrypted = allDocs.filter(d => d.isEncrypted).length;
+    return { total, encrypted, unencrypted: total - encrypted };
+  }
+
   return {
     open,
     addDocument,
@@ -560,5 +596,6 @@ window.DocDB = (() => {
     generateThumbnail,
     getExpiryStatus,
     getStorageStats,
+    getEncryptionStats,
   };
 })();

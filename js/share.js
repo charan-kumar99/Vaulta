@@ -131,7 +131,18 @@ const DocShare = (() => {
     for (const doc of allDocs) {
       const folder = doc.vault === 'official' ? officialFolder : personalFolder;
 
-      if (doc.fileData) {
+      let fileBlob = null;
+      if (typeof DocDB !== 'undefined' && typeof DocDB.getFileBlob === 'function') {
+        try {
+          fileBlob = await DocDB.getFileBlob(doc.id);
+        } catch (e) {
+          console.warn('[Backup] getFileBlob error for doc ' + doc.id, e);
+        }
+      }
+
+      if (fileBlob) {
+        folder.file(doc.fileName || `${doc.name}.bin`, fileBlob);
+      } else if (doc.fileData) {
         const blob = doc.fileData instanceof Blob
           ? doc.fileData
           : new Blob([doc.fileData], { type: doc.fileType || 'application/octet-stream' });
