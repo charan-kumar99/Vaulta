@@ -2434,7 +2434,7 @@ const DocUI = (() => {
                 <div class="settings-item-body">
                   <div style="display: flex; align-items: center; gap: 8px;">
                     <span class="settings-item-title">What's New & Updates</span>
-                    <span class="settings-pill-badge pill-active">v66 LATEST</span>
+                    <span class="settings-pill-badge pill-active">v67 LATEST</span>
                   </div>
                   <span class="settings-item-subtitle">Release notes, changelog & feature history</span>
                 </div>
@@ -2534,6 +2534,26 @@ const DocUI = (() => {
 
   // ── Updates & Changelog Data ──
   const VAULTA_UPDATES = [
+    {
+      version: 'v67',
+      tag: 'Navigation',
+      date: 'September 12, 2026',
+      title: 'Persistent Bottom Nav & Docked Settings Sheet',
+      badge: 'FIX',
+      summary: 'Bottom navigation bar stays visible and interactive when clicking Settings or opening vault sheets, allowing instant one-tap tab switching.',
+      details: {
+        features: [
+          'Persistent Bottom Navigation: Bottom bar (Home, Vaults, +, Search, Settings) remains completely visible on screen when opening Settings.',
+          'Docked Sheet Design: Settings and vault modal sheets float and rest seamlessly above the bottom navigation bar without cutting off content.',
+          'One-Tap Tab Switching: Tap Home, Vaults, or Settings to switch tabs or close the settings sheet instantly.'
+        ],
+        improvements: [
+          'Elevated navigation bar z-index to 3000 on mobile devices.',
+          'Clean tab state sync when switching directly between bottom bar destinations.'
+        ],
+        dataSafety: 'Zero changes to storage or encryption. All documents remain 100% encrypted with AES-256.'
+      }
+    },
     {
       version: 'v66',
       tag: 'Experience',
@@ -2700,7 +2720,7 @@ const DocUI = (() => {
                 <div style="display: flex; align-items: center; gap: 10px;">
                   <div class="update-status-icon">✨</div>
                   <div>
-                    <div style="font-weight: 700; font-size: 0.95rem; color: var(--color-text-primary);">Vaulta v66</div>
+                    <div style="font-weight: 700; font-size: 0.95rem; color: var(--color-text-primary);">Vaulta v67</div>
                     <div style="font-size: 0.76rem; color: #10b981; font-weight: 600;">● Latest Version Active</div>
                   </div>
                 </div>

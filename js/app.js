@@ -837,6 +837,7 @@ const DocApp = (() => {
         case 'home': {
           const modals = modalsContainer();
           if (modals) modals.innerHTML = '';
+          document.body.classList.remove('modal-open');
           navigate('home');
           updateActiveTab('home');
           break;
@@ -846,9 +847,11 @@ const DocApp = (() => {
           const modals = modalsContainer();
           if (existingVaultsSheet) {
             if (modals) modals.innerHTML = '';
+            document.body.classList.remove('modal-open');
             syncActiveTab();
           } else {
             if (modals) modals.innerHTML = '';
+            document.body.classList.remove('modal-open');
             DocUI.renderVaultsSheet();
             updateActiveTab('vaults');
           }
@@ -857,6 +860,7 @@ const DocApp = (() => {
         case 'upload': {
           const modals = modalsContainer();
           if (modals) modals.innerHTML = '';
+          document.body.classList.remove('modal-open');
           triggerHaptic(20);
           openUploadModal();
           break;
@@ -864,6 +868,7 @@ const DocApp = (() => {
         case 'search': {
           const modals = modalsContainer();
           if (modals) modals.innerHTML = '';
+          document.body.classList.remove('modal-open');
           updateActiveTab('search');
           const searchInput = document.getElementById('globalSearch');
           if (searchInput) {
@@ -889,9 +894,11 @@ const DocApp = (() => {
           const modals = modalsContainer();
           if (existingSettingsSheet || existingSecModal || existingStorageModal) {
             if (modals) modals.innerHTML = '';
+            document.body.classList.remove('modal-open');
             syncActiveTab();
           } else {
             if (modals) modals.innerHTML = '';
+            document.body.classList.remove('modal-open');
             DocUI.renderSettingsSheet();
             updateActiveTab('settings');
           }
